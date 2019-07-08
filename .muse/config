@@ -1,0 +1,3 @@
+# Configuration file for MuseDev build
+
+jdk11 = true
