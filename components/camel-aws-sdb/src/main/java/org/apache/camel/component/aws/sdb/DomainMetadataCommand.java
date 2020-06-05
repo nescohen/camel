@@ -19,7 +19,6 @@ package org.apache.camel.component.aws.sdb;
 import com.amazonaws.services.simpledb.AmazonSimpleDB;
 import com.amazonaws.services.simpledb.model.DomainMetadataRequest;
 import com.amazonaws.services.simpledb.model.DomainMetadataResult;
-
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 
@@ -29,6 +28,7 @@ public class DomainMetadataCommand extends AbstractSdbCommand {
         super(sdbClient, configuration, exchange);
     }
 
+    @Override
     public void execute() {
         DomainMetadataRequest request = new DomainMetadataRequest()
             .withDomainName(determineDomainName());
@@ -49,11 +49,6 @@ public class DomainMetadataCommand extends AbstractSdbCommand {
     }
     
     public static Message getMessageForResponse(final Exchange exchange) {
-        if (exchange.getPattern().isOutCapable()) {
-            Message out = exchange.getOut();
-            out.copyFrom(exchange.getIn());
-            return out;
-        }
-        return exchange.getIn();
+        return exchange.getMessage();
     }
 }

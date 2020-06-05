@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.component.websocket;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -26,7 +27,7 @@ import org.apache.camel.test.junit4.CamelTestSupport;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.DefaultAsyncHttpClient;
 import org.asynchttpclient.ws.WebSocket;
-import org.asynchttpclient.ws.WebSocketTextListener;
+import org.asynchttpclient.ws.WebSocketListener;
 import org.asynchttpclient.ws.WebSocketUpgradeHandler;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,7 +41,7 @@ public class WebsocketTwoRoutesExampleTest extends CamelTestSupport {
     @Override
     @Before
     public void setUp() throws Exception {
-        port = AvailablePortFinder.getNextAvailable(16310);
+        port = AvailablePortFinder.getNextAvailable();
         super.setUp();
     }
 
@@ -55,35 +56,52 @@ public class WebsocketTwoRoutesExampleTest extends CamelTestSupport {
 
         WebSocket websocket = c.prepareGet("ws://localhost:" + port + "/bar").execute(
             new WebSocketUpgradeHandler.Builder()
-                .addWebSocketListener(new WebSocketTextListener() {
-                    @Override
-                    public void onMessage(String message) {
-                        received.add(message);
-                        log.info("received --> " + message);
-                        latch.countDown();
-                    }
+                .addWebSocketListener(new WebSocketListener() {
 
                     @Override
                     public void onOpen(WebSocket websocket) {
                     }
 
                     @Override
-                    public void onClose(WebSocket websocket) {
+                    public void onClose(WebSocket webSocket, int i, String s) {
+
                     }
 
                     @Override
                     public void onError(Throwable t) {
                         t.printStackTrace();
                     }
+
+                    @Override
+                    public void onBinaryFrame(byte[] payload, boolean finalFragment, int rsv) {
+
+                    }
+
+                    @Override
+                    public void onTextFrame(String payload, boolean finalFragment, int rsv) {
+                        received.add(payload);
+                        log.info("received --> " + payload);
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void onPingFrame(byte[] payload) {
+
+                    }
+
+                    @Override
+                    public void onPongFrame(byte[] payload) {
+
+                    }
                 }).build()).get();
 
-        websocket.sendMessage("Beer");
+        websocket.sendTextFrame("Beer");
         assertTrue(latch.await(10, TimeUnit.SECONDS));
 
         assertEquals(1, received.size());
         assertEquals("The bar has Beer", received.get(0));
 
-        websocket.close();
+        websocket.sendCloseFrame();
         c.close();
 
         // We call the route WebSocket PUB
@@ -94,36 +112,48 @@ public class WebsocketTwoRoutesExampleTest extends CamelTestSupport {
 
         websocket = c.prepareGet("ws://localhost:" + port + "/pub").execute(
                 new WebSocketUpgradeHandler.Builder()
-                        .addWebSocketListener(new WebSocketTextListener() {
-                            @Override
-                            public void onMessage(String message) {
-                                received.add(message);
-                                log.info("received --> " + message);
-                                latch.countDown();
-                            }
+                        .addWebSocketListener(new WebSocketListener() {
 
-                                
                             @Override
                             public void onOpen(WebSocket websocket) {
                             }
 
                             @Override
-                            public void onClose(WebSocket websocket) {
+                            public void onClose(WebSocket websocket, int code, String reason) {
                             }
 
                             @Override
                             public void onError(Throwable t) {
                                 t.printStackTrace();
                             }
+
+                            @Override
+                            public void onBinaryFrame(byte[] payload, boolean finalFragment, int rsv) {
+                            }
+
+                            @Override
+                            public void onTextFrame(String payload, boolean finalFragment, int rsv) {
+                                received.add(payload);
+                                log.info("received --> " + payload);
+                                latch.countDown();
+                            }
+
+                            @Override
+                            public void onPingFrame(byte[] payload) {
+                            }
+
+                            @Override
+                            public void onPongFrame(byte[] payload) {
+                            }
                         }).build()).get();
 
-        websocket.sendMessage("wine");
+        websocket.sendTextFrame("wine");
         assertTrue(latch.await(10, TimeUnit.SECONDS));
 
         assertEquals(1, received.size());
         assertEquals("The pub has wine", received.get(0));
 
-        websocket.close();
+        websocket.sendCloseFrame();
         c.close();
     }
 

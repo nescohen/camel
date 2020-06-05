@@ -22,12 +22,12 @@ import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.Templates;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.sax.SAXSource;
+
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
 import net.sf.saxon.TransformerFactoryImpl;
-
 import org.apache.camel.Exchange;
 import org.apache.camel.ExchangePattern;
 import org.apache.camel.component.schematron.constant.Constants;
@@ -64,7 +64,7 @@ public class SchematronProducerTest extends CamelTestSupport {
         producer.process(exc);
 
         // assert
-        assertTrue(exc.getOut().getHeader(Constants.VALIDATION_STATUS).equals(Constants.SUCCESS));
+        assertTrue(exc.getMessage().getHeader(Constants.VALIDATION_STATUS).equals(Constants.SUCCESS));
     }
 
     @Test
@@ -76,7 +76,7 @@ public class SchematronProducerTest extends CamelTestSupport {
         producer.process(exc);
 
         // assert
-        assertTrue(exc.getOut().getHeader(Constants.VALIDATION_STATUS).equals(Constants.FAILED));
+        assertTrue(exc.getMessage().getHeader(Constants.VALIDATION_STATUS).equals(Constants.FAILED));
 
     }
 
@@ -89,7 +89,7 @@ public class SchematronProducerTest extends CamelTestSupport {
         producer.process(exc);
 
         // assert
-        assertTrue(exc.getOut().getHeader(Constants.VALIDATION_STATUS).equals(Constants.SUCCESS));
+        assertTrue(exc.getMessage().getHeader(Constants.VALIDATION_STATUS).equals(Constants.SUCCESS));
     }
 
     @Test
@@ -101,7 +101,7 @@ public class SchematronProducerTest extends CamelTestSupport {
         producer.process(exc);
 
         // assert
-        assertTrue(exc.getOut().getHeader(Constants.VALIDATION_STATUS).equals(Constants.FAILED));
+        assertTrue(exc.getMessage().getHeader(Constants.VALIDATION_STATUS).equals(Constants.FAILED));
 
     }
 

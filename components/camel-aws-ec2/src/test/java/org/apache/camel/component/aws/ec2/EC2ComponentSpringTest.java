@@ -30,7 +30,6 @@ import com.amazonaws.services.ec2.model.StartInstancesResult;
 import com.amazonaws.services.ec2.model.StopInstancesResult;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 import com.amazonaws.services.ec2.model.UnmonitorInstancesResult;
-
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.test.spring.CamelSpringTestSupport;
@@ -53,7 +52,7 @@ public class EC2ComponentSpringTest extends CamelSpringTestSupport {
             }
         });
         
-        RunInstancesResult resultGet = (RunInstancesResult)exchange.getOut().getBody();
+        RunInstancesResult resultGet = (RunInstancesResult)exchange.getMessage().getBody();
         assertEquals(resultGet.getReservation().getInstances().get(0).getImageId(), "test-1");
         assertEquals(resultGet.getReservation().getInstances().get(0).getInstanceType(), InstanceType.T2Micro.toString());
         assertEquals(resultGet.getReservation().getInstances().get(0).getInstanceId(), "instance-1");
@@ -74,7 +73,7 @@ public class EC2ComponentSpringTest extends CamelSpringTestSupport {
             }
         });
         
-        RunInstancesResult resultGet = (RunInstancesResult)exchange.getOut().getBody();
+        RunInstancesResult resultGet = (RunInstancesResult)exchange.getMessage().getBody();
         assertEquals(resultGet.getReservation().getInstances().get(0).getImageId(), "test-1");
         assertEquals(resultGet.getReservation().getInstances().get(0).getInstanceType(), InstanceType.T2Micro.toString());
         assertEquals(resultGet.getReservation().getInstances().get(0).getInstanceId(), "instance-1");
@@ -95,7 +94,7 @@ public class EC2ComponentSpringTest extends CamelSpringTestSupport {
             }
         });
         
-        StartInstancesResult resultGet = (StartInstancesResult)exchange.getOut().getBody();
+        StartInstancesResult resultGet = (StartInstancesResult)exchange.getMessage().getBody();
         assertEquals(resultGet.getStartingInstances().get(0).getInstanceId(), "test-1");
         assertEquals(resultGet.getStartingInstances().get(0).getPreviousState().getName(), InstanceStateName.Stopped.toString());
         assertEquals(resultGet.getStartingInstances().get(0).getCurrentState().getName(), InstanceStateName.Running.toString());
@@ -113,7 +112,7 @@ public class EC2ComponentSpringTest extends CamelSpringTestSupport {
             }
         });
         
-        StopInstancesResult resultGet = (StopInstancesResult)exchange.getOut().getBody();
+        StopInstancesResult resultGet = (StopInstancesResult)exchange.getMessage().getBody();
         assertEquals(resultGet.getStoppingInstances().get(0).getInstanceId(), "test-1");
         assertEquals(resultGet.getStoppingInstances().get(0).getPreviousState().getName(), InstanceStateName.Running.toString());
         assertEquals(resultGet.getStoppingInstances().get(0).getCurrentState().getName(), InstanceStateName.Stopped.toString());
@@ -131,7 +130,7 @@ public class EC2ComponentSpringTest extends CamelSpringTestSupport {
             }
         });
         
-        TerminateInstancesResult resultGet = (TerminateInstancesResult)exchange.getOut().getBody();
+        TerminateInstancesResult resultGet = (TerminateInstancesResult)exchange.getMessage().getBody();
         assertEquals(resultGet.getTerminatingInstances().get(0).getInstanceId(), "test-1");
         assertEquals(resultGet.getTerminatingInstances().get(0).getPreviousState().getName(), InstanceStateName.Running.toString());
         assertEquals(resultGet.getTerminatingInstances().get(0).getCurrentState().getName(), InstanceStateName.Terminated.toString());
@@ -150,7 +149,7 @@ public class EC2ComponentSpringTest extends CamelSpringTestSupport {
             }
         });
         
-        DescribeInstancesResult resultGet = (DescribeInstancesResult)exchange.getOut().getBody();
+        DescribeInstancesResult resultGet = (DescribeInstancesResult)exchange.getMessage().getBody();
         assertEquals(resultGet.getReservations().size(), 1);
         assertEquals(resultGet.getReservations().get(0).getInstances().size(), 1);
     }
@@ -170,7 +169,7 @@ public class EC2ComponentSpringTest extends CamelSpringTestSupport {
         
         assertMockEndpointsSatisfied();
         
-        DescribeInstanceStatusResult resultGet = (DescribeInstanceStatusResult)exchange.getOut().getBody();
+        DescribeInstanceStatusResult resultGet = (DescribeInstanceStatusResult)exchange.getMessage().getBody();
         assertEquals(resultGet.getInstanceStatuses().size(), 1);
         assertEquals(resultGet.getInstanceStatuses().get(0).getInstanceState().getName(), InstanceStateName.Running.toString());
     }
@@ -202,7 +201,7 @@ public class EC2ComponentSpringTest extends CamelSpringTestSupport {
             }
         });
         
-        MonitorInstancesResult resultGet = (MonitorInstancesResult)exchange.getOut().getBody();
+        MonitorInstancesResult resultGet = (MonitorInstancesResult)exchange.getMessage().getBody();
         
         assertEquals(resultGet.getInstanceMonitorings().size(), 1);
         assertEquals(resultGet.getInstanceMonitorings().get(0).getInstanceId(), "test-1");
@@ -222,7 +221,7 @@ public class EC2ComponentSpringTest extends CamelSpringTestSupport {
             }
         });
         
-        UnmonitorInstancesResult resultGet = (UnmonitorInstancesResult)exchange.getOut().getBody();
+        UnmonitorInstancesResult resultGet = (UnmonitorInstancesResult)exchange.getMessage().getBody();
         
         assertEquals(resultGet.getInstanceMonitorings().size(), 1);
         assertEquals(resultGet.getInstanceMonitorings().get(0).getInstanceId(), "test-1");

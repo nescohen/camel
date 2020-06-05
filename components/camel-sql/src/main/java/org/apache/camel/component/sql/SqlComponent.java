@@ -18,6 +18,7 @@ package org.apache.camel.component.sql;
 
 import java.util.Map;
 import java.util.Set;
+
 import javax.sql.DataSource;
 
 import org.apache.camel.CamelContext;
@@ -26,8 +27,10 @@ import org.apache.camel.spi.Metadata;
 import org.apache.camel.spi.annotations.Component;
 import org.apache.camel.support.CamelContextHelper;
 import org.apache.camel.support.DefaultComponent;
-import org.apache.camel.support.IntrospectionSupport;
 import org.apache.camel.support.PropertyBindingSupport;
+import org.apache.camel.util.PropertiesHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
@@ -36,6 +39,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 @Component("sql")
 public class SqlComponent extends DefaultComponent {
 
+    private static final Logger LOG = LoggerFactory.getLogger(SqlComponent.class);
+
+    @Metadata
     private DataSource dataSource;
     @Metadata(label = "advanced", defaultValue = "true")
     private boolean usePlaceholder = true;
@@ -44,7 +50,6 @@ public class SqlComponent extends DefaultComponent {
     }
 
     public SqlComponent(Class<? extends Endpoint> endpointClass) {
-        super();
     }
 
     public SqlComponent(CamelContext context) {
@@ -84,12 +89,12 @@ public class SqlComponent extends DefaultComponent {
         if (target == null) {
             throw new IllegalArgumentException("DataSource must be configured");
         }
-        log.debug("Using default DataSource discovered from registry: {}", target);
+        LOG.debug("Using default DataSource discovered from registry: {}", target);
 
         String parameterPlaceholderSubstitute = getAndRemoveParameter(parameters, "placeholder", String.class, "#");
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(target);
-        Map<String, Object> templateOptions = IntrospectionSupport.extractProperties(parameters, "template.");
+        Map<String, Object> templateOptions = PropertiesHelper.extractProperties(parameters, "template.");
         PropertyBindingSupport.bindProperties(getCamelContext(), jdbcTemplate, templateOptions);
 
         String query = remaining;

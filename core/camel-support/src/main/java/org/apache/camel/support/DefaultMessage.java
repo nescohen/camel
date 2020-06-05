@@ -16,19 +16,16 @@
  */
 package org.apache.camel.support;
 
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.activation.DataHandler;
-
-import org.apache.camel.Attachment;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.spi.HeadersMapFactory;
-import org.apache.camel.util.ObjectHelper;
 
 /**
  * The default implementation of {@link org.apache.camel.Message}
@@ -41,51 +38,77 @@ import org.apache.camel.util.ObjectHelper;
  * on the {@link CamelContext}. The default implementation uses the {@link org.apache.camel.util.CaseInsensitiveMap CaseInsensitiveMap}.
  */
 public class DefaultMessage extends MessageSupport {
-    private boolean fault;
     private Map<String, Object> headers;
-    private Map<String, DataHandler> attachments;
-    private Map<String, Attachment> attachmentObjects;
 
     public DefaultMessage(Exchange exchange) {
         setExchange(exchange);
-        setCamelContext(exchange != null ? exchange.getContext() : null);
+        if (exchange != null) {
+            setCamelContext(exchange.getContext());
+        }
     }
 
     public DefaultMessage(CamelContext camelContext) {
-        setCamelContext(camelContext);
+        this.camelContext = (ExtendedCamelContext) camelContext;
+        this.typeConverter = camelContext.getTypeConverter();
     }
 
-    public boolean isFault() {
-        return fault;
-    }
-
-    public void setFault(boolean fault) {
-        this.fault = fault;
-    }
-
+    @Override
     public Object getHeader(String name) {
-        if (hasHeaders()) {
-            return getHeaders().get(name);
+        if (headers == null) {
+            // force creating headers
+            headers = createHeaders();
+        }
+
+        if (!headers.isEmpty()) {
+            return headers.get(name);
         } else {
             return null;
         }
     }
 
+    @Override
     public Object getHeader(String name, Object defaultValue) {
-        Object answer = getHeaders().get(name);
+        Object answer = null;
+
+        if (headers == null) {
+            // force creating headers
+            headers = createHeaders();
+        }
+
+        if (!headers.isEmpty()) {
+            answer = headers.get(name);
+        }
         return answer != null ? answer : defaultValue;
     }
 
+    @Override
     public Object getHeader(String name, Supplier<Object> defaultValueSupplier) {
-        ObjectHelper.notNull(name, "name");
-        ObjectHelper.notNull(defaultValueSupplier, "defaultValueSupplier");
-        Object answer = getHeaders().get(name);
+        Object answer = null;
+
+        if (headers == null) {
+            // force creating headers
+            headers = createHeaders();
+        }
+
+        if (!headers.isEmpty()) {
+            answer = headers.get(name);
+        }
         return answer != null ? answer : defaultValueSupplier.get();
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public <T> T getHeader(String name, Class<T> type) {
-        Object value = getHeader(name);
+        Object value = null;
+
+        if (headers == null) {
+            // force creating headers
+            headers = createHeaders();
+        }
+
+        if (!headers.isEmpty()) {
+            value = headers.get(name);
+        }
         if (value == null) {
             // lets avoid NullPointerException when converting to boolean for null values
             if (boolean.class == type) {
@@ -97,20 +120,33 @@ public class DefaultMessage extends MessageSupport {
         // eager same instance type test to avoid the overhead of invoking the type converter
         // if already same type
         if (type.isInstance(value)) {
-            return type.cast(value);
+            return (T) value;
         }
 
         Exchange e = getExchange();
         if (e != null) {
-            return e.getContext().getTypeConverter().convertTo(type, e, value);
+            return typeConverter.convertTo(type, e, value);
         } else {
-            return type.cast(value);
+            return typeConverter.convertTo(type, value);
         }
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public <T> T getHeader(String name, Object defaultValue, Class<T> type) {
-        Object value = getHeader(name, defaultValue);
+        Object value = null;
+
+        if (headers == null) {
+            // force creating headers
+            headers = createHeaders();
+        }
+
+        if (!headers.isEmpty()) {
+            value = headers.get(name);
+        }
+        if (value == null) {
+            value = defaultValue;
+        }
         if (value == null) {
             // lets avoid NullPointerException when converting to boolean for null values
             if (boolean.class == type) {
@@ -122,22 +158,20 @@ public class DefaultMessage extends MessageSupport {
         // eager same instance type test to avoid the overhead of invoking the type converter
         // if already same type
         if (type.isInstance(value)) {
-            return type.cast(value);
+            return (T) value;
         }
 
         Exchange e = getExchange();
         if (e != null) {
-            return e.getContext().getTypeConverter().convertTo(type, e, value);
+            return typeConverter.convertTo(type, e, value);
         } else {
-            return type.cast(value);
+            return typeConverter.convertTo(type, value);
         }
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public <T> T getHeader(String name, Supplier<Object> defaultValueSupplier, Class<T> type) {
-        ObjectHelper.notNull(name, "name");
-        ObjectHelper.notNull(type, "type");
-        ObjectHelper.notNull(defaultValueSupplier, "defaultValueSupplier");
         Object value = getHeader(name, defaultValueSupplier);
         if (value == null) {
             // lets avoid NullPointerException when converting to boolean for null values
@@ -155,12 +189,13 @@ public class DefaultMessage extends MessageSupport {
 
         Exchange e = getExchange();
         if (e != null) {
-            return e.getContext().getTypeConverter().convertTo(type, e, value);
+            return typeConverter.convertTo(type, e, value);
         } else {
-            return type.cast(value);
+            return typeConverter.convertTo(type, value);
         }
     }
 
+    @Override
     public void setHeader(String name, Object value) {
         if (headers == null) {
             headers = createHeaders();
@@ -168,19 +203,30 @@ public class DefaultMessage extends MessageSupport {
         headers.put(name, value);
     }
 
+    @Override
     public Object removeHeader(String name) {
-        if (!hasHeaders()) {
+        if (headers == null) {
+            // force creating headers
+            headers = createHeaders();
+        }
+        if (headers.isEmpty()) {
             return null;
         }
         return headers.remove(name);
     }
 
+    @Override
     public boolean removeHeaders(String pattern) {
         return removeHeaders(pattern, (String[]) null);
     }
 
+    @Override
     public boolean removeHeaders(String pattern, String... excludePatterns) {
-        if (!hasHeaders()) {
+        if (headers == null) {
+            // force creating headers
+            headers = createHeaders();
+        }
+        if (headers.isEmpty()) {
             return false;
         }
 
@@ -205,6 +251,7 @@ public class DefaultMessage extends MessageSupport {
         return matches;
     }
 
+    @Override
     public Map<String, Object> getHeaders() {
         if (headers == null) {
             headers = createHeaders();
@@ -212,29 +259,34 @@ public class DefaultMessage extends MessageSupport {
         return headers;
     }
 
+    @Override
     public void setHeaders(Map<String, Object> headers) {
-        ObjectHelper.notNull(getCamelContext(), "CamelContext", this);
-
-        if (getCamelContext().getHeadersMapFactory().isInstanceOf(headers)) {
-            this.headers = headers;
+        HeadersMapFactory factory = camelContext.getHeadersMapFactory();
+        if (factory != null) {
+            if (factory.isInstanceOf(headers)) {
+                this.headers = headers;
+            } else {
+                // create a new map
+                this.headers = camelContext.getHeadersMapFactory().newMap(headers);
+            }
         } else {
-            // create a new map
-            this.headers = getCamelContext().getHeadersMapFactory().newMap(headers);
+            // should not really happen but some tests rely on using camel context that is not started
+            this.headers = new HashMap<>(headers);
         }
     }
 
+    @Override
     public boolean hasHeaders() {
-        if (!hasPopulatedHeaders()) {
+        if (headers == null) {
             // force creating headers
-            getHeaders();
+            headers = createHeaders();
         }
-        return headers != null && !headers.isEmpty();
+        return !headers.isEmpty();
     }
 
+    @Override
     public DefaultMessage newInstance() {
-        ObjectHelper.notNull(getCamelContext(), "CamelContext", this);
-
-        return new DefaultMessage(getCamelContext());
+        return new DefaultMessage(camelContext);
     }
 
     /**
@@ -246,23 +298,16 @@ public class DefaultMessage extends MessageSupport {
      *         the underlying inbound transport
      */
     protected Map<String, Object> createHeaders() {
-        ObjectHelper.notNull(getCamelContext(), "CamelContext", this);
+        Map<String, Object> map;
 
-        Map<String, Object> map = getCamelContext().getHeadersMapFactory().newMap();
+        HeadersMapFactory factory = camelContext.getHeadersMapFactory();
+        if (factory != null) {
+            map = factory.newMap();
+        } else {
+            // should not really happen but some tests rely on using camel context that is not started
+            map = new HashMap<>();
+        }
         populateInitialHeaders(map);
-        return map;
-    }
-
-    /**
-     * A factory method to lazily create the attachmentObjects to make it easy to
-     * create efficient Message implementations which only construct and
-     * populate the Map on demand
-     *
-     * @return return a newly constructed Map
-     */
-    protected Map<String, Attachment> createAttachments() {
-        Map<String, Attachment> map = new LinkedHashMap<>();
-        populateInitialAttachments(map);
         return map;
     }
 
@@ -273,16 +318,6 @@ public class DefaultMessage extends MessageSupport {
      * @param map is the empty header map to populate
      */
     protected void populateInitialHeaders(Map<String, Object> map) {
-        // do nothing by default
-    }
-
-    /**
-     * A strategy method populate the initial set of attachmentObjects on an inbound
-     * message from an underlying binding
-     *
-     * @param map is the empty attachment map to populate
-     */
-    protected void populateInitialAttachments(Map<String, Attachment> map) {
         // do nothing by default
     }
 
@@ -299,85 +334,6 @@ public class DefaultMessage extends MessageSupport {
     protected Boolean isTransactedRedelivered() {
         // return null by default
         return null;
-    }
-
-    public void addAttachment(String id, DataHandler content) {
-        addAttachmentObject(id, new DefaultAttachment(content));
-    }
-
-    public void addAttachmentObject(String id, Attachment content) {
-        if (attachmentObjects == null) {
-            attachmentObjects = createAttachments();
-        }
-        attachmentObjects.put(id, content);
-    }
-
-    public DataHandler getAttachment(String id) {
-        Attachment att = getAttachmentObject(id);
-        if (att == null) {
-            return null;
-        } else {
-            return att.getDataHandler();
-        }
-    }
-
-    @Override
-    public Attachment getAttachmentObject(String id) {
-        return getAttachmentObjects().get(id);
-    }
-
-    public Set<String> getAttachmentNames() {
-        if (attachmentObjects == null) {
-            attachmentObjects = createAttachments();
-        }
-        return attachmentObjects.keySet();
-    }
-
-    public void removeAttachment(String id) {
-        if (attachmentObjects != null && attachmentObjects.containsKey(id)) {
-            attachmentObjects.remove(id);
-        }
-    }
-
-    public Map<String, DataHandler> getAttachments() {
-        if (attachments == null) {
-            attachments = new AttachmentMap(getAttachmentObjects());
-        }
-        return attachments;
-    }
-
-    public Map<String, Attachment> getAttachmentObjects() {
-        if (attachmentObjects == null) {
-            attachmentObjects = createAttachments();
-        }
-        return attachmentObjects;
-    }
-    
-    public void setAttachments(Map<String, DataHandler> attachments) {
-        if (attachments == null) {
-            this.attachmentObjects = null;
-        } else if (attachments instanceof AttachmentMap) {
-            // this way setAttachments(getAttachments()) will tunnel attachment headers
-            this.attachmentObjects = ((AttachmentMap)attachments).getOriginalMap();
-        } else {
-            this.attachmentObjects = new LinkedHashMap<>();
-            for (Map.Entry<String, DataHandler> entry : attachments.entrySet()) {
-                this.attachmentObjects.put(entry.getKey(), new DefaultAttachment(entry.getValue()));
-            }
-        }
-        this.attachments = null;
-    }
-
-    public void setAttachmentObjects(Map<String, Attachment> attachments) {
-        this.attachmentObjects = attachments;
-        this.attachments = null;
-    }
-
-    public boolean hasAttachments() {
-        // optimized to avoid calling createAttachments as that creates a new empty map
-        // that we 99% do not need (only camel-mail supports attachments), and we have
-        // then ensure camel-mail always creates attachments to remedy for this
-        return this.attachmentObjects != null && this.attachmentObjects.size() > 0;
     }
 
     /**

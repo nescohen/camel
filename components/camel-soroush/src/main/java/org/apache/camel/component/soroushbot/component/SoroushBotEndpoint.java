@@ -28,6 +28,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
@@ -53,9 +54,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * To integrate with the Soroush chat bot.
+ * Send and receive messages as a Soroush chat bot.
  */
-@UriEndpoint(firstVersion = "3.0", scheme = "soroush", title = "Soroush", syntax = "soroush:action/authorizationToken", label = "chat")
+@UriEndpoint(firstVersion = "3.0", scheme = "soroush", title = "Soroush", syntax = "soroush:action", category = {Category.CHAT})
 public class SoroushBotEndpoint extends DefaultEndpoint {
 
     private static final Logger LOG = LoggerFactory.getLogger(SoroushBotEndpoint.class);
@@ -63,7 +64,7 @@ public class SoroushBotEndpoint extends DefaultEndpoint {
     @UriPath(name = "action", description = "The action to do.")
     @Metadata(required = true)
     private SoroushAction action;
-    @UriParam(label = "common,security", description = "The authorization token for using"
+    @UriParam(label = "security", description = "The authorization token for using"
             + " the bot. if uri path does not contain authorization token, this token will be used.", secret = true)
     private String authorizationToken;
     @UriParam(label = "common", description = "Connection timeout in ms when connecting to soroush API", defaultValue = "30000")
@@ -110,25 +111,28 @@ public class SoroushBotEndpoint extends DefaultEndpoint {
             + " 3. `Fixed`: Always use `retryWaitingTime` as the time between retries.",
             defaultValue = "Exponential")
     private String backOffStrategy = "Exponential";
-    @UriParam(label = "scheduling", description = "Coefficient to compute back off time when using `Exponential` Back Off strategy", defaultValue = "2")
+    @UriParam(label = "scheduling", description = "Coefficient to compute back off time when using `Exponential` Back Off strategy",
+              defaultValue = "2", javaType = "java.time.Duration")
     private long retryExponentialCoefficient = 2L;
-    @UriParam(label = "scheduling", description = "The amount of time (in millisecond) which adds to waiting time when using `Linear` back off strategy", defaultValue = "10000")
+    @UriParam(label = "scheduling", description = "The amount of time (in millisecond) which adds to waiting time when using `Linear` back off strategy",
+              defaultValue = "10000", javaType = "java.time.Duration")
     private long retryLinearIncrement = 10000L;
     @UriParam(label = "scheduling", description = "Maximum amount of time (in millisecond) a thread wait before retrying failed request.",
-            defaultValue = "3600000")
+            defaultValue = "3600000", javaType = "java.time.Duration")
     private long maxRetryWaitingTime = 3600000L;
     @UriParam(label = "scheduling", description = "The timeout in millisecond to reconnect the existing getMessage connection"
             + " to ensure that the connection is always live and does not dead without notifying the bot. this value should not be changed.",
-            defaultValue = "300000")
+            defaultValue = "300000", javaType = "java.time.Duration")
     private long reconnectIdleConnectionTimeout = 5 * 60 * 1000;
     /**
      * lazy instance of {@link WebTarget} to used for uploading file to soroush Server, since the url is always the same, we reuse this WebTarget for all requests
      */
-    private WebTarget uploadFileTarget;
+    private volatile WebTarget uploadFileTarget;
     /**
      * lazy instance of webTarget to used for send message to soroush Server, since the url is always the same, we reuse this WebTarget for all requests
      */
-    private WebTarget sendMessageTarget;
+    private volatile WebTarget sendMessageTarget;
+
     private BackOffStrategy backOffStrategyHelper;
 
     public SoroushBotEndpoint(String endpointUri, SoroushBotComponent component) {
@@ -263,11 +267,6 @@ public class SoroushBotEndpoint extends DefaultEndpoint {
         return consumer;
     }
 
-    @Override
-    public boolean isSingleton() {
-        return true;
-    }
-
     /**
      * create a {@link WebTarget} that could be used to download file from soroush based on {@link SoroushBotEndpoint#authorizationToken},
      * {@link SoroushBotEndpoint#connectionTimeout} and {@code fileUrl} (fileId)
@@ -279,33 +278,38 @@ public class SoroushBotEndpoint extends DefaultEndpoint {
         return SoroushService.get().createDownloadFileTarget(authorizationToken, fileUrl, connectionTimeout);
     }
 
-
     /**
      * return the lazily created instance of {@link SoroushBotEndpoint#uploadFileTarget} to used for uploading file to soroush.
      */
     private WebTarget getUploadFileTarget() {
-        if (uploadFileTarget == null) {
+        WebTarget result = uploadFileTarget;
+        if (result == null) {
             synchronized (this) {
-                if (uploadFileTarget == null) {
-                    uploadFileTarget = SoroushService.get().createUploadFileTarget(authorizationToken, connectionTimeout);
+                result = uploadFileTarget;
+                if (result == null) {
+                    result = SoroushService.get().createUploadFileTarget(authorizationToken, connectionTimeout);
+                    uploadFileTarget = result;
                 }
             }
         }
-        return uploadFileTarget;
+        return result;
     }
 
     /**
      * return the lazily created instance of {@link SoroushBotEndpoint#sendMessageTarget} to used for sending message to soroush.
      */
     WebTarget getSendMessageTarget() {
-        if (sendMessageTarget == null) {
+        WebTarget result = sendMessageTarget;
+        if (result == null) {
             synchronized (this) {
-                if (sendMessageTarget == null) {
-                    sendMessageTarget = SoroushService.get().createSendMessageTarget(authorizationToken, connectionTimeout);
+                result = sendMessageTarget;
+                if (result == null) {
+                    result = SoroushService.get().createSendMessageTarget(authorizationToken, connectionTimeout);
+                    sendMessageTarget = result;
                 }
             }
         }
-        return sendMessageTarget;
+        return result;
     }
 
     public SoroushAction getAction() {

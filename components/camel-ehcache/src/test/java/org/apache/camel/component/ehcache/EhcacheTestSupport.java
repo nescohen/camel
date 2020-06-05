@@ -25,17 +25,15 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.apache.camel.BindToRegistry;
 import org.apache.camel.component.ehcache.processor.aggregate.EhcacheAggregationRepository;
-import org.apache.camel.impl.JndiRegistry;
 import org.apache.camel.support.DefaultExchangeHolder;
-import org.apache.camel.test.junit4.CamelTestSupport;
+import org.apache.camel.test.junit5.CamelTestSupport;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.xml.XmlConfiguration;
-import org.junit.Rule;
-import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,8 +44,7 @@ public class EhcacheTestSupport extends CamelTestSupport  {
     public static final String IDEMPOTENT_TEST_CACHE_NAME = "idempotent";
     public static final String AGGREGATE_TEST_CACHE_NAME = "aggregate";
 
-    @Rule
-    public final TestName testName = new TestName();
+    @BindToRegistry("cacheManager")
     protected CacheManager cacheManager;
 
     @Override
@@ -68,14 +65,6 @@ public class EhcacheTestSupport extends CamelTestSupport  {
         }
     }
 
-    @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry registry = super.createRegistry();
-        registry.bind("cacheManager", cacheManager);
-
-        return registry;
-    }
-
     protected Cache<Object, Object> getCache(String name) {
         return cacheManager.getCache(name, Object.class, Object.class);
     }
@@ -92,7 +81,7 @@ public class EhcacheTestSupport extends CamelTestSupport  {
         return cacheManager.getCache(AGGREGATE_TEST_CACHE_NAME, String.class, DefaultExchangeHolder.class);
     }
 
-    protected EhcacheAggregationRepository createAggregateRepository() throws Exception {
+    protected EhcacheAggregationRepository createAggregateRepository() {
         EhcacheAggregationRepository repository = new EhcacheAggregationRepository();
         repository.setCache(getAggregateCache());
         repository.setCacheName("aggregate");

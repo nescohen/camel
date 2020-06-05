@@ -17,7 +17,7 @@
 package org.apache.camel;
 
 /**
- * Various runtime configuration options used by {@link org.apache.camel.CamelContext} and {@link org.apache.camel.spi.RouteContext}
+ * Various runtime configuration options used by {@link org.apache.camel.CamelContext} and {@link Route}
  * for cross cutting functions such as tracing, delayer, stream cache and the like.
  */
 public interface RuntimeConfiguration {
@@ -37,7 +37,7 @@ public interface RuntimeConfiguration {
     Boolean isStreamCaching();
 
     /**
-     * Sets whether tracing is enabled or not (default is enabled).
+     * Sets whether tracing is enabled or not (default is disabled).
      *
      * @param tracing whether to enable tracing.
      */
@@ -46,26 +46,64 @@ public interface RuntimeConfiguration {
     /**
      * Returns whether tracing enabled
      *
+     * To use tracing then this must be enabled on startup to be installed in the CamelContext.
+     *
      * @return <tt>true</tt> if tracing is enabled
      */
     Boolean isTracing();
 
     /**
-     * Sets whether debugging is enabled or not (default is enabled).
+     * Tracing pattern to match which node EIPs to trace.
+     * For example to match all To EIP nodes, use to*.
+     * The pattern matches by node and route id's
+     * Multiple patterns can be separated by comma.
+     */
+    String getTracingPattern();
+
+    /**
+     * Tracing pattern to match which node EIPs to trace.
+     * For example to match all To EIP nodes, use to*.
+     * The pattern matches by node and route id's
+     * Multiple patterns can be separated by comma.
+     */
+    void setTracingPattern(String tracePattern);
+
+    /**
+     * Sets whether backlog tracing is enabled or not (default is disabled).
+     *
+     * To use backlog tracing then this must be enabled on startup to be installed in the CamelContext.
+     *
+     * @param backlogTrace whether to enable backlog tracing.
+     * @see #setTracing(Boolean)
+     */
+    void setBacklogTracing(Boolean backlogTrace);
+
+    /**
+     * Returns whether backlog tracing is enabled.
+     *
+     * @return <tt>true</tt> if backlog tracing is enabled
+     */
+    Boolean isBacklogTracing();
+
+    /**
+     * Sets whether debugging (will use backlog if no custom debugger has been configured)
+     * is enabled or not (default is disabled).
+     *
+     * To use debugging then this must be enabled on startup to be installed in the CamelContext.
      *
      * @param debugging whether to enable debugging.
      */
     void setDebugging(Boolean debugging);
 
     /**
-     * Returns whether debugging enabled
+     * Returns whether debugging is enabled.
      *
-     * @return <tt>true</tt> if tracing is enabled
+     * @return <tt>true</tt> if debugging is enabled
      */
     Boolean isDebugging();
 
     /**
-     * Sets whether message history is enabled or not (default is enabled).
+     * Sets whether message history is enabled or not (default is disabled).
      *
      * @param messageHistory whether message history is enabled
      */
@@ -105,20 +143,6 @@ public interface RuntimeConfiguration {
      * @return <tt>true</tt> if logging of message body is enabled
      */
     Boolean isLogExhaustedMessageBody();
-
-    /**
-     * Sets whether fault handling is enabled or not (default is disabled).
-     *
-     * @param handleFault whether to enable fault handling.
-     */
-    void setHandleFault(Boolean handleFault);
-
-    /**
-     * Returns whether fault handling enabled
-     *
-     * @return <tt>true</tt> if fault handling is enabled
-     */
-    Boolean isHandleFault();
 
     /**
      * Sets a delay value in millis that a message is delayed at every step it takes in the route path,
@@ -209,5 +233,25 @@ public interface RuntimeConfiguration {
      * @return the option
      */
     Boolean isAllowUseOriginalMessage();
+
+    /**
+     * Whether to use case sensitive or insensitive headers.
+     *
+     * Important: When using case sensitive (this is set to false).
+     * Then the map is case sensitive which means headers such as <tt>content-type</tt> and <tt>Content-Type</tt> are
+     * two different keys which can be a problem for some protocols such as HTTP based, which rely on case insensitive headers.
+     * However case sensitive implementations can yield faster performance. Therefore use case sensitive implementation with care.
+     */
+    Boolean isCaseInsensitiveHeaders();
+
+    /**
+     * Whether to use case sensitive or insensitive headers.
+     *
+     * Important: When using case sensitive (this is set to false).
+     * Then the map is case sensitive which means headers such as <tt>content-type</tt> and <tt>Content-Type</tt> are
+     * two different keys which can be a problem for some protocols such as HTTP based, which rely on case insensitive headers.
+     * However case sensitive implementations can yield faster performance. Therefore use case sensitive implementation with care.
+     */
+    void setCaseInsensitiveHeaders(Boolean caseInsensitiveHeaders);
 
 }

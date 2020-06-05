@@ -16,12 +16,10 @@
  */
 package org.apache.camel.component.bean;
 
-import javax.naming.Context;
-
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Handler;
 import org.apache.camel.language.xpath.XPath;
-import org.apache.camel.support.jndi.JndiContext;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 /**
@@ -34,17 +32,16 @@ public class BeanWithXPathInjectionUsingHeaderValueTest extends ContextTestSuppo
 
     @Test
     public void testConstantXPathHeaders() throws Exception {
-        template.sendBodyAndHeader("bean:myBean", "<response>OK</response>",
-                                   "invoiceDetails", "<invoice><person><name>Alan</name><date>26/08/2012</date></person></invoice>");
-       
+        template.sendBodyAndHeader("bean:myBean", "<response>OK</response>", "invoiceDetails", "<invoice><person><name>Alan</name><date>26/08/2012</date></person></invoice>");
+
         assertEquals("bean response:  " + myBean, "OK", myBean.response);
         assertEquals("bean userName: " + myBean, "Alan", myBean.userName);
         assertEquals("bean date:  " + myBean, "26/08/2012", myBean.date);
     }
-    
+
     @Override
-    protected Context createJndiContext() throws Exception {
-        JndiContext answer = new JndiContext();
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
         answer.bind("myBean", myBean);
         return answer;
     }
@@ -55,8 +52,7 @@ public class BeanWithXPathInjectionUsingHeaderValueTest extends ContextTestSuppo
         public String response;
 
         @Handler
-        public void handler(@XPath("//response/text()") String response,
-                            @XPath(headerName = "invoiceDetails", value = "//invoice/person/name/text()") String userName,
+        public void handler(@XPath("//response/text()") String response, @XPath(headerName = "invoiceDetails", value = "//invoice/person/name/text()") String userName,
                             @XPath(headerName = "invoiceDetails", value = "//invoice/person/date", resultType = String.class) String date) {
             this.response = response;
             this.userName = userName;

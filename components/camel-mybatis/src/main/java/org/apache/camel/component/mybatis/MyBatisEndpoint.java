@@ -16,6 +16,7 @@
  */
 package org.apache.camel.component.mybatis;
 
+import org.apache.camel.Category;
 import org.apache.camel.Component;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
@@ -29,7 +30,7 @@ import org.apache.camel.util.ObjectHelper;
 /**
  * Performs a query, poll, insert, update or delete in a relational database using MyBatis.
  */
-@UriEndpoint(firstVersion = "2.7.0", scheme = "mybatis", title = "MyBatis", syntax = "mybatis:statement", label = "database,sql")
+@UriEndpoint(firstVersion = "2.7.0", scheme = "mybatis", title = "MyBatis", syntax = "mybatis:statement", category = {Category.DATABASE, Category.SQL})
 public class MyBatisEndpoint extends BaseMyBatisEndpoint {
 
     @UriPath @Metadata(required = true)
@@ -37,15 +38,15 @@ public class MyBatisEndpoint extends BaseMyBatisEndpoint {
     @UriParam(label = "producer")
     private StatementType statementType;
     @UriParam(label = "consumer", description = "Enables or disables transaction. If enabled then if processing an exchange failed then the consumer"
-        + "break out processing any further exchanges to cause a rollback eager.")
+        + " breaks out processing any further exchanges to cause a rollback eager.")
     private boolean transacted;
     @UriParam(label = "consumer", defaultValue = "0")
     private int maxMessagesPerPoll;
-    @UriParam(label = "consumer", optionalPrefix = "consumer.")
+    @UriParam(label = "consumer")
     private String onConsume;
-    @UriParam(label = "consumer", optionalPrefix = "consumer.", defaultValue = "true")
+    @UriParam(label = "consumer", defaultValue = "true")
     private boolean useIterator = true;
-    @UriParam(label = "consumer", optionalPrefix = "consumer.")
+    @UriParam(label = "consumer")
     private boolean routeEmptyResultSet;
     @UriParam(label = "consumer,advanced")
     private MyBatisProcessingStrategy processingStrategy = new DefaultMyBatisProcessingStrategy();
@@ -58,12 +59,14 @@ public class MyBatisEndpoint extends BaseMyBatisEndpoint {
         this.statement = statement;
     }
 
+    @Override
     public Producer createProducer() throws Exception {
         ObjectHelper.notNull(statementType, "statementType", this);
         ObjectHelper.notNull(statement, "statement", this);
         return new MyBatisProducer(this);
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         ObjectHelper.notNull(statement, "statement", this);
         MyBatisConsumer consumer = new MyBatisConsumer(this, processor);

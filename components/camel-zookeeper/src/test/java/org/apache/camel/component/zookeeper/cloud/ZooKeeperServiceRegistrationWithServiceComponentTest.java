@@ -19,23 +19,19 @@ package org.apache.camel.component.zookeeper.cloud;
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.camel.BindToRegistry;
 import org.apache.camel.RoutesBuilder;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.service.ServiceComponent;
-import org.apache.camel.impl.JndiRegistry;
 
 public class ZooKeeperServiceRegistrationWithServiceComponentTest extends ZooKeeperServiceRegistrationTestBase {
 
-    protected Map<String, String> getMetadata() {
-        return Collections.singletonMap("service.type", "zookeeper");
-    }
+    @BindToRegistry("service")
+    private ServiceComponent service = new ServiceComponent();
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry registry = super.createRegistry();
-        registry.bind("service", new ServiceComponent());
-
-        return registry;
+    protected Map<String, String> getMetadata() {
+        return Collections.singletonMap("service.type", "zookeeper");
     }
 
     @Override

@@ -26,7 +26,6 @@ import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.RollableScalableResource;
-
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.component.kubernetes.AbstractKubernetesEndpoint;
@@ -34,8 +33,12 @@ import org.apache.camel.component.kubernetes.KubernetesConstants;
 import org.apache.camel.component.kubernetes.consumer.common.ReplicationControllerEvent;
 import org.apache.camel.support.DefaultConsumer;
 import org.apache.camel.util.ObjectHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KubernetesReplicationControllersConsumer extends DefaultConsumer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(KubernetesReplicationControllersConsumer.class);
 
     private final Processor processor;
     private ExecutorService executor;
@@ -48,7 +51,7 @@ public class KubernetesReplicationControllersConsumer extends DefaultConsumer {
 
     @Override
     public AbstractKubernetesEndpoint getEndpoint() {
-        return (AbstractKubernetesEndpoint) super.getEndpoint();
+        return (AbstractKubernetesEndpoint)super.getEndpoint();
     }
 
     @Override
@@ -57,14 +60,14 @@ public class KubernetesReplicationControllersConsumer extends DefaultConsumer {
 
         executor = getEndpoint().createExecutor();
         rcWatcher = new ReplicationControllersConsumerTask();
-        executor.submit(rcWatcher);       
+        executor.submit(rcWatcher);
     }
 
     @Override
     protected void doStop() throws Exception {
         super.doStop();
-        
-        log.debug("Stopping Kubernetes Replication Controllers Consumer");
+
+        LOG.debug("Stopping Kubernetes Replication Controllers Consumer");
         if (executor != null) {
             if (getEndpoint() != null && getEndpoint().getCamelContext() != null) {
                 if (rcWatcher != null) {
@@ -80,19 +83,19 @@ public class KubernetesReplicationControllersConsumer extends DefaultConsumer {
         }
         executor = null;
     }
-    
+
     class ReplicationControllersConsumerTask implements Runnable {
-        
+
         private Watch watch;
-        
+
         @Override
         public void run() {
-            MixedOperation<ReplicationController, ReplicationControllerList, 
-                DoneableReplicationController, RollableScalableResource<ReplicationController, DoneableReplicationController>> w = getEndpoint().getKubernetesClient().replicationControllers();
+            MixedOperation<ReplicationController, ReplicationControllerList, DoneableReplicationController, RollableScalableResource<ReplicationController, DoneableReplicationController>> w = getEndpoint()
+                .getKubernetesClient().replicationControllers();
             if (ObjectHelper.isNotEmpty(getEndpoint().getKubernetesConfiguration().getNamespace())) {
                 w.inNamespace(getEndpoint().getKubernetesConfiguration().getNamespace());
             }
-            if (ObjectHelper.isNotEmpty(getEndpoint().getKubernetesConfiguration().getLabelKey()) 
+            if (ObjectHelper.isNotEmpty(getEndpoint().getKubernetesConfiguration().getLabelKey())
                 && ObjectHelper.isNotEmpty(getEndpoint().getKubernetesConfiguration().getLabelValue())) {
                 w.withLabel(getEndpoint().getKubernetesConfiguration().getLabelKey(), getEndpoint().getKubernetesConfiguration().getLabelValue());
             }
@@ -102,8 +105,7 @@ public class KubernetesReplicationControllersConsumer extends DefaultConsumer {
             watch = w.watch(new Watcher<ReplicationController>() {
 
                 @Override
-                public void eventReceived(io.fabric8.kubernetes.client.Watcher.Action action,
-                    ReplicationController resource) {
+                public void eventReceived(io.fabric8.kubernetes.client.Watcher.Action action, ReplicationController resource) {
                     ReplicationControllerEvent rce = new ReplicationControllerEvent(action, resource);
                     Exchange exchange = getEndpoint().createExchange();
                     exchange.getIn().setBody(rce.getReplicationController());
@@ -120,19 +122,19 @@ public class KubernetesReplicationControllersConsumer extends DefaultConsumer {
                 @Override
                 public void onClose(KubernetesClientException cause) {
                     if (cause != null) {
-                        log.error(cause.getMessage(), cause);
+                        LOG.error(cause.getMessage(), cause);
                     }
                 }
 
             });
         }
-        
+
         public Watch getWatch() {
             return watch;
         }
 
         public void setWatch(Watch watch) {
             this.watch = watch;
-        } 
+        }
     }
 }

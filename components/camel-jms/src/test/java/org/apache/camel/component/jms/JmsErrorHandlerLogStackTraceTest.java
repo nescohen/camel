@@ -57,13 +57,14 @@ public class JmsErrorHandlerLogStackTraceTest extends CamelTestSupport {
         };
     }
 
+    @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext camelContext = super.createCamelContext();
 
         ConnectionFactory connectionFactory = CamelJmsTestHelper.createConnectionFactory();
         JmsComponent jms = JmsComponent.jmsComponentAutoAcknowledge(connectionFactory);
-        jms.setErrorHandlerLogStackTrace(false);
-        jms.setErrorHandlerLoggingLevel(LoggingLevel.ERROR);
+        jms.getConfiguration().setErrorHandlerLogStackTrace(false);
+        jms.getConfiguration().setErrorHandlerLoggingLevel(LoggingLevel.ERROR);
         camelContext.addComponent("jms", jms);
 
         return camelContext;

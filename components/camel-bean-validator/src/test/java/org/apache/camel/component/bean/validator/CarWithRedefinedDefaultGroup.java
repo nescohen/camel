@@ -29,24 +29,28 @@ public class CarWithRedefinedDefaultGroup implements Car {
     @NotNull(groups = RequiredChecks.class)
     @Size(min = 5, max = 14, groups = OptionalChecks.class)
     private String licensePlate;
-    
+
     public CarWithRedefinedDefaultGroup(String manufacturer, String licencePlate) {
         this.manufacturer = manufacturer;
         this.licensePlate = licencePlate;
     }
 
+    @Override
     public String getManufacturer() {
         return manufacturer;
     }
 
+    @Override
     public void setManufacturer(String manufacturer) {
         this.manufacturer = manufacturer;
     }
 
+    @Override
     public String getLicensePlate() {
         return licensePlate;
     }
 
+    @Override
     public void setLicensePlate(String licensePlate) {
         this.licensePlate = licensePlate;
     }

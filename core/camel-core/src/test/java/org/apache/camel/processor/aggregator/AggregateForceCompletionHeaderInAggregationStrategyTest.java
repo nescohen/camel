@@ -30,6 +30,8 @@ public class AggregateForceCompletionHeaderInAggregationStrategyTest extends Con
     @Test
     public void testCompletePreviousOnNewGroup() throws Exception {
         getMockEndpoint("mock:aggregated").expectedBodiesReceived("AAA", "BB");
+        getMockEndpoint("mock:aggregated").allMessages().header(Exchange.AGGREGATION_COMPLETE_ALL_GROUPS).isNull();
+        getMockEndpoint("mock:aggregated").allMessages().exchangeProperty(Exchange.AGGREGATION_COMPLETE_ALL_GROUPS).isNull();
 
         template.sendBody("direct:start", "A,A,A,B,B");
 
@@ -41,21 +43,19 @@ public class AggregateForceCompletionHeaderInAggregationStrategyTest extends Con
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start")
-                    .split(body())
-                        .to("log:input?showAll=true")
-                        .aggregate(simple("${body}"), new MyAggregationStrategy())
-                            .completionPredicate(exchangeProperty(Exchange.SPLIT_COMPLETE))
-                    .to("log:aggregated", "mock:aggregated");
+                from("direct:start").split(body()).to("log:input?showAll=true").aggregate(simple("${body}"), new MyAggregationStrategy())
+                    .completionPredicate(exchangeProperty(Exchange.SPLIT_COMPLETE)).to("log:aggregated", "mock:aggregated");
             }
         };
     }
 
     public static class MyAggregationStrategy implements AggregationStrategy {
 
+        @Override
         public Exchange aggregate(Exchange oldExchange, Exchange newExchange) {
             if (oldExchange == null) {
-                // we start a new correlation group, so complete all previous groups
+                // we start a new correlation group, so complete all previous
+                // groups
                 newExchange.setProperty(Exchange.AGGREGATION_COMPLETE_ALL_GROUPS, true);
                 return newExchange;
             }

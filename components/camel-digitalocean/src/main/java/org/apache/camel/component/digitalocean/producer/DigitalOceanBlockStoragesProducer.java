@@ -41,39 +41,40 @@ public class DigitalOceanBlockStoragesProducer extends DigitalOceanProducer {
         super(endpoint, configuration);
     }
 
+    @Override
     public void process(Exchange exchange) throws Exception {
 
         switch (determineOperation(exchange)) {
 
-        case list:
-            getVolumes(exchange);
-            break;
-        case get:
-            getVolume(exchange);
-            break;
-        case listSnapshots:
-            getVolumeSnapshots(exchange);
-            break;
-        case create:
-            createVolume(exchange);
-            break;
-        case delete:
-            deleteVolume(exchange);
-            break;
-        case attach:
-            attachVolumeToDroplet(exchange);
-            break;
-        case detach:
-            detachVolumeToDroplet(exchange);
-            break;
-        case resize:
-            resizeVolume(exchange);
-            break;
-        case listActions:
-            getVolumeActions(exchange);
-            break;
-        default:
-            throw new IllegalArgumentException("Unsupported operation");
+            case list:
+                getVolumes(exchange);
+                break;
+            case get:
+                getVolume(exchange);
+                break;
+            case listSnapshots:
+                getVolumeSnapshots(exchange);
+                break;
+            case create:
+                createVolume(exchange);
+                break;
+            case delete:
+                deleteVolume(exchange);
+                break;
+            case attach:
+                attachVolumeToDroplet(exchange);
+                break;
+            case detach:
+                detachVolumeToDroplet(exchange);
+                break;
+            case resize:
+                resizeVolume(exchange);
+                break;
+            case listActions:
+                getVolumeActions(exchange);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported operation");
         }
     }
 

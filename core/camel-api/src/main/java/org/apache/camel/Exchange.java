@@ -16,12 +16,10 @@
  */
 package org.apache.camel;
 
-import java.util.Date;
-import java.util.List;
 import java.util.Map;
 
-import org.apache.camel.spi.Synchronization;
 import org.apache.camel.spi.UnitOfWork;
+import org.apache.camel.spi.annotations.ConstantProvider;
 
 /**
  * An Exchange is the message container holding the information during the entire routing of
@@ -68,6 +66,7 @@ import org.apache.camel.spi.UnitOfWork;
  * See this <a href="http://camel.apache.org/using-getin-or-getout-methods-on-exchange.html">FAQ entry</a> 
  * for more details.
  */
+@ConstantProvider("org.apache.camel.ExchangeConstantProvider")
 public interface Exchange {
 
     String AUTHENTICATION                   = "CamelAuthentication";
@@ -96,6 +95,7 @@ public interface Exchange {
 
     String CHARSET_NAME           = "CamelCharsetName";
     String CIRCUIT_BREAKER_STATE  = "CamelCircuitBreakerState";
+    @Deprecated
     String CREATED_TIMESTAMP      = "CamelCreatedTimestamp";
     String CLAIM_CHECK_REPOSITORY = "CamelClaimCheckRepository";
     String CONTENT_ENCODING       = "Content-Encoding";
@@ -116,7 +116,9 @@ public interface Exchange {
     String EXCEPTION_HANDLED             = "CamelExceptionHandled";
     String EVALUATE_EXPRESSION_RESULT    = "CamelEvaluateExpressionResult";
     String ERRORHANDLER_CIRCUIT_DETECTED = "CamelFErrorHandlerCircuitDetected";
+    @Deprecated
     String ERRORHANDLER_HANDLED          = "CamelErrorHandlerHandled";
+    @Deprecated
     String EXTERNAL_REDELIVERED          = "CamelExternalRedelivered";
 
     String FAILURE_HANDLED      = "CamelFailureHandled";
@@ -163,6 +165,7 @@ public interface Exchange {
 
     String INTERCEPTED_ENDPOINT = "CamelInterceptedEndpoint";
     String INTERCEPT_SEND_TO_ENDPOINT_WHEN_MATCHED = "CamelInterceptSendToEndpointWhenMatched";
+    @Deprecated
     String INTERRUPTED = "CamelInterrupted";
 
     String LANGUAGE_SCRIPT          = "CamelLanguageScript";
@@ -187,6 +190,7 @@ public interface Exchange {
     String MULTICAST_INDEX             = "CamelMulticastIndex";
     String MULTICAST_COMPLETE          = "CamelMulticastComplete";
 
+    @Deprecated
     String NOTIFY_EVENT = "CamelNotifyEvent";
 
     String ON_COMPLETION      = "CamelOnCompletion";
@@ -200,12 +204,16 @@ public interface Exchange {
     String REDELIVERED             = "CamelRedelivered";
     String REDELIVERY_COUNTER      = "CamelRedeliveryCounter";
     String REDELIVERY_MAX_COUNTER  = "CamelRedeliveryMaxCounter";
+    @Deprecated
     String REDELIVERY_EXHAUSTED    = "CamelRedeliveryExhausted";
     String REDELIVERY_DELAY        = "CamelRedeliveryDelay";
     String REST_HTTP_URI           = "CamelRestHttpUri";
     String REST_HTTP_QUERY         = "CamelRestHttpQuery";
+    @Deprecated
     String ROLLBACK_ONLY           = "CamelRollbackOnly";
+    @Deprecated
     String ROLLBACK_ONLY_LAST      = "CamelRollbackOnlyLast";
+    @Deprecated
     String ROUTE_STOP              = "CamelRouteStop";
 
     String REUSE_SCRIPT_ENGINE = "CamelReuseScripteEngine";
@@ -234,6 +242,8 @@ public interface Exchange {
     String TRACE_EVENT_NODE_ID   = "CamelTraceEventNodeId";
     String TRACE_EVENT_TIMESTAMP = "CamelTraceEventTimestamp";
     String TRACE_EVENT_EXCHANGE  = "CamelTraceEventExchange";
+    String TRACING_HEADER_FORMAT      = "CamelTracingHeaderFormat";
+    String TRACING_OUTPUT_FORMAT      = "CamelTracingOutputFormat";
     String TRY_ROUTE_BLOCK       = "TryRouteBlock";
     String TRANSFER_ENCODING     = "Transfer-Encoding";
 
@@ -249,6 +259,16 @@ public interface Exchange {
     String XSLT_ERROR       = "CamelXsltError";
     String XSLT_FATAL_ERROR = "CamelXsltFatalError";
     String XSLT_WARNING     = "CamelXsltWarning";
+
+    /**
+     * Adapts this {@link org.apache.camel.Exchange} to the specialized type.
+     * <p/>
+     * For example to adapt to <tt>ExtendedExchange</tt>.
+     *
+     * @param type the type to adapt to
+     * @return this {@link org.apache.camel.Exchange} adapted to the given type
+     */
+    <T extends Exchange> T adapt(Class<T> type);
 
     /**
      * Returns the {@link ExchangePattern} (MEP) of this exchange.
@@ -285,6 +305,7 @@ public interface Exchange {
      * @return the value of the given property or <tt>defaultValue</tt> if there is no
      *         property for the given name
      */
+    @Deprecated
     Object getProperty(String name, Object defaultValue);
 
     /**
@@ -417,7 +438,9 @@ public interface Exchange {
      *
      * @return the response
      * @see #getIn()
+     * @deprecated use {@link #getMessage()}
      */
+    @Deprecated
     Message getOut();
 
     /**
@@ -435,21 +458,27 @@ public interface Exchange {
      * @param type the given type
      * @return the message as the given type or <tt>null</tt> if not possible to covert to given type
      * @see #getIn(Class)
+     * @deprecated use {@link #getMessage(Class)}
      */
+    @Deprecated
     <T> T getOut(Class<T> type);
 
     /**
      * Returns whether an OUT message has been set or not.
      *
      * @return <tt>true</tt> if an OUT message exists, <tt>false</tt> otherwise.
+     * @deprecated use {@link #getMessage()}
      */
+    @Deprecated
     boolean hasOut();
 
     /**
      * Sets the outbound message
      *
      * @param out the outbound message
+     * @deprecated use {@link #setMessage(Message)}
      */
+    @Deprecated
     void setOut(Message out);
 
     /**
@@ -488,8 +517,6 @@ public interface Exchange {
      *
      * @return true if this exchange failed due to either an exception or fault
      * @see Exchange#getException()
-     * @see Message#setFault(boolean)
-     * @see Message#isFault()
      */
     boolean isFailed();
 
@@ -499,20 +526,47 @@ public interface Exchange {
     boolean isTransacted();
 
     /**
+     * Returns true if this exchange is marked to stop and not continue routing.
+     */
+    boolean isRouteStop();
+
+    /**
+     * Sets whether this exchange is marked to stop and not continue routing.
+     *
+     * @param routeStop <tt>true</tt> to stop routing
+     */
+    void setRouteStop(boolean routeStop);
+
+    /**
      * Returns true if this exchange is an external initiated redelivered message (such as a JMS broker).
      * <p/>
      * <b>Important: </b> It is not always possible to determine if the message is a redelivery
-     * or not, and therefore <tt>null</tt> is returned. Such an example would be a JDBC message.
+     * or not, and therefore <tt>false</tt> is returned. Such an example would be a JDBC message.
      * However JMS brokers provides details if a message is redelivered.
      *
-     * @return <tt>true</tt> if redelivered, <tt>false</tt> if not, <tt>null</tt> if not able to determine
+     * @return <tt>true</tt> if redelivered, <tt>false</tt> if not or not able to determine
      */
-    Boolean isExternalRedelivered();
+    boolean isExternalRedelivered();
 
     /**
      * Returns true if this exchange is marked for rollback
      */
     boolean isRollbackOnly();
+
+    /**
+     * Sets whether to mark this exchange for rollback
+     */
+    void setRollbackOnly(boolean rollbackOnly);
+
+    /**
+     * Returns true if this exchange is marked for rollback (only last transaction section)
+     */
+    boolean isRollbackOnlyLast();
+
+    /**
+     * Sets whether to mark this exchange for rollback (only last transaction section)
+     */
+    void setRollbackOnlyLast(boolean rollbackOnlyLast);
 
     /**
      * Returns the container so that a processor can resolve endpoints from URIs
@@ -534,38 +588,16 @@ public interface Exchange {
     Endpoint getFromEndpoint();
 
     /**
-     * Sets the endpoint which originated this message exchange. This method
-     * should typically only be called by {@link org.apache.camel.Endpoint} implementations
-     *
-     * @param fromEndpoint the endpoint which is originating this message exchange
-     */
-    void setFromEndpoint(Endpoint fromEndpoint);
-    
-    /**
      * Returns the route id which originated this message exchange if a route consumer on an endpoint
      * created the message exchange, otherwise this property will be <tt>null</tt>
      */
     String getFromRouteId();
 
     /**
-     * Sets the route id which originated this message exchange. This method
-     * should typically only be called by the internal framework.
-     *
-     * @param fromRouteId the from route id
-     */
-    void setFromRouteId(String fromRouteId);
-
-    /**
      * Returns the unit of work that this exchange belongs to; which may map to
      * zero, one or more physical transactions
      */
     UnitOfWork getUnitOfWork();
-
-    /**
-     * Sets the unit of work that this exchange belongs to; which may map to
-     * zero, one or more physical transactions
-     */
-    void setUnitOfWork(UnitOfWork unitOfWork);
 
     /**
      * Returns the exchange id (unique)
@@ -578,39 +610,8 @@ public interface Exchange {
     void setExchangeId(String id);
 
     /**
-     * Adds a {@link org.apache.camel.spi.Synchronization} to be invoked as callback when
-     * this exchange is completed.
-     *
-     * @param onCompletion  the callback to invoke on completion of this exchange
+     * Gets the timestamp in millis when this exchange was created.
      */
-    void addOnCompletion(Synchronization onCompletion);
-
-    /**
-     * Checks if the passed {@link org.apache.camel.spi.Synchronization} instance is
-     * already contained on this exchange.
-     *
-     * @param onCompletion  the callback instance that is being checked for
-     * @return <tt>true</tt>, if callback instance is already contained on this exchange, else <tt>false</tt>
-     */
-    boolean containsOnCompletion(Synchronization onCompletion);
-
-    /**
-     * Handover all the on completions from this exchange to the target exchange.
-     *
-     * @param target the target exchange
-     */
-    void handoverCompletions(Exchange target);
-
-    /**
-     * Handover all the on completions from this exchange
-     *
-     * @return the on completions
-     */
-    List<Synchronization> handoverCompletions();
-
-    /**
-     * Gets the timestamp when this exchange was created.
-     */
-    Date getCreated();
+    long getCreated();
 
 }

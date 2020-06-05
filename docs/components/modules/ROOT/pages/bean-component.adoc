@@ -1,11 +1,22 @@
 [[bean-component]]
-== Bean Component
+= Bean Component
+//THIS FILE IS COPIED: EDIT THE SOURCE FILE:
+:page-source: components/camel-bean/src/main/docs/bean-component.adoc
+:docTitle: Bean
+:artifactId: camel-bean
+:description: Invoke methods of Java beans stored in Camel registry.
+:since: 1.0
+:supportLevel: Stable
+:component-header: Only producer is supported
+:core:
 
-*Available as of Camel version 1.0*
+*Since Camel {since}*
+
+*{component-header}*
 
 The Bean component binds beans to Camel message exchanges.
 
-=== URI format
+== URI format
 
 [source]
 ----
@@ -15,19 +26,20 @@ bean:beanName[?options]
 Where *beanID* can be any string which is used to look up the bean in
 the Registry
 
-=== Options
+== Options
 
 
 // component options: START
-The Bean component supports 3 options, which are listed below.
+The Bean component supports 4 options, which are listed below.
 
 
 
 [width="100%",cols="2,5,^1,2",options="header"]
 |===
 | Name | Description | Default | Type
-| *cache* (advanced) | If enabled, Camel will cache the result of the first Registry look-up. Cache can be enabled if the bean in the Registry is defined as a singleton scope. |  | Boolean
-| *resolveProperty Placeholders* (advanced) | Whether the component should resolve property placeholders on itself when starting. Only properties which are of String type can use property placeholders. | true | boolean
+| *cache* (producer) | *Deprecated* Use singleton option instead. | true | Boolean
+| *lazyStartProducer* (producer) | Whether the producer should be started lazy (on the first message). By starting lazy you can use this to allow CamelContext and routes to startup in situations where a producer may otherwise fail during starting and cause the route to fail being started. By deferring this startup to be lazy then the startup failure can be handled during routing messages via Camel's routing error handlers. Beware that when the first message is processed then creating and starting the producer may take a little time and prolong the total processing time of the processing. | false | boolean
+| *scope* (producer) | Scope of bean. When using singleton scope (default) the bean is created or looked up only once and reused for the lifetime of the endpoint. The bean should be thread-safe in case concurrent threads is calling the bean at the same time. When using request scope the bean is created or looked up once per request (exchange). This can be used if you want to store state on a bean while processing a request and you want to call the same bean instance multiple times while processing the request. The bean does not have to be thread-safe as the instance is only called from the same request. When using delegate scope, then the bean will be looked up or created per call. However in case of lookup then this is delegated to the bean registry such as Spring or CDI (if in use), which depends on their configuration can act as either singleton or prototype scope. so when using prototype then this depends on the delegated registry. The value can be one of: Singleton, Request, Prototype | Singleton | BeanScope
 | *basicPropertyBinding* (advanced) | Whether the component should use basic property binding (Camel 2.x) or the newer property binding with additional capabilities | false | boolean
 |===
 // component options: END
@@ -43,7 +55,7 @@ bean:beanName
 
 with the following path and query parameters:
 
-==== Path Parameters (1 parameters):
+=== Path Parameters (1 parameters):
 
 
 [width="100%",cols="2,5,^1,2",options="header"]
@@ -53,26 +65,28 @@ with the following path and query parameters:
 |===
 
 
-==== Query Parameters (6 parameters):
+=== Query Parameters (7 parameters):
 
 
 [width="100%",cols="2,5,^1,2",options="header"]
 |===
 | Name | Description | Default | Type
-| *cache* (common) | If enabled, Camel will cache the result of the first Registry look-up. Cache can be enabled if the bean in the Registry is defined as a singleton scope. |  | Boolean
+| *cache* (common) | *Deprecated* Use scope option instead. |  | Boolean
 | *method* (common) | Sets the name of the method to invoke on the bean |  | String
-| *parameters* (common) | Used for configuring additional properties on the bean |  | Map
+| *scope* (common) | Scope of bean. When using singleton scope (default) the bean is created or looked up only once and reused for the lifetime of the endpoint. The bean should be thread-safe in case concurrent threads is calling the bean at the same time. When using request scope the bean is created or looked up once per request (exchange). This can be used if you want to store state on a bean while processing a request and you want to call the same bean instance multiple times while processing the request. The bean does not have to be thread-safe as the instance is only called from the same request. When using prototype scope, then the bean will be looked up or created per call. However in case of lookup then this is delegated to the bean registry such as Spring or CDI (if in use), which depends on their configuration can act as either singleton or prototype scope. so when using prototype then this depends on the delegated registry. The value can be one of: Singleton, Request, Prototype | Singleton | BeanScope
 | *lazyStartProducer* (producer) | Whether the producer should be started lazy (on the first message). By starting lazy you can use this to allow CamelContext and routes to startup in situations where a producer may otherwise fail during starting and cause the route to fail being started. By deferring this startup to be lazy then the startup failure can be handled during routing messages via Camel's routing error handlers. Beware that when the first message is processed then creating and starting the producer may take a little time and prolong the total processing time of the processing. | false | boolean
 | *basicPropertyBinding* (advanced) | Whether the endpoint should use basic property binding (Camel 2.x) or the newer property binding with additional capabilities | false | boolean
+| *parameters* (advanced) | Used for configuring additional properties on the bean |  | Map
 | *synchronous* (advanced) | Sets whether synchronous processing should be strictly used, or Camel is allowed to use asynchronous processing (if supported). | false | boolean
 |===
 // endpoint options: END
 
 
+
 You can append query options to the URI in the following format,
 `?option=value&option=value&...`
 
-=== Using
+== Using
 
 The object instance that is used to consume messages must be explicitly
 registered with the Registry. For example, if you
@@ -89,7 +103,7 @@ Endpoint to the bean endpoint as output. So consider
 using a *direct:* or *queue:* endpoint as the input.
 
 You can use the `createProxy()` methods on
-http://camel.apache.org/maven/current/camel-core/apidocs/org/apache/camel/component/bean/ProxyHelper.html[ProxyHelper]
+https://www.javadoc.io/doc/org.apache.camel/camel-bean/current/org/apache/camel/component/bean/ProxyHelper.html[ProxyHelper]
 to create a proxy that will generate exchanges and send them to any
 endpoint:
 
@@ -103,7 +117,7 @@ And the same route using Spring DSL:
 </route>
 ----------------------------
 
-=== Bean as endpoint
+== Bean as endpoint
 
 Camel also supports invoking xref:bean-component.adoc[Bean] as an Endpoint. In the
 route below:
@@ -116,7 +130,7 @@ Camel will use Bean Binding to invoke the
 `sayHello` method, by converting the Exchange's In body to the `String`
 type and storing the output of the method on the Exchange Out body.
 
-=== Java DSL bean syntax
+== Java DSL bean syntax
 
 Java DSL comes with syntactic sugar for the xref:bean-component.adoc[Bean]
 component. Instead of specifying the bean explicitly as the endpoint
@@ -148,7 +162,7 @@ from("direct:start").bean(new ExampleBean(), "methodName");
 from("direct:start").bean(ExampleBean.class);
 ---------------------------------------------------------------
 
-=== Bean Binding
+== Bean Binding
 
 How bean methods to be invoked are chosen (if they are not specified
 explicitly through the *method* parameter) and how parameter values are
@@ -157,3 +171,5 @@ Bean Binding mechanism which is used throughout
 all of the various Bean Integration
 mechanisms in Camel.
 
+
+include::camel-spring-boot::page$bean-starter.adoc[]

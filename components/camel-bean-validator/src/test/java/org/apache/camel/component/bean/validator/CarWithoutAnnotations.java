@@ -22,24 +22,28 @@ public class CarWithoutAnnotations implements Car {
     private String manufacturer;
 
     private String licensePlate;
-    
+
     public CarWithoutAnnotations(String manufacturer, String licencePlate) {
         this.manufacturer = manufacturer;
         this.licensePlate = licencePlate;
     }
 
+    @Override
     public String getManufacturer() {
         return manufacturer;
     }
 
+    @Override
     public void setManufacturer(String manufacturer) {
         this.manufacturer = manufacturer;
     }
 
+    @Override
     public String getLicensePlate() {
         return licensePlate;
     }
 
+    @Override
     public void setLicensePlate(String licensePlate) {
         this.licensePlate = licensePlate;
     }

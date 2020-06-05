@@ -18,6 +18,7 @@ package org.apache.camel.impl;
 
 import java.util.Collection;
 
+import org.apache.camel.CamelContext;
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
@@ -26,6 +27,13 @@ import org.apache.camel.spi.InflightRepository;
 import org.junit.Test;
 
 public class InflightRepositoryBrowseFromRouteTest extends ContextTestSupport {
+
+    @Override
+    protected CamelContext createCamelContext() throws Exception {
+        CamelContext context = super.createCamelContext();
+        context.getInflightRepository().setInflightBrowseEnabled(true);
+        return context;
+    }
 
     @Test
     public void testInflight() throws Exception {
@@ -41,28 +49,23 @@ public class InflightRepositoryBrowseFromRouteTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start").routeId("foo")
-                    .to("mock:a")
-                    .to("direct:bar")
-                    .to("mock:result");
+                from("direct:start").routeId("foo").to("mock:a").to("direct:bar").to("mock:result");
 
-                from("direct:bar").routeId("bar")
-                        .to("mock:b")
-                        .process(new Processor() {
-                            @Override
-                            public void process(Exchange exchange) throws Exception {
-                                Collection<InflightRepository.InflightExchange> list = context.getInflightRepository().browse("foo");
-                                assertEquals(1, list.size());
+                from("direct:bar").routeId("bar").to("mock:b").process(new Processor() {
+                    @Override
+                    public void process(Exchange exchange) throws Exception {
+                        Collection<InflightRepository.InflightExchange> list = context.getInflightRepository().browse("foo");
+                        assertEquals(1, list.size());
 
-                                InflightRepository.InflightExchange inflight = list.iterator().next();
-                                assertNotNull(inflight);
+                        InflightRepository.InflightExchange inflight = list.iterator().next();
+                        assertNotNull(inflight);
 
-                                assertEquals(exchange, inflight.getExchange());
-                                assertEquals("foo", inflight.getFromRouteId());
-                                assertEquals("bar", inflight.getAtRouteId());
-                                assertEquals("myProcessor", inflight.getNodeId());
-                            }
-                        }).id("myProcessor");
+                        assertEquals(exchange, inflight.getExchange());
+                        assertEquals("foo", inflight.getFromRouteId());
+                        assertEquals("bar", inflight.getAtRouteId());
+                        assertEquals("myProcessor", inflight.getNodeId());
+                    }
+                }).id("myProcessor");
 
             }
         };

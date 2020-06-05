@@ -19,17 +19,20 @@ package org.apache.camel.component.file.remote.sftp;
 import java.io.File;
 
 import com.jcraft.jsch.ProxyHTTP;
+import org.apache.camel.BindToRegistry;
 import org.apache.camel.Exchange;
-import org.apache.camel.impl.JndiRegistry;
 import org.apache.camel.test.AvailablePortFinder;
-import org.junit.Test;
-import org.littleshoot.proxy.DefaultHttpProxyServer;
+import org.junit.jupiter.api.Test;
 import org.littleshoot.proxy.HttpProxyServer;
-import org.littleshoot.proxy.ProxyAuthorizationHandler;
+import org.littleshoot.proxy.ProxyAuthenticator;
+import org.littleshoot.proxy.impl.DefaultHttpProxyServer;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SftpSimpleProduceThroughProxyTest extends SftpServerTestSupport {
 
-    private final int proxyPort = AvailablePortFinder.getNextAvailable(25000);
+    private final int proxyPort = AvailablePortFinder.getNextAvailable();
 
     @Test
     public void testSftpSimpleProduceThroughProxy() throws Exception {
@@ -38,21 +41,27 @@ public class SftpSimpleProduceThroughProxyTest extends SftpServerTestSupport {
         }
 
         // start http proxy
-        HttpProxyServer proxyServer = new DefaultHttpProxyServer(proxyPort);
-        proxyServer.addProxyAuthenticationHandler(new ProxyAuthorizationHandler() {
-            @Override
-            public boolean authenticate(String userName, String password) {
-                return "user".equals(userName) && "password".equals(password);
-            }
-        });
-        proxyServer.start();
+        HttpProxyServer proxyServer = DefaultHttpProxyServer.bootstrap()
+                .withPort(proxyPort)
+                .withProxyAuthenticator(new ProxyAuthenticator() {
+                    @Override
+                    public boolean authenticate(String userName, String password) {
+                        return "user".equals(userName) && "password".equals(password);
+                    }
 
-        template.sendBodyAndHeader("sftp://localhost:" + getPort() + "/" + FTP_ROOT_DIR + "?username=admin&password=admin&proxy=#proxy", "Hello World", Exchange.FILE_NAME, "hello.txt");
+                    @Override
+                    public String getRealm() {
+                        return "myrealm";
+                    }
+                }).start();
+
+        template.sendBodyAndHeader("sftp://localhost:" + getPort() + "/" + FTP_ROOT_DIR + "?username=admin&password=admin&proxy=#proxy", "Hello World", Exchange.FILE_NAME,
+                                   "hello.txt");
 
         File file = new File(FTP_ROOT_DIR + "/hello.txt");
-        assertTrue("File should exist: " + file, file.exists());
+        assertTrue(file.exists(), "File should exist: " + file);
         assertEquals("Hello World", context.getTypeConverter().convertTo(String.class, file));
-        
+
         proxyServer.stop();
     }
 
@@ -63,19 +72,25 @@ public class SftpSimpleProduceThroughProxyTest extends SftpServerTestSupport {
         }
 
         // start http proxy
-        HttpProxyServer proxyServer = new DefaultHttpProxyServer(proxyPort);
-        proxyServer.addProxyAuthenticationHandler(new ProxyAuthorizationHandler() {
-            @Override
-            public boolean authenticate(String userName, String password) {
-                return "user".equals(userName) && "password".equals(password);
-            }
-        });
-        proxyServer.start();
+        HttpProxyServer proxyServer = DefaultHttpProxyServer.bootstrap()
+                .withPort(proxyPort)
+                .withProxyAuthenticator(new ProxyAuthenticator() {
+                    @Override
+                    public boolean authenticate(String userName, String password) {
+                        return "user".equals(userName) && "password".equals(password);
+                    }
 
-        template.sendBodyAndHeader("sftp://localhost:" + getPort() + "/" + FTP_ROOT_DIR + "/mysub?username=admin&password=admin&proxy=#proxy", "Bye World", Exchange.FILE_NAME, "bye.txt");
+                    @Override
+                    public String getRealm() {
+                        return "myrealm";
+                    }
+                }).start();
+
+        template.sendBodyAndHeader("sftp://localhost:" + getPort() + "/" + FTP_ROOT_DIR + "/mysub?username=admin&password=admin&proxy=#proxy", "Bye World", Exchange.FILE_NAME,
+                                   "bye.txt");
 
         File file = new File(FTP_ROOT_DIR + "/mysub/bye.txt");
-        assertTrue("File should exist: " + file, file.exists());
+        assertTrue(file.exists(), "File should exist: " + file);
         assertEquals("Bye World", context.getTypeConverter().convertTo(String.class, file));
 
         proxyServer.stop();
@@ -88,33 +103,36 @@ public class SftpSimpleProduceThroughProxyTest extends SftpServerTestSupport {
         }
 
         // start http proxy
-        HttpProxyServer proxyServer = new DefaultHttpProxyServer(proxyPort);
-        proxyServer.addProxyAuthenticationHandler(new ProxyAuthorizationHandler() {
-            @Override
-            public boolean authenticate(String userName, String password) {
-                return "user".equals(userName) && "password".equals(password);
-            }
-        });
-        proxyServer.start();
+        HttpProxyServer proxyServer = DefaultHttpProxyServer.bootstrap()
+                .withPort(proxyPort)
+                .withProxyAuthenticator(new ProxyAuthenticator() {
+                    @Override
+                    public boolean authenticate(String userName, String password) {
+                        return "user".equals(userName) && "password".equals(password);
+                    }
 
-        template.sendBodyAndHeader("sftp://localhost:" + getPort() + "/" + FTP_ROOT_DIR + "/mysub/myother?username=admin&password=admin&proxy=#proxy", "Farewell World", Exchange.FILE_NAME,
-            "farewell.txt");
+                    @Override
+                    public String getRealm() {
+                        return "myrealm";
+                    }
+                }).start();
+
+        template.sendBodyAndHeader("sftp://localhost:" + getPort() + "/" + FTP_ROOT_DIR + "/mysub/myother?username=admin&password=admin&proxy=#proxy", "Farewell World",
+                                   Exchange.FILE_NAME, "farewell.txt");
 
         File file = new File(FTP_ROOT_DIR + "/mysub/myother/farewell.txt");
-        assertTrue("File should exist: " + file, file.exists());
+        assertTrue(file.exists(), "File should exist: " + file);
         assertEquals("Farewell World", context.getTypeConverter().convertTo(String.class, file));
 
         proxyServer.stop();
     }
 
-    @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    @BindToRegistry("proxy")
+    public ProxyHTTP createProxy() throws Exception {
 
         final ProxyHTTP proxyHTTP = new ProxyHTTP("localhost", proxyPort);
         proxyHTTP.setUserPasswd("user", "password");
-        jndi.bind("proxy", proxyHTTP);
-        return jndi;
+        return proxyHTTP;
     }
 
 }

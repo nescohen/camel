@@ -19,7 +19,6 @@ package org.apache.camel.component.mail;
 import javax.mail.Message;
 
 import org.apache.camel.Endpoint;
-import org.apache.camel.pollconsumer.quartz2.QuartzScheduledPollConsumerScheduler;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Test;
 
@@ -223,6 +222,29 @@ public class MailComponentTest extends CamelTestSupport {
     }
 
     @Test
+    public void testAuthenticator() {
+        DefaultAuthenticator auth1 = new DefaultAuthenticator("u1", "p1");
+        context.getRegistry().bind("auth1", auth1);
+        MailEndpoint endpoint = resolveMandatoryEndpoint("smtp://myhost:25/?authenticator=#auth1&to=james%40myhost");
+        MailConfiguration config = endpoint.getConfiguration();
+        assertEquals("getProtocol()", "smtp", config.getProtocol());
+        assertEquals("getHost()", "myhost", config.getHost());
+        assertEquals("getPort()", 25, config.getPort());
+        assertEquals("getUsername()", null, config.getUsername());
+        assertNotNull("getPasswordAuthentication()", config.getPasswordAuthentication());
+        assertEquals("getPasswordAuthentication().getUserName()", "u1", config.getPasswordAuthentication().getUserName());
+        assertEquals("getPasswordAuthentication().getUserName()", "p1", config.getPasswordAuthentication().getPassword());
+        assertEquals("getRecipients().get(Message.RecipientType.TO)", "james@myhost", config.getRecipients().get(Message.RecipientType.TO));
+        assertEquals("folder", "INBOX", config.getFolderName());
+        assertEquals("from", "camel@localhost", config.getFrom());
+        assertEquals("password", null, config.getPassword());
+        assertEquals(false, config.isDelete());
+        assertEquals(false, config.isIgnoreUriScheme());
+        assertEquals("fetchSize", -1, config.getFetchSize());
+        assertEquals(false, config.isDebugMode());
+    }
+
+    @Test
     public void testMailEndpointsWithFetchSize() throws Exception {
         MailEndpoint endpoint = resolveMandatoryEndpoint("pop3://james@myhost?fetchSize=5");
         MailConfiguration config = endpoint.getConfiguration();
@@ -257,6 +279,7 @@ public class MailComponentTest extends CamelTestSupport {
     public void testMailComponentCtr() throws Exception {
         MailComponent comp = new MailComponent();
         comp.setCamelContext(context);
+        comp.init();
 
         assertNotNull(comp.getConfiguration());
         assertNull(comp.getContentTypeResolver());
@@ -271,6 +294,7 @@ public class MailComponentTest extends CamelTestSupport {
     @Test
     public void testMailComponentCtrCamelContext() throws Exception {
         MailComponent comp = new MailComponent(context);
+        comp.init();
 
         assertNotNull(comp.getConfiguration());
         assertNull(comp.getContentTypeResolver());
@@ -312,13 +336,13 @@ public class MailComponentTest extends CamelTestSupport {
         assertSame(config, comp.getConfiguration());
         assertNull(comp.getContentTypeResolver());
 
-        MailEndpoint endpoint = (MailEndpoint)comp.createEndpoint("imap://myhost?scheduler=quartz2&scheduler.cron=0%2F5+*+0-23+%3F+*+*+*&scheduler.timeZone=Europe%2FBerlin");
+        MailEndpoint endpoint = (MailEndpoint)comp.createEndpoint("imap://myhost?scheduler=quartz&scheduler.cron=0%2F5+*+0-23+%3F+*+*+*&scheduler.timeZone=Europe%2FBerlin");
         assertEquals("james", endpoint.getConfiguration().getUsername());
         assertEquals("secret", endpoint.getConfiguration().getPassword());
         assertEquals("myhost", endpoint.getConfiguration().getHost());
 
         assertNotNull("Scheduler not set", endpoint.getScheduler());
-        assertTrue("Wrong scheduler class", endpoint.getScheduler() instanceof QuartzScheduledPollConsumerScheduler);
+        assertEquals("quartz", endpoint.getScheduler());
     }
 }
 

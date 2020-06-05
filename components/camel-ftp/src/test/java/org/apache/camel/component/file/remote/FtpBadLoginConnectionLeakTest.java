@@ -25,30 +25,27 @@ import java.util.Map;
 
 import javax.net.SocketFactory;
 
+import org.apache.camel.BindToRegistry;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FtpBadLoginConnectionLeakTest extends FtpServerTestSupport {
 
     /**
-     * Mapping of socket hashcode to two element tab ([connect() called, close() called])
+     * Mapping of socket hashcode to two element tab ([connect() called, close()
+     * called])
      */
     private Map<Integer, boolean[]> socketAudits = new HashMap<>();
 
+    @BindToRegistry("sf")
+    private SocketFactory sf = new AuditingSocketFactory();
+
     private String getFtpUrl() {
-        return "ftp://dummy@localhost:" + getPort() + "/badlogin?password=cantremeber" 
-            + "&throwExceptionOnConnectFailed=false&ftpClient.socketFactory=#sf";
-    }
-
-    @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
-
-        SocketFactory sf = new AuditingSocketFactory();
-        jndi.bind("sf", sf);
-        return jndi;
+        return "ftp://dummy@localhost:" + getPort() + "/badlogin?password=cantremeber" + "&throwExceptionOnConnectFailed=false&ftpClient.socketFactory=#sf";
     }
 
     @Test
@@ -62,8 +59,8 @@ public class FtpBadLoginConnectionLeakTest extends FtpServerTestSupport {
         stopCamelContext();
 
         for (Map.Entry<Integer, boolean[]> socketStats : socketAudits.entrySet()) {
-            assertTrue("Socket should be connected", socketStats.getValue()[0]);
-            assertEquals("Socket should be closed", socketStats.getValue()[0], socketStats.getValue()[1]);
+            assertTrue(socketStats.getValue()[0], "Socket should be connected");
+            assertEquals(socketStats.getValue()[0], socketStats.getValue()[1], "Socket should be closed");
         }
 
         mock.assertIsSatisfied();
@@ -79,8 +76,9 @@ public class FtpBadLoginConnectionLeakTest extends FtpServerTestSupport {
     }
 
     /**
-     * {@link SocketFactory} which creates {@link Socket}s that expose statistics about {@link Socket#connect(SocketAddress)}/{@link Socket#close()}
-     * invocations
+     * {@link SocketFactory} which creates {@link Socket}s that expose
+     * statistics about
+     * {@link Socket#connect(SocketAddress)}/{@link Socket#close()} invocations
      */
     private class AuditingSocketFactory extends SocketFactory {
 

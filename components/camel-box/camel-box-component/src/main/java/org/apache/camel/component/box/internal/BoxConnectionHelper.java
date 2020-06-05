@@ -34,7 +34,6 @@ import com.box.sdk.BoxDeveloperEditionAPIConnection;
 import com.box.sdk.IAccessTokenCache;
 import com.box.sdk.InMemoryLRUAccessTokenCache;
 import com.box.sdk.JWTEncryptionPreferences;
-
 import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.component.box.BoxConfiguration;
 import org.apache.http.HttpHost;
@@ -69,15 +68,15 @@ public final class BoxConnectionHelper {
                     "Box API connection failed: Authentication type not specified in configuration");
         }
         switch (configuration.getAuthenticationType()) {
-        case BoxConfiguration.APP_ENTERPRISE_AUTHENTICATION:
-            return createAppEnterpriseAuthenticatedConnection(configuration);
-        case BoxConfiguration.APP_USER_AUTHENTICATION:
-            return createAppUserAuthenticatedConnection(configuration);
-        case BoxConfiguration.STANDARD_AUTHENTICATION:
-            return createStandardAuthenticatedConnection(configuration);
-        default:
-            throw new RuntimeCamelException(String.format("Box API connection failed: Invalid authentication type '%s'",
-                    configuration.getAuthenticationType()));
+            case BoxConfiguration.APP_ENTERPRISE_AUTHENTICATION:
+                return createAppEnterpriseAuthenticatedConnection(configuration);
+            case BoxConfiguration.APP_USER_AUTHENTICATION:
+                return createAppUserAuthenticatedConnection(configuration);
+            case BoxConfiguration.STANDARD_AUTHENTICATION:
+                return createStandardAuthenticatedConnection(configuration);
+            default:
+                throw new RuntimeCamelException(String.format("Box API connection failed: Invalid authentication type '%s'",
+                        configuration.getAuthenticationType()));
         }
     }
 
@@ -208,7 +207,7 @@ public final class BoxConnectionHelper {
         String errorMessage = null;
         if (!errorDivs.isEmpty()) {
             errorMessage = errorDivs.first().text().replaceAll("\\s+", " ")
-                    .replaceAll(" Show Error Details", ":").trim();
+                    .replace(" Show Error Details", ":").trim();
         } else {
             errorDivs = page.select("div[class*=message]");
             if (!errorDivs.isEmpty()) {

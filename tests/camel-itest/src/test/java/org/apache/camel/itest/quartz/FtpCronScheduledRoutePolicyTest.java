@@ -15,13 +15,14 @@
  * limitations under the License.
  */
 package org.apache.camel.itest.quartz;
+
 import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.ShutdownRunningTask;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.routepolicy.quartz2.CronScheduledRoutePolicy;
+import org.apache.camel.routepolicy.quartz.CronScheduledRoutePolicy;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.apache.ftpserver.FtpServer;
 import org.apache.ftpserver.FtpServerFactory;
@@ -42,7 +43,7 @@ import org.junit.Test;
 public class FtpCronScheduledRoutePolicyTest extends CamelTestSupport {
 
     protected FtpServer ftpServer;
-    private String ftp = "ftp:localhost:20128/myapp?password=admin&username=admin&delay=5s&idempotent=false&localWorkDirectory=target/tmp";
+    private String ftp = "ftp:localhost:20128/myapp?password=admin&username=admin&delay=5000&idempotent=false&localWorkDirectory=target/tmp";
 
     @Test
     public void testFtpCronScheduledRoutePolicyTest() throws Exception {
@@ -70,6 +71,7 @@ public class FtpCronScheduledRoutePolicyTest extends CamelTestSupport {
         };
     }
 
+    @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
@@ -79,6 +81,7 @@ public class FtpCronScheduledRoutePolicyTest extends CamelTestSupport {
         ftpServer.start();
     }
 
+    @Override
     @After
     public void tearDown() throws Exception {
         super.tearDown();

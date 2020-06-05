@@ -22,13 +22,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.stream.Stream;
 
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.Message;
 import org.apache.camel.MessageHistory;
 import org.apache.camel.StreamCache;
@@ -71,7 +70,7 @@ public final class MessageHelper {
         // optimize if the body is a String type already
         Object body = message.getBody();
         if (body instanceof String) {
-            return (String) body;
+            return (String)body;
         }
 
         // we need to favor using stream cache so the body can be re-read later
@@ -99,8 +98,8 @@ public final class MessageHelper {
      * Will skip java.lang. for the build in Java types.
      * 
      * @param message the message with the body
-     * @return the body type name as String, can return
-     *         <tt>null</null> if no body
+     * @return the body type name as String, can return <tt>null</null> if no
+     *         body
      */
     public static String getBodyTypeName(Message message) {
         if (message == null) {
@@ -123,9 +122,14 @@ public final class MessageHelper {
         if (message == null) {
             return;
         }
-        Object body = message.getBody();
+        Object body = null;
+        try {
+            body = message.getBody();
+        } catch (Throwable e) {
+            // ignore
+        }
         if (body instanceof StreamCache) {
-            ((StreamCache) body).reset();
+            ((StreamCache)body).reset();
         }
     }
 
@@ -167,7 +171,7 @@ public final class MessageHelper {
      *
      * @see org.apache.camel.Exchange#LOG_DEBUG_BODY_STREAMS
      * @see org.apache.camel.Exchange#LOG_DEBUG_BODY_MAX_CHARS
-     * @param value   the value
+     * @param value the value
      * @param message the message
      * @return the logging message
      */
@@ -190,7 +194,7 @@ public final class MessageHelper {
             }
         }
 
-        return extractValueForLogging(value, message, "", streams, false, maxChars);
+        return extractValueForLogging(value, message, streams, false, maxChars);
     }
 
     /**
@@ -249,14 +253,20 @@ public final class MessageHelper {
      * 
      * @see org.apache.camel.Exchange#LOG_DEBUG_BODY_MAX_CHARS
      * @param message the message
-     * @param prepend a message to prepend
+     * @param prepend a message to prepend (optional)
      * @param allowStreams whether or not streams is allowed
      * @param allowFiles whether or not files is allowed (currently not in use)
-     * @param maxChars limit to maximum number of chars. Use 0 for not limit, and -1 for turning logging message body off.
+     * @param maxChars limit to maximum number of chars. Use 0 for not limit,
+     *            and -1 for turning logging message body off.
      * @return the logging message
      */
     public static String extractBodyForLogging(Message message, String prepend, boolean allowStreams, boolean allowFiles, int maxChars) {
-        return extractValueForLogging(message.getBody(), message, prepend, allowStreams, allowFiles, maxChars);
+        String value = extractValueForLogging(message.getBody(), message, allowStreams, allowFiles, maxChars);
+        if (prepend != null) {
+            return prepend + value;
+        } else {
+            return value;
+        }
     }
 
     /**
@@ -265,46 +275,43 @@ public final class MessageHelper {
      * Will clip the value if its too big for logging.
      *
      * @see org.apache.camel.Exchange#LOG_DEBUG_BODY_MAX_CHARS
-     * @param obj     the value
+     * @param obj the value
      * @param message the message
-     * @param prepend a message to prepend
      * @param allowStreams whether or not streams is allowed
      * @param allowFiles whether or not files is allowed (currently not in use)
-     * @param maxChars limit to maximum number of chars. Use 0 for not limit, and -1 for turning logging message body off.
+     * @param maxChars limit to maximum number of chars. Use 0 for not limit,
+     *            and -1 for turning logging message body off.
      * @return the logging message
      */
-    public static String extractValueForLogging(Object obj, Message message, String prepend, boolean allowStreams, boolean allowFiles, int maxChars) {
+    public static String extractValueForLogging(Object obj, Message message, boolean allowStreams, boolean allowFiles, int maxChars) {
         if (maxChars < 0) {
-            return prepend + "[Body is not logged]";
+            return "[Body is not logged]";
         }
 
         if (obj == null) {
-            return prepend + "[Body is null]";
-        }
-
-        if (!allowStreams) {
-            if (instanceOf(obj, "java.xml.transform.Source")) {
-                return prepend + "[Body is instance of java.xml.transform.Source]";
-            } else if (obj instanceof StreamCache) {
-                return prepend + "[Body is instance of org.apache.camel.StreamCache]";
-            } else if (obj instanceof InputStream) {
-                return prepend + "[Body is instance of java.io.InputStream]";
-            } else if (obj instanceof OutputStream) {
-                return prepend + "[Body is instance of java.io.OutputStream]";
-            } else if (obj instanceof Reader) {
-                return prepend + "[Body is instance of java.io.Reader]";
-            } else if (obj instanceof Writer) {
-                return prepend + "[Body is instance of java.io.Writer]";
-            } else if (obj instanceof WrappedFile || obj instanceof File) {
-                if (!allowFiles) {
-                    return prepend + "[Body is file based: " + obj + "]";
-                }
-            }
+            return "[Body is null]";
         }
 
         if (!allowFiles) {
             if (obj instanceof WrappedFile || obj instanceof File) {
-                return prepend + "[Body is file based: " + obj + "]";
+                return "[Body is file based: " + obj + "]";
+            }
+        }
+
+        if (!allowStreams) {
+            if (obj instanceof StreamCache) {
+                return "[Body is instance of org.apache.camel.StreamCache]";
+            } else if (obj instanceof InputStream) {
+                return "[Body is instance of java.io.InputStream]";
+            } else if (obj instanceof OutputStream) {
+                return "[Body is instance of java.io.OutputStream]";
+            } else if (obj instanceof Reader) {
+                return "[Body is instance of java.io.Reader]";
+            } else if (obj instanceof Writer) {
+                return "[Body is instance of java.io.Writer]";
+            } else if (obj.getClass().getName().equals("javax.xml.transform.stax.StAXSource")) {
+                // StAX source is streaming based
+                return "[Body is instance of javax.xml.transform.Source]";
             }
         }
 
@@ -316,7 +323,7 @@ public final class MessageHelper {
             is = null;
         } else if (obj instanceof InputStream) {
             cache = null;
-            is = (InputStream) obj;
+            is = (InputStream)obj;
         }
 
         // grab the message body as a string
@@ -348,7 +355,7 @@ public final class MessageHelper {
         }
 
         if (body == null) {
-            return prepend + "[Body is null]";
+            return "[Body is null]";
         }
 
         // clip body if length enabled and the body is too big
@@ -356,17 +363,7 @@ public final class MessageHelper {
             body = body.substring(0, maxChars) + "... [Body clipped after " + maxChars + " chars, total length is " + body.length() + "]";
         }
 
-        return prepend + body;
-    }
-
-    private static boolean instanceOf(Object obj, String interfaceName) {
-        return interfaces(obj.getClass()).anyMatch(cl -> cl.getName().equals(interfaceName));
-    }
-
-    private static Stream<Class<?>> interfaces(Class<?> clazz) {
-        return clazz == null ? Stream.empty() : Stream.concat(
-                Stream.concat(Stream.of(clazz), interfaces(clazz.getSuperclass())),
-                Stream.of(clazz.getInterfaces()).flatMap(MessageHelper::interfaces));
+        return body;
     }
 
     /**
@@ -408,9 +405,11 @@ public final class MessageHelper {
      * @param message the message
      * @param includeBody whether or not to include the message body
      * @param indent number of spaces to indent
-     * @param allowStreams whether to include message body if they are stream based
+     * @param allowStreams whether to include message body if they are stream
+     *            based
      * @param allowFiles whether to include message body if they are file based
-     * @param maxChars clip body after maximum chars (to avoid very big messages). Use 0 or negative value to not limit at all.
+     * @param maxChars clip body after maximum chars (to avoid very big
+     *            messages). Use 0 or negative value to not limit at all.
      * @return the XML
      */
     public static String dumpAsXml(Message message, boolean includeBody, int indent, boolean allowStreams, boolean allowFiles, int maxChars) {
@@ -445,8 +444,7 @@ public final class MessageHelper {
                 // to String
                 if (value != null) {
                     try {
-                        String xml = message.getExchange().getContext().getTypeConverter().tryConvertTo(String.class,
-                                message.getExchange(), value);
+                        String xml = message.getExchange().getContext().getTypeConverter().tryConvertTo(String.class, message.getExchange(), value);
                         if (xml != null) {
                             // must always xml encode
                             sb.append(StringHelper.xmlEncode(xml));
@@ -471,7 +469,7 @@ public final class MessageHelper {
             }
             sb.append(">");
 
-            String xml = extractBodyForLogging(message, "", allowStreams, allowFiles, maxChars);
+            String xml = extractBodyForLogging(message, null, allowStreams, allowFiles, maxChars);
             if (xml != null) {
                 // must always xml encode
                 sb.append(StringHelper.xmlEncode(xml));
@@ -495,13 +493,14 @@ public final class MessageHelper {
     public static void copyHeaders(Message source, Message target, boolean override) {
         copyHeaders(source, target, null, override);
     }
-    
+
     /**
      * Copies the headers from the source to the target message.
      * 
      * @param source the source message
      * @param target the target message
-     * @param strategy the header filter strategy which could help us to filter the protocol message headers
+     * @param strategy the header filter strategy which could help us to filter
+     *            the protocol message headers
      * @param override whether to override existing headers
      */
     public static void copyHeaders(Message source, Message target, HeaderFilterStrategy strategy, boolean override) {
@@ -517,7 +516,8 @@ public final class MessageHelper {
                 if (strategy == null) {
                     target.setHeader(key, value);
                 } else if (!strategy.applyFilterToExternalHeaders(key, value, target.getExchange())) {
-                    // Just make sure we don't copy the protocol headers to target
+                    // Just make sure we don't copy the protocol headers to
+                    // target
                     target.setHeader(key, value);
                 }
             }
@@ -525,11 +525,14 @@ public final class MessageHelper {
     }
 
     /**
-     * Dumps the {@link MessageHistory} from the {@link Exchange} in a human readable format.
+     * Dumps the {@link MessageHistory} from the {@link Exchange} in a human
+     * readable format.
      *
-     * @param exchange           the exchange
-     * @param exchangeFormatter  if provided then information about the exchange is included in the dump
-     * @param logStackTrace      whether to include a header for the stacktrace, to be added (not included in this dump).
+     * @param exchange the exchange
+     * @param exchangeFormatter if provided then information about the exchange
+     *            is included in the dump
+     * @param logStackTrace whether to include a header for the stacktrace, to
+     *            be added (not included in this dump).
      * @return a human readable message history as a table
      */
     public static String dumpMessageHistoryStacktrace(Exchange exchange, ExchangeFormatter exchangeFormatter, boolean logStackTrace) {
@@ -543,20 +546,20 @@ public final class MessageHelper {
     }
 
     @SuppressWarnings("unchecked")
-    public static String doDumpMessageHistoryStacktrace(Exchange exchange, ExchangeFormatter exchangeFormatter, boolean logStackTrace) {
+    private static String doDumpMessageHistoryStacktrace(Exchange exchange, ExchangeFormatter exchangeFormatter, boolean logStackTrace) {
         List<MessageHistory> list = exchange.getProperty(Exchange.MESSAGE_HISTORY, List.class);
-        if (list == null || list.isEmpty()) {
-            return null;
-        }
+        boolean enabled = list != null;
 
         StringBuilder sb = new StringBuilder();
         sb.append("\n");
-        sb.append("Message History\n");
+        sb.append("Message History");
+        if (!enabled) {
+            sb.append(" (complete message history is disabled)");
+        }
+        sb.append("\n");
         sb.append("---------------------------------------------------------------------------------------------------------------------------------------\n");
-        String goMessageHistoryHeaeder = exchange.getContext().getGlobalOption(Exchange.MESSAGE_HISTORY_HEADER_FORMAT);
-        sb.append(String.format(
-                         goMessageHistoryHeaeder == null ? MESSAGE_HISTORY_HEADER : goMessageHistoryHeaeder,
-                         "RouteId", "ProcessorId", "Processor", "Elapsed (ms)"));
+        String goMessageHistoryHeader = exchange.getContext().getGlobalOption(Exchange.MESSAGE_HISTORY_HEADER_FORMAT);
+        sb.append(String.format(goMessageHistoryHeader == null ? MESSAGE_HISTORY_HEADER : goMessageHistoryHeader, "RouteId", "ProcessorId", "Processor", "Elapsed (ms)"));
         sb.append("\n");
 
         // add incoming origin of message on the top
@@ -564,32 +567,58 @@ public final class MessageHelper {
         String id = routeId;
         String label = "";
         if (exchange.getFromEndpoint() != null) {
-            label = URISupport.sanitizeUri(exchange.getFromEndpoint().getEndpointUri());
+            label = "from[" + URISupport.sanitizeUri(exchange.getFromEndpoint().getEndpointUri() + "]");
         }
-        long elapsed = 0;
-        Date created = exchange.getCreated();
-        if (created != null) {
-            elapsed = new StopWatch(created).taken();
-        }
+        long elapsed = new StopWatch(exchange.getCreated()).taken();
 
         String goMessageHistoryOutput = exchange.getContext().getGlobalOption(Exchange.MESSAGE_HISTORY_OUTPUT_FORMAT);
         goMessageHistoryOutput = goMessageHistoryOutput == null ? MESSAGE_HISTORY_OUTPUT : goMessageHistoryOutput;
         sb.append(String.format(goMessageHistoryOutput, routeId, id, label, elapsed));
         sb.append("\n");
 
-        // and then each history
-        for (MessageHistory history : list) {
-            routeId = history.getRouteId() != null ? history.getRouteId() : "";
-            id = history.getNode().getId();
-            // we need to avoid leak the sensible information here
-            // the sanitizeUri takes a very long time for very long string and the format cuts this to
-            // 78 characters, anyway. Cut this to 100 characters. This will give enough space for removing
-            // characters in the sanitizeUri method and will be reasonably fast
-            label =  URISupport.sanitizeUri(StringHelper.limitLength(history.getNode().getLabel(), 100));
-            elapsed = history.getElapsed();
+        if (list == null || list.isEmpty()) {
+            // message history is not enabled but we can show the last processed
+            // instead
+            id = exchange.adapt(ExtendedExchange.class).getHistoryNodeId();
+            if (id != null) {
+                // compute route id
+                String rid = ExchangeHelper.getAtRouteId(exchange);
+                if (rid != null) {
+                    routeId = rid;
+                }
+                label = exchange.adapt(ExtendedExchange.class).getHistoryNodeLabel();
+                // we need to avoid leak the sensible information here
+                // the sanitizeUri takes a very long time for very long string
+                // and the format cuts this to
+                // 78 characters, anyway. Cut this to 100 characters. This will
+                // give enough space for removing
+                // characters in the sanitizeUri method and will be reasonably
+                // fast
+                label = URISupport.sanitizeUri(StringHelper.limitLength(label, 100));
+                // we do not have elapsed time
+                elapsed = 0;
+                sb.append("\t...\n");
+                sb.append(String.format(goMessageHistoryOutput, routeId, id, label, elapsed));
+                sb.append("\n");
+            }
+        } else {
+            for (MessageHistory history : list) {
+                // and then each history
+                routeId = history.getRouteId() != null ? history.getRouteId() : "";
+                id = history.getNode().getId();
+                // we need to avoid leak the sensible information here
+                // the sanitizeUri takes a very long time for very long string
+                // and the format cuts this to
+                // 78 characters, anyway. Cut this to 100 characters. This will
+                // give enough space for removing
+                // characters in the sanitizeUri method and will be reasonably
+                // fast
+                label = URISupport.sanitizeUri(StringHelper.limitLength(history.getNode().getLabel(), 100));
+                elapsed = history.getElapsed();
 
-            sb.append(String.format(goMessageHistoryOutput, routeId, id, label, elapsed));
-            sb.append("\n");
+                sb.append(String.format(goMessageHistoryOutput, routeId, id, label, elapsed));
+                sb.append("\n");
+            }
         }
 
         if (exchangeFormatter != null) {
@@ -601,7 +630,7 @@ public final class MessageHelper {
 
         if (logStackTrace) {
             sb.append("\nStacktrace\n");
-            sb.append("---------------------------------------------------------------------------------------------------------------------------------------");
+            sb.append("---------------------------------------------------------------------------------------------------------------------------------------\n");
         }
         return sb.toString();
     }

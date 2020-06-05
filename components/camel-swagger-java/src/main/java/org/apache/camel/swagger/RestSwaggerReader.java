@@ -19,7 +19,6 @@ package org.apache.camel.swagger;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -28,8 +27,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static java.lang.invoke.MethodHandles.publicLookup;
 
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.models.ArrayModel;
@@ -80,6 +77,8 @@ import org.apache.camel.spi.ClassResolver;
 import org.apache.camel.support.ObjectHelper;
 import org.apache.camel.util.FileUtil;
 
+import static java.lang.invoke.MethodHandles.publicLookup;
+
 /**
  * A Camel REST-DSL swagger reader that parse the rest-dsl into a swagger model representation.
  * <p/>
@@ -120,7 +119,7 @@ public class RestSwaggerReader {
     private void parse(Swagger swagger, RestDefinition rest, String camelContextId, ClassResolver classResolver) throws ClassNotFoundException {
         List<VerbDefinition> verbs = new ArrayList<>(rest.getVerbs());
         // must sort the verbs by uri so we group them together when an uri has multiple operations
-        Collections.sort(verbs, new VerbOrdering());
+        verbs.sort(new VerbOrdering());
 
         // we need to group the operations within the same tag, so use the path as default if not configured
         String pathAsTag = rest.getTag() != null ? rest.getTag() : FileUtil.stripLeadingSeparator(rest.getPath());
@@ -147,7 +146,7 @@ public class RestSwaggerReader {
                     ApiKeyAuthDefinition auth = new ApiKeyAuthDefinition();
                     auth.setDescription(rs.getDescription());
                     auth.setName(rs.getName());
-                    if (rs.getInHeader() != null && rs.getInHeader()) {
+                    if (rs.getInHeader() != null && Boolean.parseBoolean(rs.getInHeader())) {
                         auth.setIn(In.HEADER);
                     } else {
                         auth.setIn(In.QUERY);
@@ -181,14 +180,14 @@ public class RestSwaggerReader {
         for (VerbDefinition verb : verbs) {
 
             // check if the Verb Definition must be excluded from documentation
-            Boolean apiDocs;
+            String apiDocs;
             if (verb.getApiDocs() != null) {
                 apiDocs = verb.getApiDocs();
             } else {
                 // fallback to option on rest
                 apiDocs = rest.getApiDocs();
             }
-            if (apiDocs != null && !apiDocs) {
+            if (apiDocs != null && !Boolean.parseBoolean(apiDocs)) {
                 continue;
             }
 
@@ -230,21 +229,18 @@ public class RestSwaggerReader {
     }
 
     private void doParseVerbs(Swagger swagger, RestDefinition rest, String camelContextId, List<VerbDefinition> verbs, String pathAsTag) {
-        // used during gathering of apis
-        List<Path> paths = new ArrayList<>();
-
         String basePath = rest.getPath();
 
         for (VerbDefinition verb : verbs) {
             // check if the Verb Definition must be excluded from documentation
-            Boolean apiDocs;
+            String apiDocs;
             if (verb.getApiDocs() != null) {
                 apiDocs = verb.getApiDocs();
             } else {
                 // fallback to option on rest
                 apiDocs = rest.getApiDocs();
             }
-            if (apiDocs != null && !apiDocs) {
+            if (apiDocs != null && !Boolean.parseBoolean(apiDocs)) {
                 continue;
             }
             // the method must be in lower case
@@ -259,7 +255,15 @@ public class RestSwaggerReader {
             }
 
             final String routeId = verb.getRouteId();
-            final String operationId = Optional.ofNullable(rest.getId()).orElse(routeId);
+            // favour ids from verb, rest, route
+            final String operationId;
+            if (verb.getId() != null) {
+                operationId = verb.getId();
+            } else if (rest.getId() != null) {
+                operationId = rest.getId();
+            } else {
+                operationId = routeId;
+            }
             op.operationId(operationId);
 
             // add id as vendor extensions
@@ -269,7 +273,6 @@ public class RestSwaggerReader {
             Path path = swagger.getPath(opPath);
             if (path == null) {
                 path = new Path();
-                paths.add(path);
             }
             path = path.set(method, op);
 

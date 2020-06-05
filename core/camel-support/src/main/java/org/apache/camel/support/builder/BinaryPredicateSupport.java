@@ -17,6 +17,7 @@
 package org.apache.camel.support.builder;
 
 import org.apache.camel.BinaryPredicate;
+import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.Expression;
 import org.apache.camel.Predicate;
@@ -40,14 +41,22 @@ public abstract class BinaryPredicateSupport implements BinaryPredicate {
     }
 
     @Override
+    public void init(CamelContext context) {
+        left.init(context);
+        right.init(context);
+    }
+
+    @Override
     public String toString() {
         return left + " " + getOperationText() + " " + right;
     }
 
+    @Override
     public boolean matches(Exchange exchange) {
         return matchesReturningFailureMessage(exchange) == null;
     }
 
+    @Override
     public String matchesReturningFailureMessage(Exchange exchange) {
         // we must not store any state, so we can be thread safe
         // and thus we offer this method which returns a failure message if
@@ -68,14 +77,17 @@ public abstract class BinaryPredicateSupport implements BinaryPredicate {
 
     protected abstract String getOperationText();
 
+    @Override
     public Expression getLeft() {
         return left;
     }
 
+    @Override
     public Expression getRight() {
         return right;
     }
 
+    @Override
     public String getOperator() {
         return getOperationText();
     }

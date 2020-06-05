@@ -75,7 +75,7 @@ public class Jms2TestSupport extends CamelTestSupport {
     protected void doPreSetup() throws Exception {
         broker = new EmbeddedJMS();
         deleteDirectory("target/data");
-        port = AvailablePortFinder.getNextAvailable(33333);
+        port = AvailablePortFinder.getNextAvailable();
         brokerUri = "tcp://localhost:" + port;
         configureBroker(this.broker);
         startBroker();
@@ -157,10 +157,10 @@ public class Jms2TestSupport extends CamelTestSupport {
         //and CORE so its not possible to write protocol agnostic tests but in the future releases
         //of artemis we may be able test against them in an agnostic way.
         switch (protocol) {
-        case "OPENWIRE":
-            return new ActiveMQConnectionFactory(brokerUri);
-        default:
-            return ActiveMQJMSClient.createConnectionFactory(brokerUri, "test");
+            case "OPENWIRE":
+                return new ActiveMQConnectionFactory(brokerUri);
+            default:
+                return ActiveMQJMSClient.createConnectionFactory(brokerUri, "test");
         }
     }
 

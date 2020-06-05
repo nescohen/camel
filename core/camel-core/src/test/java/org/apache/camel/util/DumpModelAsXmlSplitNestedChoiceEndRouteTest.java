@@ -21,9 +21,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import org.apache.camel.ContextTestSupport;
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.converter.jaxp.XmlConverter;
-import org.apache.camel.model.ModelHelper;
 import org.junit.Test;
 
 /**
@@ -33,7 +33,8 @@ public class DumpModelAsXmlSplitNestedChoiceEndRouteTest extends ContextTestSupp
 
     @Test
     public void testDumpModelAsXml() throws Exception {
-        String xml = ModelHelper.dumpModelAsXml(context, context.getRouteDefinition("myRoute"));
+        ExtendedCamelContext ecc = context.adapt(ExtendedCamelContext.class);
+        String xml = ecc.getModelToXMLDumper().dumpModelAsXml(context, context.getRouteDefinition("myRoute"));
         assertNotNull(xml);
         log.info(xml);
 
@@ -41,8 +42,9 @@ public class DumpModelAsXmlSplitNestedChoiceEndRouteTest extends ContextTestSupp
         NodeList nodes = doc.getElementsByTagName("split");
         assertEquals(1, nodes.getLength());
         Element node = (Element)nodes.item(0);
-        // there is an empty text document as we pretty print the xml, so need to do 2 x next sibling
-        Element last = (Element) node.getNextSibling().getNextSibling();
+        // there is an empty text document as we pretty print the xml, so need
+        // to do 2 x next sibling
+        Element last = (Element)node.getNextSibling().getNextSibling();
         assertEquals("mock:last", last.getAttribute("uri"));
     }
 
@@ -51,16 +53,8 @@ public class DumpModelAsXmlSplitNestedChoiceEndRouteTest extends ContextTestSupp
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start").routeId("myRoute")
-                   .split().body()
-                        .to("mock:sub").id("myMock")
-                        .choice()
-                            .when(header("foo")).to("mock:foo")
-                            .when(header("bar")).to("mock:bar")
-                            .otherwise().to("mock:other")
-                        .end()
-                    .end()
-                    .to("mock:last");
+                from("direct:start").routeId("myRoute").split().body().to("mock:sub").id("myMock").choice().when(header("foo")).to("mock:foo").when(header("bar")).to("mock:bar")
+                    .otherwise().to("mock:other").end().end().to("mock:last");
             }
         };
     }

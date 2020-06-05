@@ -22,8 +22,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URL;
-import java.net.URLConnection;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,11 +36,15 @@ import org.apache.camel.support.service.ServiceHelper;
 import org.apache.camel.util.FileUtil;
 import org.apache.camel.util.IOHelper;
 import org.apache.camel.util.StringHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Consumer that can read from streams
  */
 public class StreamConsumer extends DefaultConsumer implements Runnable {
+
+    private static final Logger LOG = LoggerFactory.getLogger(StreamConsumer.class);
 
     private static final String TYPES = "in,file,url";
     private static final String INVALID_URI = "Invalid uri, valid form: 'stream:{" + TYPES + "}'";
@@ -72,10 +74,10 @@ public class StreamConsumer extends DefaultConsumer implements Runnable {
         // use file watch service if we read from file
         if (endpoint.isFileWatcher()) {
             String dir = new File(endpoint.getFileName()).getParent();
-            fileWatcher = new FileWatcherStrategy(dir, (file) -> {
+            fileWatcher = new FileWatcherStrategy(dir, file -> {
                 String onlyName = file.getName();
                 String target = FileUtil.stripPath(endpoint.getFileName());
-                log.trace("File changed: {}", onlyName);
+                LOG.trace("File changed: {}", onlyName);
                 if (onlyName.equals(target)) {
                     // file is changed
                     watchFileChanged = true;
@@ -112,6 +114,7 @@ public class StreamConsumer extends DefaultConsumer implements Runnable {
         super.doStop();
     }
 
+    @Override
     public void run() {
         try {
             readFromStream();
@@ -131,9 +134,6 @@ public class StreamConsumer extends DefaultConsumer implements Runnable {
             inputStreamToClose = null;
         } else if ("file".equals(uri)) {
             inputStream = resolveStreamFromFile();
-            inputStreamToClose = inputStream;
-        } else if ("url".equals(uri)) {
-            inputStream = resolveStreamFromUrl();
             inputStreamToClose = inputStream;
         }
 
@@ -155,7 +155,7 @@ public class StreamConsumer extends DefaultConsumer implements Runnable {
             while (isRunAllowed()) {
                 if (br != null) {
                     line = br.readLine();
-                    log.trace("Read line: {}", line);
+                    LOG.trace("Read line: {}", line);
                 } else {
                     line = null;
                 }
@@ -168,14 +168,14 @@ public class StreamConsumer extends DefaultConsumer implements Runnable {
                         reOpen = watchFileChanged;
                     }
                     if (reOpen) {
-                        log.debug("File: {} changed/rollover, re-reading file from beginning", file);
+                        LOG.debug("File: {} changed/rollover, re-reading file from beginning", file);
                         br = initializeStream();
                         // we have re-initialized the stream so lower changed flag
                         if (endpoint.isFileWatcher()) {
                             watchFileChanged = false;
                         }
                     } else {
-                        log.trace("File: {} not changed since last read", file);
+                        LOG.trace("File: {} not changed since last read", file);
                     }
                 }
 
@@ -203,7 +203,7 @@ public class StreamConsumer extends DefaultConsumer implements Runnable {
                 } else {
                     line = line2;
                 }
-                log.trace("Read line: {}", line);
+                LOG.trace("Read line: {}", line);
 
                 eos = line == null;
                 if (!eos && isRunAllowed()) {
@@ -286,25 +286,6 @@ public class StreamConsumer extends DefaultConsumer implements Runnable {
         }
     }
 
-    private InputStream resolveStreamFromUrl() throws IOException {
-        String u = endpoint.getUrl();
-        StringHelper.notEmpty(u, "url");
-        log.debug("About to read from url: {}", u);
-
-        URL url = new URL(u);
-        URLConnection c = url.openConnection();
-        if (endpoint.getConnectTimeout() > 0) {
-            c.setConnectTimeout(endpoint.getConnectTimeout());
-        }
-        if (endpoint.getReadTimeout() > 0) {
-            c.setReadTimeout(endpoint.getReadTimeout());
-        }
-        if (endpoint.getHttpHeaders() != null) {
-            endpoint.getHttpHeaders().forEach((k, v) -> c.addRequestProperty(k, v.toString()));
-        }
-        return c.getInputStream();
-    }
-
     private InputStream resolveStreamFromFile() throws IOException {
         String fileName = endpoint.getFileName();
         StringHelper.notEmpty(fileName, "fileName");
@@ -313,8 +294,8 @@ public class StreamConsumer extends DefaultConsumer implements Runnable {
 
         file = new File(fileName);
 
-        if (log.isDebugEnabled()) {
-            log.debug("File to be scanned: {}, path: {}", file.getName(), file.getAbsolutePath());
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("File to be scanned: {}, path: {}", file.getName(), file.getAbsolutePath());
         }
 
         if (file.canRead()) {

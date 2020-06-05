@@ -16,12 +16,11 @@
  */
 package org.apache.camel.processor;
 
-import javax.naming.Context;
-
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.ExchangePattern;
 import org.apache.camel.Header;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class MethodFilterTest extends ContextTestSupport {
@@ -45,28 +44,27 @@ public class MethodFilterTest extends ContextTestSupport {
         assertMockEndpointsSatisfied();
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
                 // START SNIPPET: example
-                from("direct:start").
-                        filter().method("myBean", "matches").
-                        to("mock:result");
+                from("direct:start").filter().method("myBean", "matches").to("mock:result");
                 // END SNIPPET: example
             }
         };
     }
 
     @Override
-    protected Context createJndiContext() throws Exception {
-        Context context = super.createJndiContext();
-        context.bind("myBean", new MyBean());
-        return context;
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
+        answer.bind("myBean", new MyBean());
+        return answer;
     }
 
     // START SNIPPET: filter
     public static class MyBean {
-        public boolean matches(@Header("foo")String location) {
+        public boolean matches(@Header("foo") String location) {
             return "London".equals(location);
         }
     }

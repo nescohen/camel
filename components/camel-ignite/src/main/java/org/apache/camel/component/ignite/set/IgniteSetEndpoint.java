@@ -18,6 +18,7 @@ package org.apache.camel.component.ignite.set;
 
 import java.util.Map;
 
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
@@ -26,17 +27,17 @@ import org.apache.camel.spi.Metadata;
 import org.apache.camel.spi.UriEndpoint;
 import org.apache.camel.spi.UriParam;
 import org.apache.camel.spi.UriPath;
-import org.apache.camel.support.IntrospectionSupport;
 import org.apache.camel.support.PropertyBindingSupport;
 import org.apache.camel.util.ObjectHelper;
+import org.apache.camel.util.PropertiesHelper;
 import org.apache.ignite.configuration.CollectionConfiguration;
 
 /**
- * The Ignite Sets endpoint is one of camel-ignite endpoints which allows you to interact with
- * <a href="https://apacheignite.readme.io/docs/queue-and-set">Ignite Set data structures</a>.
+ * Interact with <a href="https://apacheignite.readme.io/docs/queue-and-set">Ignite Set data structures</a>.
+ *
  * This endpoint only supports producers.
  */
-@UriEndpoint(firstVersion = "2.17.0", scheme = "ignite-set", title = "Ignite Sets", syntax = "ignite-set:name", label = "nosql,cache", producerOnly = true)
+@UriEndpoint(firstVersion = "2.17.0", scheme = "ignite-set", title = "Ignite Sets", syntax = "ignite-set:name", category = {Category.CACHE, Category.COMPUTE}, producerOnly = true)
 public class IgniteSetEndpoint extends AbstractIgniteEndpoint {
 
     @UriPath @Metadata(required = true)
@@ -56,10 +57,9 @@ public class IgniteSetEndpoint extends AbstractIgniteEndpoint {
 
         // Set the configuration values.
         if (!parameters.containsKey("configuration")) {
-            Map<String, Object> configProps = IntrospectionSupport.extractProperties(parameters, "config.");
+            Map<String, Object> configProps = PropertiesHelper.extractProperties(parameters, "config.");
             PropertyBindingSupport.bindProperties(this.getCamelContext(), configProps, parameters);
         }
-
     }
 
     @Override
@@ -74,8 +74,6 @@ public class IgniteSetEndpoint extends AbstractIgniteEndpoint {
 
     /**
      * Gets the set name.
-     * 
-     * @return
      */
     public String getName() {
         return name;
@@ -83,8 +81,6 @@ public class IgniteSetEndpoint extends AbstractIgniteEndpoint {
 
     /**
      * The set name.
-     * 
-     * @param name
      */
     public void setName(String name) {
         this.name = name;
@@ -92,8 +88,6 @@ public class IgniteSetEndpoint extends AbstractIgniteEndpoint {
 
     /**
      * Gets the collection configuration. Default: empty configuration.
-     * 
-     * @return
      */
     public CollectionConfiguration getConfiguration() {
         return configuration;
@@ -103,8 +97,6 @@ public class IgniteSetEndpoint extends AbstractIgniteEndpoint {
      * The collection configuration. Default: empty configuration.
      * <p>
      * You can also conveniently set inner properties by using <tt>configuration.xyz=123</tt> options.
-     * 
-     * @param configuration
      */
     public void setConfiguration(CollectionConfiguration configuration) {
         this.configuration = configuration;
@@ -112,8 +104,6 @@ public class IgniteSetEndpoint extends AbstractIgniteEndpoint {
 
     /**
      * Gets the set operation to perform.
-     * 
-     * @return
      */
     public IgniteSetOperation getOperation() {
         return operation;
@@ -123,8 +113,6 @@ public class IgniteSetEndpoint extends AbstractIgniteEndpoint {
      * The operation to invoke on the Ignite Set.
      * Superseded by the IgniteConstants.IGNITE_SETS_OPERATION header in the IN message.
      * Possible values: CONTAINS, ADD, SIZE, REMOVE, ITERATOR, CLEAR, RETAIN_ALL, ARRAY.The set operation to perform.
-     * 
-     * @param operation
      */
     public void setOperation(IgniteSetOperation operation) {
         this.operation = operation;

@@ -22,6 +22,7 @@ import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.exception.HystrixBadRequestException;
 import org.apache.camel.CamelExchangeException;
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.Message;
 import org.apache.camel.Processor;
 import org.apache.camel.support.ExchangeHelper;
@@ -52,6 +53,11 @@ public class HystrixProcessorCommand extends HystrixCommand {
 
     @Override
     protected Message getFallback() {
+        // if bad request then break-out
+        if (exchange.getException() instanceof HystrixBadRequestException) {
+            return null;
+        }
+
         // guard by lock as the run command can be running concurrently in case hystrix caused a timeout which
         // can cause the fallback timer to trigger this fallback at the same time the run command may be running
         // after its processor.process method which could cause both threads to mutate the state on the exchange
@@ -79,10 +85,10 @@ public class HystrixProcessorCommand extends HystrixCommand {
         // give the rest of the pipeline another chance
         exchange.setProperty(Exchange.EXCEPTION_HANDLED, true);
         exchange.setProperty(Exchange.EXCEPTION_CAUGHT, exception);
-        exchange.removeProperty(Exchange.ROUTE_STOP);
+        exchange.setRouteStop(false);
         exchange.setException(null);
         // and we should not be regarded as exhausted as we are in a try .. catch block
-        exchange.removeProperty(Exchange.REDELIVERY_EXHAUSTED);
+        exchange.adapt(ExtendedExchange.class).setRedeliveryExhausted(false);
         // run the fallback processor
         try {
             // use fallback command if provided (fallback via network)
@@ -99,7 +105,7 @@ public class HystrixProcessorCommand extends HystrixCommand {
             exchange.setException(e);
         }
 
-        return exchange.hasOut() ? exchange.getOut() : exchange.getIn();
+        return exchange.getMessage();
     }
 
     @Override
@@ -154,7 +160,8 @@ public class HystrixProcessorCommand extends HystrixCommand {
             // special for HystrixBadRequestException which should not trigger fallback
             if (camelExchangeException instanceof HystrixBadRequestException) {
                 LOG.debug("Running processor: {} with exchange: {} done as bad request", processor, exchange);
-                return exchange.hasOut() ? exchange.getOut() : exchange.getIn();
+                exchange.setException(camelExchangeException);
+                throw camelExchangeException;
             }
 
             // copy the result before its regarded as success
@@ -168,7 +175,7 @@ public class HystrixProcessorCommand extends HystrixCommand {
             }
 
             LOG.debug("Running processor: {} with exchange: {} done", processor, exchange);
-            return exchange.hasOut() ? exchange.getOut() : exchange.getIn();
+            return exchange.getMessage();
         }
     }
 

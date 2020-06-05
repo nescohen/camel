@@ -41,7 +41,6 @@ import org.jsmpp.util.DefaultDecomposer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * A Strategy used to convert between a Camel {@link Exchange} and
  * {@link SmppMessage} to and from a SMPP {@link Command}
@@ -154,7 +153,7 @@ public class SmppBinding {
                 if (SmppUtils.is8Bit(alphabet)) {
                     smppMessage.setBody(deliverSm.getShortMessage());
                 } else {
-                    smppMessage.setBody(String.valueOf(new String(deliverSm.getShortMessage(), configuration.getEncoding())));
+                    smppMessage.setBody(new String(deliverSm.getShortMessage(), configuration.getEncoding()));
                 }
             } else if (messagePayload != null) {
                 smppMessage.setBody(messagePayload);

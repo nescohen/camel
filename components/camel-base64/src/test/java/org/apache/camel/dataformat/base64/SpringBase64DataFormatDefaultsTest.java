@@ -16,11 +16,10 @@
  */
 package org.apache.camel.dataformat.base64;
 
-
-
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+
 import static org.apache.camel.dataformat.base64.Base64TestConstants.DECODED;
 
 public class SpringBase64DataFormatDefaultsTest extends SpringBase64DataFormatTestBase {
@@ -54,12 +53,12 @@ public class SpringBase64DataFormatDefaultsTest extends SpringBase64DataFormatTe
     }
 
     @Test
-    public void testEncode() throws Exception {
+    void testEncode() throws Exception {
         runEncoderTest(DECODED, ENCODED.getBytes());
     }
 
     @Test
-    public void testDecode() throws Exception {
+    void testDecode() throws Exception {
         runDecoderTest(ENCODED.getBytes(), DECODED);
     }
 

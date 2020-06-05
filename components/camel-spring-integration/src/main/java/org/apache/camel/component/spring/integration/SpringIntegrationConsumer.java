@@ -23,6 +23,8 @@ import org.apache.camel.spring.SpringCamelContext;
 import org.apache.camel.support.DefaultConsumer;
 import org.apache.camel.util.ObjectHelper;
 import org.apache.camel.util.StringHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.integration.support.channel.BeanFactoryChannelResolver;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
@@ -36,6 +38,9 @@ import org.springframework.messaging.core.DestinationResolver;
  * should be set for the outgoing message.
  */
 public class SpringIntegrationConsumer  extends DefaultConsumer implements MessageHandler {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SpringIntegrationConsumer.class);
+
     private final SpringCamelContext context;
     private final DestinationResolver<MessageChannel> destinationResolver;
     private SubscribableChannel inputChannel;
@@ -52,11 +57,13 @@ public class SpringIntegrationConsumer  extends DefaultConsumer implements Messa
         return (SpringIntegrationEndpoint) super.getEndpoint();
     }
 
+    @Override
     protected void doStop() throws Exception {
         inputChannel.unsubscribe(this);
         super.doStop();
     }
 
+    @Override
     protected void doStart() throws Exception {
         super.doStart();
 
@@ -90,6 +97,7 @@ public class SpringIntegrationConsumer  extends DefaultConsumer implements Messa
         inputChannel.subscribe(this);
     }
 
+    @Override
     public void handleMessage(org.springframework.messaging.Message<?> siInMessage) {
         // we received a message from spring integration
         // wrap that in a Camel Exchange and process it
@@ -134,7 +142,7 @@ public class SpringIntegrationConsumer  extends DefaultConsumer implements Messa
                 SpringIntegrationBinding.storeToSpringIntegrationMessage(exchange.getOut());
 
             // send the message to spring integration
-            log.debug("Sending {} to ReplyChannel: {}", siOutMessage, reply);
+            LOG.debug("Sending {} to ReplyChannel: {}", siOutMessage, reply);
             reply.send(siOutMessage);
         }        
     }   

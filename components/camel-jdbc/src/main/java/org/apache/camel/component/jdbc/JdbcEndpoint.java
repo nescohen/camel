@@ -17,8 +17,10 @@
 package org.apache.camel.component.jdbc;
 
 import java.util.Map;
+
 import javax.sql.DataSource;
 
+import org.apache.camel.Category;
 import org.apache.camel.Component;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
@@ -30,9 +32,9 @@ import org.apache.camel.spi.UriPath;
 import org.apache.camel.support.DefaultEndpoint;
 
 /**
- * The jdbc component enables you to access databases through JDBC, where SQL queries are sent in the message body.
+ * Access databases through SQL and JDBC.
  */
-@UriEndpoint(firstVersion = "1.2.0", scheme = "jdbc", title = "JDBC", syntax = "jdbc:dataSourceName", producerOnly = true, label = "database,sql")
+@UriEndpoint(firstVersion = "1.2.0", scheme = "jdbc", title = "JDBC", syntax = "jdbc:dataSourceName", producerOnly = true, category = {Category.DATABASE, Category.SQL})
 public class JdbcEndpoint extends DefaultEndpoint {
 
     private DataSource dataSource;
@@ -73,10 +75,12 @@ public class JdbcEndpoint extends DefaultEndpoint {
         this.dataSource = dataSource;
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         throw new UnsupportedOperationException("Not supported");
     }
 
+    @Override
     public Producer createProducer() throws Exception {
         return new JdbcProducer(this, dataSource, readSize, parameters);
     }
@@ -180,7 +184,7 @@ public class JdbcEndpoint extends DefaultEndpoint {
     }
 
     /**
-     * Allows to plugin to use a custom org.apache.camel.component.jdbc.JdbcPrepareStatementStrategy to control preparation of the query and prepared statement.
+     * Allows the plugin to use a custom org.apache.camel.component.jdbc.JdbcPrepareStatementStrategy to control preparation of the query and prepared statement.
      */
     public void setPrepareStatementStrategy(JdbcPrepareStatementStrategy prepareStatementStrategy) {
         this.prepareStatementStrategy = prepareStatementStrategy;

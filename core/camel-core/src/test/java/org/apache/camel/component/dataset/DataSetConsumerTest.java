@@ -16,12 +16,11 @@
  */
 package org.apache.camel.component.dataset;
 
-import javax.naming.Context;
-
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
+import org.apache.camel.spi.Registry;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -37,13 +36,15 @@ public class DataSetConsumerTest extends ContextTestSupport {
     final String resultUri = "mock://result";
 
     @Override
-    protected Context createJndiContext() throws Exception {
-        Context context = super.createJndiContext();
-        context.bind("foo", dataSet);
-        return context;
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
+        answer.bind("foo", dataSet);
+        return answer;
     }
+
     /**
-     * Ensure the expected message count for a consumer-only endpoint defaults to zero
+     * Ensure the expected message count for a consumer-only endpoint defaults
+     * to zero
      */
     @Test
     public void testConsumerOnlyEndpoint() throws Exception {
@@ -51,15 +52,14 @@ public class DataSetConsumerTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(dataSetUri)
-                        .to(resultUri);
+                from(dataSetUri).to(resultUri);
             }
         });
 
         Assert.assertEquals("expectedMessageCount should be unset(i.e. -1) for a consumer-only endpoint", -1, getMockEndpoint(dataSetUri).getExpectedCount());
 
         MockEndpoint result = getMockEndpoint(resultUri);
-        result.expectedMessageCount((int) dataSet.getSize());
+        result.expectedMessageCount((int)dataSet.getSize());
         result.assertMessagesAscending(header(Exchange.DATASET_INDEX));
 
         context.start();
@@ -68,23 +68,23 @@ public class DataSetConsumerTest extends ContextTestSupport {
     }
 
     /**
-     * Ensure the expected message count for a consumer-producer endpoint defaults to the size of the dataset
+     * Ensure the expected message count for a consumer-producer endpoint
+     * defaults to the size of the dataset
      */
     @Test
     public void testConsumerWithProducer() throws Exception {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(dataSetUri)
-                        .to(dataSetUri)
-                        .to(resultUri);
+                from(dataSetUri).to(dataSetUri).to(resultUri);
             }
         });
 
-        Assert.assertEquals("expectedMessageCount should be the same as the DataSet size for a consumer-producer endpoint", dataSet.getSize(), getMockEndpoint(dataSetUri).getExpectedCount());
+        Assert.assertEquals("expectedMessageCount should be the same as the DataSet size for a consumer-producer endpoint", dataSet.getSize(),
+                            getMockEndpoint(dataSetUri).getExpectedCount());
 
         MockEndpoint result = getMockEndpoint(resultUri);
-        result.expectedMessageCount((int) dataSet.getSize());
+        result.expectedMessageCount((int)dataSet.getSize());
         result.expectsAscending(header(Exchange.DATASET_INDEX).convertTo(Number.class));
 
         context.start();
@@ -97,13 +97,12 @@ public class DataSetConsumerTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(dataSetUri)
-                        .to(resultUri);
+                from(dataSetUri).to(resultUri);
             }
         });
 
         MockEndpoint result = getMockEndpoint(resultUri);
-        result.expectedMessageCount((int) dataSet.getSize());
+        result.expectedMessageCount((int)dataSet.getSize());
         result.allMessages().header(Exchange.DATASET_INDEX).isNotNull();
         result.expectsAscending(header(Exchange.DATASET_INDEX).convertTo(Number.class));
 
@@ -117,13 +116,12 @@ public class DataSetConsumerTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(dataSetUriWithDataSetIndexSetToOff)
-                        .to(resultUri);
+                from(dataSetUriWithDataSetIndexSetToOff).to(resultUri);
             }
         });
 
         MockEndpoint result = getMockEndpoint(resultUri);
-        result.expectedMessageCount((int) dataSet.getSize());
+        result.expectedMessageCount((int)dataSet.getSize());
         result.allMessages().header(Exchange.DATASET_INDEX).isNull();
 
         context.start();
@@ -136,13 +134,12 @@ public class DataSetConsumerTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(dataSetUriWithDataSetIndexSetToLenient)
-                        .to(resultUri);
+                from(dataSetUriWithDataSetIndexSetToLenient).to(resultUri);
             }
         });
 
         MockEndpoint result = getMockEndpoint(resultUri);
-        result.expectedMessageCount((int) dataSet.getSize());
+        result.expectedMessageCount((int)dataSet.getSize());
         result.allMessages().header(Exchange.DATASET_INDEX).isNotNull();
         result.expectsAscending(header(Exchange.DATASET_INDEX).convertTo(Number.class));
 
@@ -156,13 +153,12 @@ public class DataSetConsumerTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(dataSetUriWithDataSetIndexSetToStrict)
-                        .to(resultUri);
+                from(dataSetUriWithDataSetIndexSetToStrict).to(resultUri);
             }
         });
 
         MockEndpoint result = getMockEndpoint(resultUri);
-        result.expectedMessageCount((int) dataSet.getSize());
+        result.expectedMessageCount((int)dataSet.getSize());
         result.allMessages().header(Exchange.DATASET_INDEX).isNotNull();
         result.expectsAscending(header(Exchange.DATASET_INDEX).convertTo(Number.class));
 

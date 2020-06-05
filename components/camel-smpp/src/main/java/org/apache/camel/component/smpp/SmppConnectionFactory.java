@@ -53,6 +53,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.Base64;
 import java.util.Map;
 
 import javax.net.SocketFactory;
@@ -61,7 +62,6 @@ import javax.net.ssl.SSLSocketFactory;
 
 import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.util.IOHelper;
-import org.apache.commons.codec.binary.Base64;
 import org.jsmpp.session.connection.Connection;
 import org.jsmpp.session.connection.ConnectionFactory;
 import org.jsmpp.session.connection.socket.SocketConnection;
@@ -80,11 +80,12 @@ public final class SmppConnectionFactory implements ConnectionFactory {
         return new SmppConnectionFactory(config);
     }    
 
+    @Override
     public Connection createConnection(String host, int port) throws IOException {
         try {
             Socket socket;
             SocketFactory socketFactory;
-            socketFactory = config.getUsingSSL() && config.getHttpProxyHost() == null ? SSLSocketFactory
+            socketFactory = config.isUsingSSL() && config.getHttpProxyHost() == null ? SSLSocketFactory
                 .getDefault() : SocketFactory.getDefault();
             if (config.getHttpProxyHost() != null) {
                 // setup the proxy tunnel
@@ -98,7 +99,7 @@ public final class SmppConnectionFactory implements ConnectionFactory {
                 socket.connect(new InetSocketAddress(host, port), config.getEnquireLinkTimer());
             }
 
-            if (config.getUsingSSL() && config.getHttpProxyHost() != null) {
+            if (config.isUsingSSL() && config.getHttpProxyHost() != null) {
                 // Init the SSL socket which is based on the proxy socket
                 SSLSocketFactory sslSocketFactory = (SSLSocketFactory)SSLSocketFactory.getDefault();
                 SSLSocket sslSocket = (SSLSocket)sslSocketFactory.createSocket(socket, host, port, true);
@@ -125,7 +126,7 @@ public final class SmppConnectionFactory implements ConnectionFactory {
             
             if (username != null && password != null) {
                 String usernamePassword = username + ":" + password;
-                byte[] code = Base64.encodeBase64(usernamePassword.getBytes());
+                byte[] code = Base64.getEncoder().encode(usernamePassword.getBytes());
                 out.write("Proxy-Authorization: Basic ".getBytes());
                 out.write(code);
                 out.write("\r\n".getBytes());

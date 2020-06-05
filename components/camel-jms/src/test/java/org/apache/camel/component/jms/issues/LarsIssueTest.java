@@ -19,7 +19,6 @@ package org.apache.camel.component.jms.issues;
 import javax.jms.ConnectionFactory;
 
 import org.apache.camel.CamelContext;
-import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.jms.CamelJmsTestHelper;
@@ -51,6 +50,7 @@ public class LarsIssueTest  extends CamelTestSupport {
         assertMockEndpointsSatisfied();
     }
 
+    @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext camelContext = super.createCamelContext();
 
@@ -60,14 +60,11 @@ public class LarsIssueTest  extends CamelTestSupport {
         return camelContext;
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {
-                Processor myProcessor = new Processor() {
-                    public void process(Exchange e) throws Exception {
-                        LOG.info(">>>> Received exchange: " + e);
-                    }
-                };
+                Processor myProcessor = e -> LOG.info(">>>> Received exchange: " + e);
 
                 // lets enable CACHE_CONSUMER so that the consumer stays around in JMX
                 // as the default due to the spring bug means we keep creating & closing consumers

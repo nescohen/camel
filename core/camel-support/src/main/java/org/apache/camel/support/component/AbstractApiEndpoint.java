@@ -31,8 +31,7 @@ import org.apache.camel.Component;
 import org.apache.camel.spi.ExecutorServiceManager;
 import org.apache.camel.spi.ThreadPoolProfile;
 import org.apache.camel.spi.UriParam;
-import org.apache.camel.support.DefaultEndpoint;
-import org.apache.camel.support.EndpointHelper;
+import org.apache.camel.support.ScheduledPollEndpoint;
 import org.apache.camel.util.ObjectHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +40,7 @@ import org.slf4j.LoggerFactory;
  * Abstract base class for API Component Endpoints.
  */
 public abstract class AbstractApiEndpoint<E extends ApiName, T>
-    extends DefaultEndpoint implements PropertyNamesInterceptor, PropertiesInterceptor {
+    extends ScheduledPollEndpoint implements PropertyNamesInterceptor, PropertiesInterceptor {
 
     // thread pool executor with Endpoint Class name as keys
     private static Map<String, ExecutorService> executorServiceMap = new ConcurrentHashMap<>();
@@ -85,10 +84,6 @@ public abstract class AbstractApiEndpoint<E extends ApiName, T>
         this.configuration = endpointConfiguration;
     }
 
-    public boolean isSingleton() {
-        return true;
-    }
-
     /**
      * Returns generated helper that extends {@link ApiMethodPropertiesHelper} to work with API properties.
      * @return properties helper.
@@ -98,14 +93,11 @@ public abstract class AbstractApiEndpoint<E extends ApiName, T>
     @Override
     public void configureProperties(Map<String, Object> options) {
         super.configureProperties(options);
-
-        // set configuration properties first
-        try {
-            T configuration = getConfiguration();
-            setProperties(configuration, options);
-        } catch (Exception e) {
-            throw new IllegalArgumentException(e);
-        }
+        // TODO: this is not very clean as it does not leverage the endpoint
+        // TODO: configurer, but the generated configurer currently does not
+        // TODO: support configuration inheritance, so only basic options
+        // TODO: are supported.  This should be fixed.
+        setProperties(getConfiguration(), options);
 
         // validate and initialize state
         initState();
@@ -125,9 +117,9 @@ public abstract class AbstractApiEndpoint<E extends ApiName, T>
 
         // compute endpoint property names and values
         this.endpointPropertyNames = Collections.unmodifiableSet(
-            getPropertiesHelper().getEndpointPropertyNames(configuration));
+            getPropertiesHelper().getEndpointPropertyNames(getCamelContext(), configuration));
         final HashMap<String, Object> properties = new HashMap<>();
-        getPropertiesHelper().getEndpointProperties(configuration, properties);
+        getPropertiesHelper().getEndpointProperties(getCamelContext(), configuration, properties);
         this.endpointProperties = Collections.unmodifiableMap(properties);
 
         // get endpoint property names

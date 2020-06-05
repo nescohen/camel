@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
@@ -62,15 +63,23 @@ public class FileOperations implements GenericFileOperations<File> {
         this.endpoint = endpoint;
     }
 
-    public void setEndpoint(GenericFileEndpoint<File> endpoint) {
-        this.endpoint = (FileEndpoint) endpoint;
+    @Override
+    public GenericFile<File> newGenericFile() {
+        return new GenericFile<>();
     }
 
+    @Override
+    public void setEndpoint(GenericFileEndpoint<File> endpoint) {
+        this.endpoint = (FileEndpoint)endpoint;
+    }
+
+    @Override
     public boolean deleteFile(String name) throws GenericFileOperationFailedException {
         File file = new File(name);
         return FileUtil.deleteFile(file);
     }
 
+    @Override
     public boolean renameFile(String from, String to) throws GenericFileOperationFailedException {
         boolean renamed = false;
         File file = new File(from);
@@ -84,10 +93,11 @@ public class FileOperations implements GenericFileOperations<File> {
         } catch (IOException e) {
             throw new GenericFileOperationFailedException("Error renaming file from " + from + " to " + to, e);
         }
-        
+
         return renamed;
     }
 
+    @Override
     public boolean existsFile(String name) throws GenericFileOperationFailedException {
         File file = new File(name);
         return file.exists();
@@ -135,6 +145,7 @@ public class FileOperations implements GenericFileOperations<File> {
         return true;
     }
 
+    @Override
     public boolean buildDirectory(String directory, boolean absolute) throws GenericFileOperationFailedException {
         ObjectHelper.notNull(endpoint, "endpoint");
 
@@ -152,6 +163,9 @@ public class FileOperations implements GenericFileOperations<File> {
         File endpointPath = endpoint.getFile();
         File target = new File(directory);
 
+        // check if directory is a path
+        boolean isPath = directory.contains("/") || directory.contains("\\");
+
         File path;
         if (absolute) {
             // absolute path
@@ -159,19 +173,23 @@ public class FileOperations implements GenericFileOperations<File> {
         } else if (endpointPath.equals(target)) {
             // its just the root of the endpoint path
             path = endpointPath;
-        } else {
+        } else if (isPath) {
             // relative after the endpoint path
             String afterRoot = StringHelper.after(directory, endpointPath.getPath() + File.separator);
             if (ObjectHelper.isNotEmpty(afterRoot)) {
                 // dir is under the root path
                 path = new File(endpoint.getFile(), afterRoot);
             } else {
-                // dir is relative to the root path
-                path = new File(endpoint.getFile(), directory);
+                // dir path is relative to the root path
+                path = new File(directory);
             }
+        } else {
+            // dir is a child of the root path
+            path = new File(endpoint.getFile(), directory);
         }
 
-        // We need to make sure that this is thread-safe and only one thread tries to create the path directory at the same time.
+        // We need to make sure that this is thread-safe and only one thread
+        // tries to create the path directory at the same time.
         synchronized (this) {
             if (path.isDirectory() && path.exists()) {
                 // the directory already exists
@@ -183,39 +201,48 @@ public class FileOperations implements GenericFileOperations<File> {
         }
     }
 
+    @Override
     public List<File> listFiles() throws GenericFileOperationFailedException {
         // noop
         return null;
     }
 
+    @Override
     public List<File> listFiles(String path) throws GenericFileOperationFailedException {
         // noop
         return null;
     }
 
+    @Override
     public void changeCurrentDirectory(String path) throws GenericFileOperationFailedException {
         // noop
     }
 
+    @Override
     public void changeToParentDirectory() throws GenericFileOperationFailedException {
         // noop
     }
 
+    @Override
     public String getCurrentDirectory() throws GenericFileOperationFailedException {
         // noop
         return null;
     }
 
+    @Override
     public boolean retrieveFile(String name, Exchange exchange, long size) throws GenericFileOperationFailedException {
-        // noop as we use type converters to read the body content for java.io.File
+        // noop as we use type converters to read the body content for
+        // java.io.File
         return true;
     }
-    
+
     @Override
     public void releaseRetrievedFileResources(Exchange exchange) throws GenericFileOperationFailedException {
-        // noop as we used type converters to read the body content for java.io.File
+        // noop as we used type converters to read the body content for
+        // java.io.File
     }
 
+    @Override
     public boolean storeFile(String fileName, Exchange exchange, long size) throws GenericFileOperationFailedException {
         ObjectHelper.notNull(endpoint, "endpoint");
 
@@ -234,7 +261,7 @@ public class FileOperations implements GenericFileOperations<File> {
                 this.endpoint.getMoveExistingFileStrategy().moveExistingFile(endpoint, this, fileName);
             }
         }
-        
+
         // Do an explicit test for a null body and decide what to do
         if (exchange.getIn().getBody() == null) {
             if (endpoint.isAllowNullBody()) {
@@ -259,17 +286,21 @@ public class FileOperations implements GenericFileOperations<File> {
             // is there an explicit charset configured we must write the file as
             String charset = endpoint.getCharset();
 
-            // we can optimize and use file based if no charset must be used, and the input body is a file
+            // we can optimize and use file based if no charset must be used,
+            // and the input body is a file
+            // however optimization cannot be applied when content should be
+            // appended to target file
             File source = null;
             boolean fileBased = false;
-            if (charset == null) {
-                // if no charset, then we can try using file directly (optimized)
+            if (charset == null && endpoint.getFileExist() != GenericFileExist.Append) {
+                // if no charset and not in appending mode, then we can try
+                // using file directly (optimized)
                 Object body = exchange.getIn().getBody();
                 if (body instanceof WrappedFile) {
-                    body = ((WrappedFile<?>) body).getFile();
+                    body = ((WrappedFile<?>)body).getFile();
                 }
                 if (body instanceof File) {
-                    source = (File) body;
+                    source = (File)body;
                     fileBased = true;
                 }
             }
@@ -277,14 +308,17 @@ public class FileOperations implements GenericFileOperations<File> {
             if (fileBased) {
                 // okay we know the body is a file based
 
-                // so try to see if we can optimize by renaming the local work path file instead of doing
-                // a full file to file copy, as the local work copy is to be deleted afterwards anyway
+                // so try to see if we can optimize by renaming the local work
+                // path file instead of doing
+                // a full file to file copy, as the local work copy is to be
+                // deleted afterwards anyway
                 // local work path
                 File local = exchange.getIn().getHeader(Exchange.FILE_LOCAL_WORK_PATH, File.class);
                 if (local != null && local.exists()) {
                     boolean renamed = writeFileByLocalWorkPath(local, file);
                     if (renamed) {
-                        // try to keep last modified timestamp if configured to do so
+                        // try to keep last modified timestamp if configured to
+                        // do so
                         keepLastModified(exchange, file);
                         // set permissions if the chmod option was set
                         if (ObjectHelper.isNotEmpty(endpoint.getChmod())) {
@@ -298,14 +332,17 @@ public class FileOperations implements GenericFileOperations<File> {
                         }
                         // clear header as we have renamed the file
                         exchange.getIn().setHeader(Exchange.FILE_LOCAL_WORK_PATH, null);
-                        // return as the operation is complete, we just renamed the local work file
+                        // return as the operation is complete, we just renamed
+                        // the local work file
                         // to the target.
                         return true;
                     }
                 } else if (source != null && source.exists()) {
-                    // no there is no local work file so use file to file copy if the source exists
+                    // no there is no local work file so use file to file copy
+                    // if the source exists
                     writeFileByFile(source, file, exchange);
-                    // try to keep last modified timestamp if configured to do so
+                    // try to keep last modified timestamp if configured to do
+                    // so
                     keepLastModified(exchange, file);
                     // set permissions if the chmod option was set
                     if (ObjectHelper.isNotEmpty(endpoint.getChmod())) {
@@ -322,10 +359,12 @@ public class FileOperations implements GenericFileOperations<File> {
             }
 
             if (charset != null) {
-                // charset configured so we must use a reader so we can write with encoding
+                // charset configured so we must use a reader so we can write
+                // with encoding
                 Reader in = exchange.getContext().getTypeConverter().tryConvertTo(Reader.class, exchange, exchange.getIn().getBody());
                 if (in == null) {
-                    // okay no direct reader conversion, so use an input stream (which a lot can be converted as)
+                    // okay no direct reader conversion, so use an input stream
+                    // (which a lot can be converted as)
                     InputStream is = exchange.getIn().getMandatoryBody(InputStream.class);
                     in = new InputStreamReader(is);
                 }
@@ -358,7 +397,7 @@ public class FileOperations implements GenericFileOperations<File> {
             throw new GenericFileOperationFailedException("Cannot store file: " + file, e);
         }
     }
-    
+
     private void keepLastModified(Exchange exchange, File file) {
         if (endpoint.isKeepLastModified()) {
             Long last;
@@ -384,7 +423,8 @@ public class FileOperations implements GenericFileOperations<File> {
     }
 
     private void writeFileByFile(File source, File target, Exchange exchange) throws IOException {
-        // in case we are using file locks as read-locks then we need to use file channels for copying to support this
+        // in case we are using file locks as read-locks then we need to use
+        // file channels for copying to support this
         String path = source.getAbsolutePath();
         FileChannel channel = exchange.getProperty(asExclusiveReadLockKey(path, Exchange.FILE_LOCK_CHANNEL_FILE), FileChannel.class);
         if (channel != null) {
@@ -400,8 +440,9 @@ public class FileOperations implements GenericFileOperations<File> {
     }
 
     private void writeFileByStream(InputStream in, File target) throws IOException {
+        boolean exists = target.exists();
         try (SeekableByteChannel out = prepareOutputFileChannel(target)) {
-            
+
             LOG.debug("Using InputStream to write file: {}", target);
             int size = endpoint.getBufferSize();
             byte[] buffer = new byte[size];
@@ -409,33 +450,50 @@ public class FileOperations implements GenericFileOperations<File> {
             int bytesRead;
             while ((bytesRead = in.read(buffer)) != -1) {
                 if (bytesRead < size) {
-                    byteBuffer.limit(bytesRead);
+                    // to be compatible with java 8
+                    Buffer buf = byteBuffer;
+                    buf.limit(bytesRead);
                 }
                 out.write(byteBuffer);
-                byteBuffer.clear();
+                // to be compatible with java 8
+                Buffer buf = byteBuffer;
+                buf.clear();
             }
+
+            boolean append = endpoint.getFileExist() == GenericFileExist.Append;
+            if (append && exists && endpoint.getAppendChars() != null) {
+                byteBuffer = ByteBuffer.wrap(endpoint.getAppendChars().getBytes());
+                out.write(byteBuffer);
+                // to be compatible with java 8
+                Buffer buf = byteBuffer;
+                buf.clear();
+            }
+
         } finally {
             IOHelper.close(in, target.getName(), LOG);
         }
     }
 
     private void writeFileByReaderWithCharset(Reader in, File target, String charset) throws IOException {
+        boolean exists = target.exists();
         boolean append = endpoint.getFileExist() == GenericFileExist.Append;
-        try (Writer out = Files.newBufferedWriter(target.toPath(), Charset.forName(charset), 
-                                                  StandardOpenOption.WRITE,
-                                                  append ? StandardOpenOption.APPEND : StandardOpenOption.TRUNCATE_EXISTING, 
-                                                  StandardOpenOption.CREATE)) {
+        try (Writer out = Files.newBufferedWriter(target.toPath(), Charset.forName(charset), StandardOpenOption.WRITE,
+                                                  append ? StandardOpenOption.APPEND : StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)) {
             LOG.debug("Using Reader to write file: {} with charset: {}", target, charset);
             int size = endpoint.getBufferSize();
             IOHelper.copy(in, out, size);
+
+            if (append && exists && endpoint.getAppendChars() != null) {
+                out.write(endpoint.getAppendChars());
+            }
         } finally {
             IOHelper.close(in, target.getName(), LOG);
         }
     }
 
     /**
-     * Creates a new file if the file doesn't exist.
-     * If the endpoint's existing file logic is set to 'Override' then the target file will be truncated
+     * Creates a new file if the file doesn't exist. If the endpoint's existing
+     * file logic is set to 'Override' then the target file will be truncated
      */
     private void writeFileEmptyBody(File target) throws IOException {
         if (!target.exists()) {
@@ -444,14 +502,15 @@ public class FileOperations implements GenericFileOperations<File> {
         } else if (endpoint.getFileExist() == GenericFileExist.Override) {
             LOG.debug("Truncating existing file: {}", target);
             try (SeekableByteChannel out = Files.newByteChannel(target.toPath(), StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
-                //nothing to write
+                // nothing to write
             }
         }
     }
 
     /**
-     * Creates and prepares the output file channel. Will position itself in correct position if the file is writable
-     * eg. it should append or override any existing content.
+     * Creates and prepares the output file channel. Will position itself in
+     * correct position if the file is writable eg. it should append or override
+     * any existing content.
      */
     private SeekableByteChannel prepareOutputFileChannel(File target) throws IOException {
         if (endpoint.getFileExist() == GenericFileExist.Append) {

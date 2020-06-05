@@ -21,9 +21,7 @@ import javax.jms.Destination;
 import javax.jms.TextMessage;
 
 import org.apache.camel.CamelContext;
-import org.apache.camel.Exchange;
 import org.apache.camel.ExchangePattern;
-import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.jms.CamelJmsTestHelper;
 import org.apache.camel.component.jms.JmsComponent;
@@ -64,17 +62,16 @@ public class JmsAnotherCustomJMSReplyToTest extends CamelTestSupport {
     }
 
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
 
             public void configure() throws Exception {
                 from("activemq:queue:hello")
                         .setExchangePattern(ExchangePattern.InOnly)
-                        .process(new Processor() {
-                            public void process(Exchange exchange) throws Exception {
-                                exchange.getIn().setBody("What's your name");
-                                exchange.getIn().setHeader("JMSReplyTo", "nameReplyQueue");
-                            }
+                        .process(exchange -> {
+                            exchange.getIn().setBody("What's your name");
+                            exchange.getIn().setHeader("JMSReplyTo", "nameReplyQueue");
                         })
                         .to("activemq:queue:nameRequestor?preserveMessageQos=true");
 
@@ -83,6 +80,7 @@ public class JmsAnotherCustomJMSReplyToTest extends CamelTestSupport {
         };
     }
 
+    @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext camelContext = super.createCamelContext();
 

@@ -22,11 +22,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 
-import javax.naming.Context;
-
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.spi.Registry;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -47,10 +46,10 @@ public class FileDataSetProducerTest extends ContextTestSupport {
     final String dataSetUri = "dataset://" + dataSetName;
 
     @Override
-    protected Context createJndiContext() throws Exception {
-        Context context = super.createJndiContext();
-        context.bind("foo", dataSet);
-        return context;
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
+        answer.bind("foo", dataSet);
+        return answer;
     }
 
     @Test
@@ -94,8 +93,7 @@ public class FileDataSetProducerTest extends ContextTestSupport {
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {
-                from(sourceUri)
-                        .to(dataSetUri);
+                from(sourceUri).to(dataSetUri);
             }
         };
     }

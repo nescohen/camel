@@ -35,7 +35,6 @@ public class DynamicRouterEventNotifierTest extends ContextTestSupport {
     @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext context = super.createCamelContext();
-        context.init();
         context.getManagementStrategy().addEventNotifier(notifier);
         return context;
     }
@@ -55,6 +54,7 @@ public class DynamicRouterEventNotifierTest extends ContextTestSupport {
         assertEquals("Should have 5 sent events", 5, notifier.getSent());
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {

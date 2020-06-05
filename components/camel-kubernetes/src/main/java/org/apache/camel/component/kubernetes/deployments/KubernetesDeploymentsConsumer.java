@@ -25,8 +25,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.NonNamespaceOperation;
-import io.fabric8.kubernetes.client.dsl.ScalableResource;
-
+import io.fabric8.kubernetes.client.dsl.RollableScalableResource;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.component.kubernetes.AbstractKubernetesEndpoint;
@@ -34,8 +33,12 @@ import org.apache.camel.component.kubernetes.KubernetesConstants;
 import org.apache.camel.component.kubernetes.consumer.common.DeploymentEvent;
 import org.apache.camel.support.DefaultConsumer;
 import org.apache.camel.util.ObjectHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KubernetesDeploymentsConsumer extends DefaultConsumer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(KubernetesDeploymentsConsumer.class);
 
     private final Processor processor;
     private ExecutorService executor;
@@ -48,7 +51,7 @@ public class KubernetesDeploymentsConsumer extends DefaultConsumer {
 
     @Override
     public AbstractKubernetesEndpoint getEndpoint() {
-        return (AbstractKubernetesEndpoint) super.getEndpoint();
+        return (AbstractKubernetesEndpoint)super.getEndpoint();
     }
 
     @Override
@@ -64,7 +67,7 @@ public class KubernetesDeploymentsConsumer extends DefaultConsumer {
     protected void doStop() throws Exception {
         super.doStop();
 
-        log.debug("Stopping Kubernetes Deployments Consumer");
+        LOG.debug("Stopping Kubernetes Deployments Consumer");
         if (executor != null) {
             if (getEndpoint() != null && getEndpoint().getCamelContext() != null) {
                 if (deploymentsWatcher != null) {
@@ -82,13 +85,14 @@ public class KubernetesDeploymentsConsumer extends DefaultConsumer {
     }
 
     class DeploymentsConsumerTask implements Runnable {
-        
+
         private Watch watch;
-        
+
         @Override
         public void run() {
-            NonNamespaceOperation<Deployment, DeploymentList, DoneableDeployment, ScalableResource<Deployment, DoneableDeployment>> w = getEndpoint().getKubernetesClient().apps().deployments();
-            if (ObjectHelper.isNotEmpty(getEndpoint().getKubernetesConfiguration().getLabelKey()) 
+            NonNamespaceOperation<Deployment, DeploymentList, DoneableDeployment, RollableScalableResource<Deployment, DoneableDeployment>> w = getEndpoint().getKubernetesClient()
+                .apps().deployments();
+            if (ObjectHelper.isNotEmpty(getEndpoint().getKubernetesConfiguration().getLabelKey())
                 && ObjectHelper.isNotEmpty(getEndpoint().getKubernetesConfiguration().getLabelValue())) {
                 w.withLabel(getEndpoint().getKubernetesConfiguration().getLabelKey(), getEndpoint().getKubernetesConfiguration().getLabelValue());
             }
@@ -98,8 +102,7 @@ public class KubernetesDeploymentsConsumer extends DefaultConsumer {
             watch = w.watch(new Watcher<Deployment>() {
 
                 @Override
-                public void eventReceived(io.fabric8.kubernetes.client.Watcher.Action action,
-                    Deployment resource) {
+                public void eventReceived(io.fabric8.kubernetes.client.Watcher.Action action, Deployment resource) {
                     DeploymentEvent de = new DeploymentEvent(action, resource);
                     Exchange exchange = getEndpoint().createExchange();
                     exchange.getIn().setBody(de.getDeployment());
@@ -115,19 +118,19 @@ public class KubernetesDeploymentsConsumer extends DefaultConsumer {
                 @Override
                 public void onClose(KubernetesClientException cause) {
                     if (cause != null) {
-                        log.error(cause.getMessage(), cause);
+                        LOG.error(cause.getMessage(), cause);
                     }
 
                 }
             });
         }
-       
+
         public Watch getWatch() {
             return watch;
         }
 
         public void setWatch(Watch watch) {
             this.watch = watch;
-        } 
+        }
     }
 }

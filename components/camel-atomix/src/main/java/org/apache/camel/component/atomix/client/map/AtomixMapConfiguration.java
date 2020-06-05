@@ -27,7 +27,7 @@ public final class AtomixMapConfiguration extends AtomixClientConfiguration {
     private AtomixMap.Action defaultAction = AtomixMap.Action.PUT;
     @UriParam
     private Object key;
-    @UriParam
+    @UriParam(javaType = "java.time.Duration")
     private long ttl;
 
     // ****************************************
@@ -72,6 +72,7 @@ public final class AtomixMapConfiguration extends AtomixClientConfiguration {
     // Copy
     // ****************************************
 
+    @Override
     public AtomixMapConfiguration copy() {
         try {
             return (AtomixMapConfiguration) super.clone();

@@ -20,22 +20,23 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.apache.camel.spi.RestConfiguration;
 import org.junit.Test;
 
 public class FromRestGetCorsTest extends ContextTestSupport {
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("dummy-rest", new DummyRestConsumerFactory());
         return jndi;
     }
 
     @Test
     public void testCors() throws Exception {
-        // the rest becomes routes and the input is a seda endpoint created by the DummyRestConsumerFactory
+        // the rest becomes routes and the input is a seda endpoint created by
+        // the DummyRestConsumerFactory
         getMockEndpoint("mock:update").expectedMessageCount(1);
 
         Exchange out = template.request("seda:post-say-bye", new Processor() {
@@ -46,10 +47,10 @@ public class FromRestGetCorsTest extends ContextTestSupport {
         });
         assertNotNull(out);
 
-        assertEquals(out.getOut().getHeader("Access-Control-Allow-Origin"), RestConfiguration.CORS_ACCESS_CONTROL_ALLOW_ORIGIN);
-        assertEquals(out.getOut().getHeader("Access-Control-Allow-Methods"), RestConfiguration.CORS_ACCESS_CONTROL_ALLOW_METHODS);
-        assertEquals(out.getOut().getHeader("Access-Control-Allow-Headers"), RestConfiguration.CORS_ACCESS_CONTROL_ALLOW_HEADERS);
-        assertEquals(out.getOut().getHeader("Access-Control-Max-Age"), RestConfiguration.CORS_ACCESS_CONTROL_MAX_AGE);
+        assertEquals(out.getMessage().getHeader("Access-Control-Allow-Origin"), RestConfiguration.CORS_ACCESS_CONTROL_ALLOW_ORIGIN);
+        assertEquals(out.getMessage().getHeader("Access-Control-Allow-Methods"), RestConfiguration.CORS_ACCESS_CONTROL_ALLOW_METHODS);
+        assertEquals(out.getMessage().getHeader("Access-Control-Allow-Headers"), RestConfiguration.CORS_ACCESS_CONTROL_ALLOW_HEADERS);
+        assertEquals(out.getMessage().getHeader("Access-Control-Max-Age"), RestConfiguration.CORS_ACCESS_CONTROL_MAX_AGE);
 
         assertMockEndpointsSatisfied();
     }
@@ -61,18 +62,13 @@ public class FromRestGetCorsTest extends ContextTestSupport {
             public void configure() throws Exception {
                 restConfiguration().host("localhost").enableCORS(true);
 
-                rest("/say/hello")
-                    .get().to("direct:hello");
+                rest("/say/hello").get().to("direct:hello");
 
-                rest("/say/bye")
-                    .get().consumes("application/json").to("direct:bye")
-                    .post().to("mock:update");
+                rest("/say/bye").get().consumes("application/json").to("direct:bye").post().to("mock:update");
 
-                from("direct:hello")
-                    .transform().constant("Hello World");
+                from("direct:hello").transform().constant("Hello World");
 
-                from("direct:bye")
-                    .transform().constant("Bye World");
+                from("direct:bye").transform().constant("Bye World");
             }
         };
     }

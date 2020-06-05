@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
+
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -41,7 +42,7 @@ import org.slf4j.LoggerFactory;
 /**
  * A servlet to use as a Camel route as entry.
  */
-public class CamelServlet extends HttpServlet {
+public class CamelServlet extends HttpServlet implements HttpRegistryProvider {
     public static final String ASYNC_PARAM = "async";
     public static final List<String> METHODS = Arrays.asList("GET", "HEAD", "POST", "PUT", "DELETE", "TRACE", "OPTIONS", "CONNECT", "PATCH");
 
@@ -246,16 +247,19 @@ public class CamelServlet extends HttpServlet {
         return getServletResolveConsumerStrategy().resolve(request, getConsumers());
     }
 
+    @Override
     public void connect(HttpConsumer consumer) {
         log.debug("Connecting consumer: {}", consumer);
         consumers.put(consumer.getEndpoint().getEndpointUri(), consumer);
     }
 
+    @Override
     public void disconnect(HttpConsumer consumer) {
         log.debug("Disconnecting consumer: {}", consumer);
         consumers.remove(consumer.getEndpoint().getEndpointUri());
     }
 
+    @Override
     public String getServletName() {
         return servletName;
     }

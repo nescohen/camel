@@ -24,8 +24,12 @@ import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.support.EventHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StepProcessor extends Pipeline {
+
+    private static final Logger LOG = LoggerFactory.getLogger(StepProcessor.class);
 
     private final String stepId;
 
@@ -51,7 +55,7 @@ public class StepProcessor extends Pipeline {
 
         EventHelper.notifyStepStarted(exchange.getContext(), exchange, stepId);
 
-        return super.process(exchange, (sync) -> {
+        return super.process(exchange, sync -> {
             // then fire event to signal the step is done
             boolean failed = exchange.isFailed();
             try {
@@ -62,7 +66,7 @@ public class StepProcessor extends Pipeline {
                 }
             } catch (Throwable t) {
                 // must catch exceptions to ensure synchronizations is also invoked
-                log.warn("Exception occurred during event notification. This exception will be ignored.", t);
+                LOG.warn("Exception occurred during event notification. This exception will be ignored.", t);
             } finally {
                 if (oldStepId != null) {
                     // restore step id
@@ -79,11 +83,6 @@ public class StepProcessor extends Pipeline {
     @Override
     public String getTraceLabel() {
         return "step";
-    }
-
-    @Override
-    public String toString() {
-        return "Step[" + stepId + "]";
     }
 
 }

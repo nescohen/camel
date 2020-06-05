@@ -76,7 +76,7 @@ public class JpaWithNamedQueryTest extends Assert {
         assertEquals("Should have no results: " + results, 0, results.size());
 
         // lets produce some objects
-        template.send(endpoint, new Processor() {
+        template.send("jpa://" + MultiSteps.class.getName(), new Processor() {
             public void process(Exchange exchange) {
                 exchange.getIn().setBody(new MultiSteps("foo@bar.com"));
             }
@@ -160,8 +160,8 @@ public class JpaWithNamedQueryTest extends Assert {
 
     @Before
     public void setUp() throws Exception {
+        camelContext.start();
         template = camelContext.createProducerTemplate();
-        ServiceHelper.startService(template, camelContext);
 
         Endpoint value = camelContext.getEndpoint(getEndpointUri());
         assertNotNull("Could not find endpoint!", value);
@@ -173,11 +173,12 @@ public class JpaWithNamedQueryTest extends Assert {
     }
 
     protected String getEndpointUri() {
-        return "jpa://" + MultiSteps.class.getName() + "?consumer.namedQuery=step1";
+        return "jpa://" + MultiSteps.class.getName() + "?namedQuery=step1";
     }
 
     @After
     public void tearDown() throws Exception {
-        ServiceHelper.stopService(consumer, template, camelContext);
+        ServiceHelper.stopService(consumer, template);
+        camelContext.stop();
     }
 }

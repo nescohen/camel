@@ -15,12 +15,13 @@
  * limitations under the License.
  */
 package org.apache.camel.component.timer;
+
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
 import org.apache.camel.spi.ExceptionHandler;
+import org.apache.camel.spi.Registry;
 import org.junit.After;
 import org.junit.Test;
 
@@ -29,8 +30,8 @@ public class TimerGracefulShutdownTest extends ContextTestSupport {
     private MyExceptionHandler eh = new MyExceptionHandler();
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("eh", eh);
         return jndi;
     }
@@ -56,10 +57,7 @@ public class TimerGracefulShutdownTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("timer:foo?period=10&delay=10&exceptionHandler=#eh")
-                    .delay(10)
-                    .to("log:time")
-                    .to("mock:result");
+                from("timer:foo?period=10&delay=10&exceptionHandler=#eh").delay(10).to("log:time").to("mock:result");
             }
         };
     }

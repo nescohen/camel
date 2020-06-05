@@ -23,6 +23,8 @@ public final class UndertowConstants {
     public static final String SEND_TO_ALL = "websocket.sendToAll";
     public static final String EVENT_TYPE = "websocket.eventType";
     public static final String EVENT_TYPE_ENUM = "websocket.eventTypeEnum";
+    public static final String CHANNEL = "websocket.channel";
+    public static final String EXCHANGE = "websocket.exchange";
 
     /**
      * WebSocket peers related events the {@link UndertowConsumer} sends to the Camel route.
@@ -58,14 +60,14 @@ public final class UndertowConstants {
 
         public static EventType ofCode(int code) {
             switch (code) {
-            case 1:
-                return ONOPEN;
-            case 0:
-                return ONCLOSE;
-            case -1:
-                return ONERROR;
-            default:
-                throw new IllegalArgumentException("Cannot find an " + EventType.class.getName() + " for code " + code);
+                case 1:
+                    return ONOPEN;
+                case 0:
+                    return ONCLOSE;
+                case -1:
+                    return ONERROR;
+                default:
+                    throw new IllegalArgumentException("Cannot find an " + EventType.class.getName() + " for code " + code);
             }
         }
     }
@@ -74,6 +76,6 @@ public final class UndertowConstants {
     public static final String WSS_PROTOCOL = "wss";
 
     private UndertowConstants() {
-    };
+    }
 
 }

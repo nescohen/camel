@@ -20,18 +20,19 @@ import java.io.InputStream;
 
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.NamedNode;
 import org.apache.camel.Processor;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.Route;
 import org.apache.camel.spi.Policy;
-import org.apache.camel.spi.RouteContext;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class LoadRouteFromXmlWithPolicyTest extends ContextTestSupport {
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("foo", new MyPolicy("foo"));
         return jndi;
     }
@@ -44,7 +45,9 @@ public class LoadRouteFromXmlWithPolicyTest extends ContextTestSupport {
     @Test
     public void testLoadRouteFromXmlWitPolicy() throws Exception {
         InputStream is = getClass().getResourceAsStream("barPolicyRoute.xml");
-        context.addRouteDefinitions(is);
+        ExtendedCamelContext ecc = context.adapt(ExtendedCamelContext.class);
+        RoutesDefinition routes = (RoutesDefinition) ecc.getXMLRoutesDefinitionLoader().loadRoutesDefinition(ecc, is);
+        context.addRouteDefinitions(routes.getRoutes());
         context.start();
 
         assertNotNull("Loaded foo route should be there", context.getRoute("foo"));
@@ -79,12 +82,13 @@ public class LoadRouteFromXmlWithPolicyTest extends ContextTestSupport {
             this.name = name;
         }
 
-        public void beforeWrap(RouteContext routeContext,
-                               NamedNode definition) {
+        @Override
+        public void beforeWrap(Route route, NamedNode definition) {
             // no need to modify the route
         }
 
-        public Processor wrap(RouteContext routeContext, final Processor processor) {
+        @Override
+        public Processor wrap(Route route, final Processor processor) {
             return new Processor() {
                 public void process(Exchange exchange) throws Exception {
                     invoked++;

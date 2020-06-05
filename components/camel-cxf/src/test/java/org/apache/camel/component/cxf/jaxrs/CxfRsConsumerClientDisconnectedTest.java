@@ -20,6 +20,7 @@ import java.io.BufferedWriter;
 import java.io.OutputStreamWriter;
 
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.cxf.CXFTestSupport;
 import org.apache.camel.component.mock.MockEndpoint;
@@ -39,6 +40,7 @@ public class CxfRsConsumerClientDisconnectedTest extends CamelTestSupport {
     private String cxfRsEndpointUri = "cxfrs://http://localhost:" + CXT + "/rest?synchronous=" + isSynchronous()
                                       + "&dataFormat=PAYLOAD&resourceClasses=org.apache.camel.component.cxf.jaxrs.testbean.CustomerService";
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
 
         return new RouteBuilder() {
@@ -54,7 +56,7 @@ public class CxfRsConsumerClientDisconnectedTest extends CamelTestSupport {
                     .process(exchange-> {
                         Thread.sleep(100);
 
-                        exchange.addOnCompletion(new Synchronization() {
+                        exchange.adapt(ExtendedExchange.class).addOnCompletion(new Synchronization() {
                             @Override
                             public void onComplete(Exchange exchange) {
                                 template.sendBody("mock:onComplete", "");
@@ -67,7 +69,7 @@ public class CxfRsConsumerClientDisconnectedTest extends CamelTestSupport {
                         });
                     });
 
-            };
+            }
         };
     }
 

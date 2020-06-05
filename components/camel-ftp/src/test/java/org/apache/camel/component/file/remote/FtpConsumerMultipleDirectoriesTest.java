@@ -20,17 +20,21 @@ import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.FileComponent;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static org.apache.camel.test.junit5.TestSupport.assertDirectoryEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class FtpConsumerMultipleDirectoriesTest extends FtpServerTestSupport {
 
     private String getFtpUrl() {
-        return "ftp://admin@localhost:" + getPort() + "/multidir/?password=admin&recursive=true&consumer.delay=5000&sortBy=file:path";
+        return "ftp://admin@localhost:" + getPort() + "/multidir/?password=admin&recursive=true&delay=5000&sortBy=file:path";
     }
 
     @Override
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         prepareFtpServer();
@@ -44,14 +48,14 @@ public class FtpConsumerMultipleDirectoriesTest extends FtpServerTestSupport {
         assertMockEndpointsSatisfied();
 
         Exchange exchange = mock.getExchanges().get(0);
-        RemoteFile<?> file = (RemoteFile<?>) exchange.getProperty(FileComponent.FILE_EXCHANGE_FILE);
+        RemoteFile<?> file = (RemoteFile<?>)exchange.getProperty(FileComponent.FILE_EXCHANGE_FILE);
         assertNotNull(file);
         assertDirectoryEquals("multidir/bye.txt", file.getAbsoluteFilePath());
         assertDirectoryEquals("bye.txt", file.getRelativeFilePath());
         assertEquals("bye.txt", file.getFileName());
 
         exchange = mock.getExchanges().get(1);
-        file = (RemoteFile<?>) exchange.getProperty(FileComponent.FILE_EXCHANGE_FILE);
+        file = (RemoteFile<?>)exchange.getProperty(FileComponent.FILE_EXCHANGE_FILE);
         assertNotNull(file);
         assertDirectoryEquals("multidir/sub/hello.txt", file.getAbsoluteFilePath());
         assertDirectoryEquals("sub/hello.txt", file.getRelativeFilePath());
@@ -59,20 +63,21 @@ public class FtpConsumerMultipleDirectoriesTest extends FtpServerTestSupport {
         assertEquals("hello.txt", file.getFileNameOnly());
 
         exchange = mock.getExchanges().get(2);
-        file = (RemoteFile<?>) exchange.getProperty(FileComponent.FILE_EXCHANGE_FILE);
+        file = (RemoteFile<?>)exchange.getProperty(FileComponent.FILE_EXCHANGE_FILE);
         assertNotNull(file);
         assertDirectoryEquals("multidir/sub/sub2/godday.txt", file.getAbsoluteFilePath());
         assertDirectoryEquals("sub/sub2/godday.txt", file.getRelativeFilePath());
         assertEquals("sub/sub2/godday.txt", file.getFileName());
         assertEquals("godday.txt", file.getFileNameOnly());
     }
-    
+
     private void prepareFtpServer() throws Exception {
         sendFile(getFtpUrl(), "Bye World", "bye.txt");
         sendFile(getFtpUrl(), "Hello World", "sub/hello.txt");
         sendFile(getFtpUrl(), "Goodday World", "sub/sub2/godday.txt");
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {

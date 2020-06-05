@@ -27,22 +27,20 @@ import org.apache.camel.spi.UriParams;
 import org.apache.camel.spi.UriPath;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.util.Version;
 
 @UriParams
 public class LuceneConfiguration {
-    private URI uri;
-    private String authority;
-    private Version luceneVersion = LuceneConstants.LUCENE_VERSION;
+    private transient URI uri;
+    private transient String authority;
 
     @UriPath @Metadata(required = true)
     private String host;
     @UriPath @Metadata(required = true)
     private LuceneOperation operation;
-    @UriParam(name = "srcDir")
-    private File sourceDirectory;
-    @UriParam(name = "indexDir")
-    private File indexDirectory;
+    @UriParam
+    private File srcDir;
+    @UriParam
+    private File indexDir;
     @UriParam
     private Analyzer analyzer;
     @UriParam
@@ -61,10 +59,10 @@ public class LuceneConfiguration {
         if (!protocol.equalsIgnoreCase("lucene")) {
             throw new IllegalArgumentException("Unrecognized Lucene protocol: " + protocol + " for uri: " + uri);
         }
-        setUri(uri);
-        setAuthority(uri.getAuthority());
+        this.uri = uri;
+        this.authority = uri.getAuthority();
         if (!isValidAuthority()) {
-            throw new URISyntaxException(uri.toASCIIString(), 
+            throw new URISyntaxException(uri.toASCIIString(),
                     "Incorrect URI syntax and/or Operation specified for the Lucene endpoint."
                     + " Please specify the syntax as \"lucene:[Endpoint Name]:[Operation]?[Query]\"");
         }
@@ -76,9 +74,9 @@ public class LuceneConfiguration {
         }
         setOperation(LuceneOperation.valueOf(op));
 
-        sourceDirectory = component.resolveAndRemoveReferenceParameter(
+        srcDir = component.resolveAndRemoveReferenceParameter(
                 parameters, "srcDir", File.class, null);
-        indexDirectory = component.resolveAndRemoveReferenceParameter(
+        indexDir = component.resolveAndRemoveReferenceParameter(
                 parameters, "indexDir", File.class, new File("file:///./indexDirectory"));
         analyzer = component.resolveAndRemoveReferenceParameter(
                 parameters, "analyzer", Analyzer.class, new StandardAnalyzer());
@@ -87,15 +85,15 @@ public class LuceneConfiguration {
     }
     
     private boolean isValidAuthority() throws URISyntaxException {
-        if ((!authority.contains(":")) 
-            || ((authority.split(":")[0]) == null)  
+        if ((!authority.contains(":"))
+            || ((authority.split(":")[0]) == null)
             || ((!authority.split(":")[1].equalsIgnoreCase("insert")) && (!authority.split(":")[1].equalsIgnoreCase("query")))) {
             return false;
         }
         return true;
-        
+
     }
-    
+
     private String retrieveTokenFromAuthority(String token) throws URISyntaxException {
         String retval;
         
@@ -105,14 +103,6 @@ public class LuceneConfiguration {
             retval = uri.getAuthority().split(":")[1];
         }
         return retval;
-    }
-
-    public URI getUri() {
-        return uri;
-    }
-
-    public void setUri(URI uri) {
-        this.uri = uri;
     }
 
     public String getHost() {
@@ -137,34 +127,26 @@ public class LuceneConfiguration {
         this.operation = operation;
     }
 
-    public String getAuthority() {
-        return authority;
-    }
-
-    public void setAuthority(String authority) {
-        this.authority = authority;
-    }
-
-    public File getSourceDirectory() {
-        return sourceDirectory;
+    public File getSrcDir() {
+        return srcDir;
     }
 
     /**
      * An optional directory containing files to be used to be analyzed and added to the index at producer startup.
      */
-    public void setSourceDirectory(File sourceDirectory) {
-        this.sourceDirectory = sourceDirectory;
+    public void setSrcDir(File srcDir) {
+        this.srcDir = srcDir;
     }
 
-    public File getIndexDirectory() {
-        return indexDirectory;
+    public File getIndexDir() {
+        return indexDir;
     }
 
     /**
      * A file system directory in which index files are created upon analysis of the document by the specified analyzer
      */
-    public void setIndexDirectory(File indexDirectory) {
-        this.indexDirectory = indexDirectory;
+    public void setIndexDir(File indexDir) {
+        this.indexDir = indexDir;
     }
 
     public Analyzer getAnalyzer() {
@@ -190,13 +172,5 @@ public class LuceneConfiguration {
     public void setMaxHits(int maxHits) {
         this.maxHits = maxHits;
     }
-    
-    public void setLuceneVersion(Version luceneVersion) {
-        this.luceneVersion = luceneVersion;
-    }
 
-    public Version getLuceneVersion() {
-        return luceneVersion;
-    }
-    
 }

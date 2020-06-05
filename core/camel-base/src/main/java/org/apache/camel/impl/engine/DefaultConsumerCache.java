@@ -19,6 +19,7 @@ package org.apache.camel.impl.engine;
 import java.util.concurrent.RejectedExecutionException;
 
 import org.apache.camel.CamelContext;
+import org.apache.camel.Consumer;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.FailedToCreateConsumerException;
@@ -28,14 +29,18 @@ import org.apache.camel.spi.EndpointUtilizationStatistics;
 import org.apache.camel.support.CamelContextHelper;
 import org.apache.camel.support.service.ServiceHelper;
 import org.apache.camel.support.service.ServiceSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Cache containing created {@link org.apache.camel.Consumer}.
  */
 public class DefaultConsumerCache extends ServiceSupport implements ConsumerCache {
 
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultConsumerCache.class);
+
     private final CamelContext camelContext;
-    private final ServicePool<PollingConsumer> consumers;
+    private final PollingConsumerServicePool consumers;
     private final Object source;
 
     private EndpointUtilizationStatistics statistics;
@@ -45,14 +50,18 @@ public class DefaultConsumerCache extends ServiceSupport implements ConsumerCach
     public DefaultConsumerCache(Object source, CamelContext camelContext, int cacheSize) {
         this.source = source;
         this.camelContext = camelContext;
-        this.maxCacheSize = cacheSize == 0 ? CamelContextHelper.getMaximumCachePoolSize(camelContext) : cacheSize;
-        this.consumers = new ServicePool<>(Endpoint::createPollingConsumer, PollingConsumer::getEndpoint, maxCacheSize);
+        this.maxCacheSize = cacheSize <= 0 ? CamelContextHelper.getMaximumCachePoolSize(camelContext) : cacheSize;
+        this.consumers = createServicePool(camelContext, maxCacheSize);
         // only if JMX is enabled
         if (camelContext.getManagementStrategy().getManagementAgent() != null) {
             this.extendedStatistics = camelContext.getManagementStrategy().getManagementAgent().getStatisticsLevel().isExtended();
         } else {
             this.extendedStatistics = false;
         }
+    }
+
+    protected PollingConsumerServicePool createServicePool(CamelContext camelContext, int cacheSize) {
+        return new PollingConsumerServicePool(Endpoint::createPollingConsumer, Consumer::getEndpoint, cacheSize);
     }
 
     public boolean isExtendedStatistics() {
@@ -72,6 +81,7 @@ public class DefaultConsumerCache extends ServiceSupport implements ConsumerCach
      * @param endpoint the endpoint
      * @param pollingConsumer the pollingConsumer to release
      */
+    @Override
     public void releasePollingConsumer(Endpoint endpoint, PollingConsumer pollingConsumer) {
         consumers.release(endpoint, pollingConsumer);
     }
@@ -83,6 +93,7 @@ public class DefaultConsumerCache extends ServiceSupport implements ConsumerCach
      * @param endpoint the endpoint
      * @return the PollingConsumer
      */
+    @Override
     public PollingConsumer acquirePollingConsumer(Endpoint endpoint) {
         try {
             PollingConsumer consumer = consumers.acquire(endpoint);
@@ -95,12 +106,13 @@ public class DefaultConsumerCache extends ServiceSupport implements ConsumerCach
         }
     }
  
+    @Override
     public Exchange receive(Endpoint endpoint) {
         if (camelContext.isStopped()) {
             throw new RejectedExecutionException("CamelContext is stopped");
         }
 
-        log.debug("<<<< {}", endpoint);
+        LOG.debug("<<<< {}", endpoint);
         PollingConsumer consumer = null;
         try {
             consumer = acquirePollingConsumer(endpoint);
@@ -112,12 +124,13 @@ public class DefaultConsumerCache extends ServiceSupport implements ConsumerCach
         }
     }
 
+    @Override
     public Exchange receive(Endpoint endpoint, long timeout) {
         if (camelContext.isStopped()) {
             throw new RejectedExecutionException("CamelContext is stopped");
         }
 
-        log.debug("<<<< {}", endpoint);
+        LOG.debug("<<<< {}", endpoint);
         PollingConsumer consumer = null;
         try {
             consumer = acquirePollingConsumer(endpoint);
@@ -129,12 +142,13 @@ public class DefaultConsumerCache extends ServiceSupport implements ConsumerCach
         }
     }
 
+    @Override
     public Exchange receiveNoWait(Endpoint endpoint) {
         if (camelContext.isStopped()) {
             throw new RejectedExecutionException("CamelContext is stopped");
         }
 
-        log.debug("<<<< {}", endpoint);
+        LOG.debug("<<<< {}", endpoint);
         PollingConsumer consumer = null;
         try {
             consumer = acquirePollingConsumer(endpoint);
@@ -155,8 +169,19 @@ public class DefaultConsumerCache extends ServiceSupport implements ConsumerCach
      *
      * @return the source
      */
+    @Override
     public Object getSource() {
         return source;
+    }
+
+    /**
+     * Gets the maximum cache size (capacity).
+     *
+     * @return the capacity
+     */
+    @Override
+    public int getCapacity() {
+        return maxCacheSize;
     }
 
     /**
@@ -164,88 +189,35 @@ public class DefaultConsumerCache extends ServiceSupport implements ConsumerCach
      *
      * @return the current size
      */
+    @Override
     public int size() {
         int size = consumers.size();
-        log.trace("size = {}", size);
+        LOG.trace("size = {}", size);
         return size;
-    }
-
-    /**
-     * Gets the maximum cache size (capacity).
-     * <p/>
-     * Will return <tt>-1</tt> if it cannot determine this if a custom cache was used.
-     *
-     * @return the capacity
-     */
-    public int getCapacity() {
-        return consumers.getMaxCacheSize();
-    }
-
-    /**
-     * Gets the cache hits statistic
-     * <p/>
-     * Will return <tt>-1</tt> if it cannot determine this if a custom cache was used.
-     *
-     * @return the hits
-     */
-    public long getHits() {
-        return consumers.getHits();
-    }
-
-    /**
-     * Gets the cache misses statistic
-     * <p/>
-     * Will return <tt>-1</tt> if it cannot determine this if a custom cache was used.
-     *
-     * @return the misses
-     */
-    public long getMisses() {
-        return consumers.getMisses();
-    }
-
-    /**
-     * Gets the cache evicted statistic
-     * <p/>
-     * Will return <tt>-1</tt> if it cannot determine this if a custom cache was used.
-     *
-     * @return the evicted
-     */
-    public long getEvicted() {
-        return consumers.getEvicted();
-    }
-
-    /**
-     * Resets the cache statistics
-     */
-    public void resetCacheStatistics() {
-        consumers.resetStatistics();
-        if (statistics != null) {
-            statistics.clear();
-        }
     }
 
     /**
      * Purges this cache
      */
+    @Override
     public synchronized void purge() {
         try {
             consumers.stop();
             consumers.start();
         } catch (Exception e) {
-            log.debug("Error restarting consumer pool", e);
+            LOG.debug("Error restarting consumer pool", e);
         }
         if (statistics != null) {
             statistics.clear();
         }
     }
 
-    /**
-     * Cleanup the cache (purging stale entries)
-     */
+    @Override
     public void cleanUp() {
         consumers.cleanUp();
     }
 
+    @Override
     public EndpointUtilizationStatistics getEndpointUtilizationStatistics() {
         return statistics;
     }
@@ -255,20 +227,30 @@ public class DefaultConsumerCache extends ServiceSupport implements ConsumerCach
         return "ConsumerCache for source: " + source + ", capacity: " + getCapacity();
     }
 
-    protected void doStart() throws Exception {
+    @Override
+    protected void doInit() throws Exception {
         if (extendedStatistics) {
             int max = maxCacheSize == 0 ? CamelContextHelper.getMaximumCachePoolSize(camelContext) : maxCacheSize;
             statistics = new DefaultEndpointUtilizationStatistics(max);
         }
-        ServiceHelper.startService(consumers);
+        ServiceHelper.initService(consumers);
     }
 
-    protected void doStop() throws Exception {
-        // when stopping we intend to shutdown
-        ServiceHelper.stopAndShutdownServices(statistics, consumers);
+    @Override
+    protected void doStart() throws Exception {
         if (statistics != null) {
             statistics.clear();
         }
+        ServiceHelper.startService(consumers);
     }
 
+    @Override
+    protected void doStop() throws Exception {
+        ServiceHelper.stopService(consumers);
+    }
+
+    @Override
+    protected void doShutdown() throws Exception {
+        ServiceHelper.stopAndShutdownServices(consumers);
+    }
 }

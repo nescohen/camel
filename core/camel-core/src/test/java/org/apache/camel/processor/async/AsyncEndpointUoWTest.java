@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.support.SynchronizationAdapter;
@@ -57,24 +58,16 @@ public class AsyncEndpointUoWTest extends ContextTestSupport {
             public void configure() throws Exception {
                 context.addComponent("async", new MyAsyncComponent());
 
-                from("direct:start")
-                        .process(new Processor() {
-                            public void process(Exchange exchange) throws Exception {
-                                beforeThreadName = Thread.currentThread().getName();
-                                exchange.addOnCompletion(sync);
-                            }
-                        })
-                        .to("mock:before")
-                        .to("log:before")
-                        .to("async:bye:camel")
-                        .process(new Processor() {
-                            public void process(Exchange exchange) throws Exception {
-                                afterThreadName = Thread.currentThread().getName();
-                            }
-                        })
-                        .to("log:after")
-                        .to("mock:after")
-                        .to("mock:result");
+                from("direct:start").process(new Processor() {
+                    public void process(Exchange exchange) throws Exception {
+                        beforeThreadName = Thread.currentThread().getName();
+                        exchange.adapt(ExtendedExchange.class).addOnCompletion(sync);
+                    }
+                }).to("mock:before").to("log:before").to("async:bye:camel").process(new Processor() {
+                    public void process(Exchange exchange) throws Exception {
+                        afterThreadName = Thread.currentThread().getName();
+                    }
+                }).to("log:after").to("mock:after").to("mock:result");
             }
         };
     }
@@ -84,6 +77,7 @@ public class AsyncEndpointUoWTest extends ContextTestSupport {
         private AtomicInteger onComplete = new AtomicInteger();
         private AtomicInteger onFailure = new AtomicInteger();
 
+        @Override
         public void onComplete(Exchange exchange) {
             onComplete.incrementAndGet();
         }

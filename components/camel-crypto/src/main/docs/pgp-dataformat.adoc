@@ -1,7 +1,12 @@
 [[pgp-dataformat]]
-== PGP DataFormat
+= PGP DataFormat
+:docTitle: PGP
+:artifactId: camel-crypto
+:description: Encrypt and decrypt messages using Java Cryptographic Extension (JCE) and PGP.
+:since: 2.9
+:supportLevel: Stable
 
-*Available as of Camel version 2.9*
+*Since Camel {since}*
 
 The PGP Data Format integrates the Java
 Cryptographic Extension into Camel, allowing simple and flexible
@@ -11,7 +16,7 @@ encryption to cyphertext and unmarshalling to mean decryption back to
 the original plaintext. This data format implements only symmetric
 (shared-key) encryption and decyption.
 
-### PGPDataFormat Options
+== PGPDataFormat Options
 
 // dataformat options: START
 The PGP dataformat supports 15 options, which are listed below.
@@ -35,11 +40,11 @@ The PGP dataformat supports 15 options, which are listed below.
 | compressionAlgorithm |  | Integer | Compression algorithm; possible values are defined in org.bouncycastle.bcpg.CompressionAlgorithmTags; for example 0 (= UNCOMPRESSED), 1 (= ZIP), 2 (= ZLIB), 3 (= BZIP2). Only relevant for encrypting.
 | hashAlgorithm |  | Integer | Signature hash algorithm; possible values are defined in org.bouncycastle.bcpg.HashAlgorithmTags; for example 2 (= SHA1), 8 (= SHA256), 9 (= SHA384), 10 (= SHA512), 11 (=SHA224). Only relevant for signing.
 | signatureVerificationOption |  | String | Controls the behavior for verifying the signature during unmarshaling. There are 4 values possible: optional: The PGP message may or may not contain signatures; if it does contain signatures, then a signature verification is executed. required: The PGP message must contain at least one signature; if this is not the case an exception (PGPException) is thrown. A signature verification is executed. ignore: Contained signatures in the PGP message are ignored; no signature verification is executed. no_signature_allowed: The PGP message must not contain a signature; otherwise an exception (PGPException) is thrown.
-| contentTypeHeader | false | Boolean | Whether the data format should set the Content-Type header with the type from the data format if the data format is capable of doing so. For example application/xml for data formats marshalling to XML, or application/json for data formats marshalling to JSon etc.
+| contentTypeHeader | false | Boolean | Whether the data format should set the Content-Type header with the type from the data format if the data format is capable of doing so. For example application/xml for data formats marshalling to XML, or application/json for data formats marshalling to JSON etc.
 |===
 // dataformat options: END
 
-### PGPDataFormat Message Headers
+== PGPDataFormat Message Headers
 
 You can override the PGPDataFormat options by applying below headers
 into message dynamically.
@@ -94,7 +99,7 @@ symmectric key, set by PGPDataFormat during encryptiion process
 signatures, set by PGPDataFormat during signing process
 |=======================================================================
 
-### Encrypting with PGPDataFormat
+== Encrypting with PGPDataFormat
 
 The following sample uses the popular PGP format for
 encrypting/decrypting files using the
@@ -106,7 +111,7 @@ encryption, but you can obviously use different keys:
 
 Or using Spring:
 
-#### To work with the previous example you need the following
+=== To work with the previous example you need the following
 
 * A public keyring file which contains the public keys used to encrypt
 the data
@@ -114,7 +119,7 @@ the data
 data
 * The keyring password
 
-#### Managing your keyring
+=== Managing your keyring
 
 To manage the keyring, I use the command line tools, I find this to be
 the simplest approach in managing the keys. There are also Java
@@ -149,7 +154,7 @@ ls -l ~/.gnupg/pubring.gpg ~/.gnupg/secring.gpg
 
 [[Crypto-PGPDecrypting/VerifyingofMessagesEncrypted/SignedbyDifferentPrivate/PublicKeys]]
 PGP Decrypting/Verifying of Messages Encrypted/Signed by Different
-### Private/Public Keys
+== Private/Public Keys
 
 A PGP Data Formater can decrypt/verify messages which have been
 encrypted by different public keys or signed by different private keys.
@@ -192,13 +197,13 @@ same mechanism is also used to locate the public key for verifying a
 signature. Therefore you no longer must specify User IDs for the
 unmarshaling.
 
-### Restricting the Signer Identities during PGP Signature Verification
+== Restricting the Signer Identities during PGP Signature Verification
 
 If you verify a signature you not only want to verify the correctness of
 the signature but you also want check that the signature comes from a
 certain identity or a specific set of identities. Therefore it is
 possible to restrict the number of public keys from the public keyring
-which can be used for the verification of a signature.  
+which can be used for the verification of a signature.  
 
 *Signature User IDs*
 
@@ -208,13 +213,13 @@ which can be used for the verification of a signature.  
  List<String> expectedSigUserIds = new ArrayList<String>();
  expectedSigUserIds.add("Trusted company1");
  expectedSigUserIds.add("Trusted company2");
- 
+ 
  PGPDataFormat pgpVerifyWithSpecificKeysAndDecrypt = new PGPDataFormat();
  pgpVerifyWithSpecificKeysAndDecrypt.setPassword("my password"); // for decrypting with private key
  pgpVerifyWithSpecificKeysAndDecrypt.setKeyFileName(keyfileName);
  pgpVerifyWithSpecificKeysAndDecrypt.setSignatureKeyFileName(signatgureKeyfileName);
  pgpVerifyWithSpecificKeysAndDecrypt.setSignatureKeyUserids(expectedSigUserIds); // if you have only one signer identity then you can also use setSignatureKeyUserid("expected Signer")
- 
+ 
 from("direct:start")
          ...     
         .unmarshal(pgpVerifyWithSpecificKeysAndDecrypt)
@@ -227,7 +232,7 @@ successful as soon as one signature can be verified.
 then do not specify the signature key User IDs. In this case all public
 keys in the public keyring are taken into account.
 
-### Several Signatures in One PGP Data Format
+== Several Signatures in One PGP Data Format
 
 The PGP specification allows that one PGP data format can contain
 several signatures from different keys. Since Camel 2.13.3 it is
@@ -248,28 +253,28 @@ User IDs which relate to several private keys in the secret keyring.
  signerUserIds.add("company old key");
  signerUserIds.add("company new key");
  pgpSignAndEncryptSeveralSignerKeys.setSignatureKeyUserids(signerUserIds);
- 
+ 
 from("direct:start")
          ...     
         .marshal(pgpSignAndEncryptSeveralSignerKeys)
         ...      
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-### Support of Sub-Keys and Key Flags in PGP Data Format Marshaler
+== Support of Sub-Keys and Key Flags in PGP Data Format Marshaler
 
 *An https://tools.ietf.org/html/rfc4880#section-12.1[OpenPGP V4 key] can
 have a primary key and sub-keys. The usage of the keys is indicated by
 the so called https://tools.ietf.org/html/rfc4880#section-5.2.3.21[Key
 Flags]. For example, you can have a primary key with two sub-keys; the
 primary key shall only be used for certifying other keys (Key Flag
-0x01), the first sub-key  shall only be used for signing (Key Flag
+0x01), the first sub-key  shall only be used for signing (Key Flag
 0x02), and the second sub-key shall only be used for encryption (Key
 Flag 0x04 or 0x08). The PGP Data Format marshaler takes into account
 these Key Flags of the primary key and sub-keys in order to determine
 the right key for signing and encryption. This is necessary because the
 primary key and its sub-keys have the same User IDs.
 
-### Support of Custom Key Accessors
+== Support of Custom Key Accessors
 
 *You can implement custom key accessors for encryption/signing. The
 above PGPDataFormat class selects in a certain predefined way the keys
@@ -292,7 +297,7 @@ PGPKeyAccessDataFormat has the same options as PGPDataFormat except
 password, keyFileName, encryptionKeyRing, signaturePassword,
 signatureKeyFileName, and signatureKeyRing.
 
-### Dependencies
+== Dependencies
 
 To use the PGP dataformat in your camel routes you
 need to add the following dependency to your pom.
@@ -307,8 +312,5 @@ need to add the following dependency to your pom.
 </dependency>
 ----------------------------------------------------------
 
-### See Also
 
-* Data Format
-* Crypto (Digital Signatures)
-* http://www.bouncycastle.org/java.html[http://www.bouncycastle.org/java.html]
+include::camel-spring-boot::page$crypto-starter.adoc[]

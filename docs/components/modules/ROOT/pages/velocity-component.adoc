@@ -1,7 +1,17 @@
 [[velocity-component]]
-== Velocity Component
+= Velocity Component
+//THIS FILE IS COPIED: EDIT THE SOURCE FILE:
+:page-source: components/camel-velocity/src/main/docs/velocity-component.adoc
+:docTitle: Velocity
+:artifactId: camel-velocity
+:description: Transform messages using a Velocity template.
+:since: 1.2
+:supportLevel: Stable
+:component-header: Only producer is supported
 
-*Available as of Camel version 1.2*
+*Since Camel {since}*
+
+*{component-header}*
 
 The Velocity component allows you to process a message using an
 http://velocity.apache.org/[Apache Velocity] template. This can be ideal
@@ -21,7 +31,7 @@ for this component:
 </dependency>
 ------------------------------------------------------------
 
-### URI format
+== URI format
 
 [source,java]
 -------------------------------
@@ -35,21 +45,23 @@ invoke; or the complete URL of the remote template (eg:
 You can append query options to the URI in the following format,
 `?option=value&option=value&...`
 
-### Options
+== Options
 
 
 
 // component options: START
-The Velocity component supports 3 options, which are listed below.
+The Velocity component supports 5 options, which are listed below.
 
 
 
 [width="100%",cols="2,5,^1,2",options="header"]
 |===
 | Name | Description | Default | Type
-| *velocityEngine* (advanced) | To use the VelocityEngine otherwise a new engine is created |  | VelocityEngine
-| *resolveProperty Placeholders* (advanced) | Whether the component should resolve property placeholders on itself when starting. Only properties which are of String type can use property placeholders. | true | boolean
+| *allowContextMapAll* (producer) | Sets whether the context map should allow access to all details. By default only the message body and headers can be accessed. This option can be enabled for full access to the current Exchange and CamelContext. Doing so impose a potential security risk as this opens access to the full power of CamelContext API. | false | boolean
+| *allowTemplateFromHeader* (producer) | Whether to allow to use resource template from header or not (default false). Enabling this allows to specify dynamic templates via message header. However this can be seen as a potential security vulnerability if the header is coming from a malicious user, so use this with care. | false | boolean
+| *lazyStartProducer* (producer) | Whether the producer should be started lazy (on the first message). By starting lazy you can use this to allow CamelContext and routes to startup in situations where a producer may otherwise fail during starting and cause the route to fail being started. By deferring this startup to be lazy then the startup failure can be handled during routing messages via Camel's routing error handlers. Beware that when the first message is processed then creating and starting the producer may take a little time and prolong the total processing time of the processing. | false | boolean
 | *basicPropertyBinding* (advanced) | Whether the component should use basic property binding (Camel 2.x) or the newer property binding with additional capabilities | false | boolean
+| *velocityEngine* (advanced) | To use the VelocityEngine otherwise a new engine is created |  | VelocityEngine
 |===
 // component options: END
 
@@ -65,7 +77,7 @@ velocity:resourceUri
 
 with the following path and query parameters:
 
-==== Path Parameters (1 parameters):
+=== Path Parameters (1 parameters):
 
 
 [width="100%",cols="2,5,^1,2",options="header"]
@@ -75,12 +87,14 @@ with the following path and query parameters:
 |===
 
 
-==== Query Parameters (7 parameters):
+=== Query Parameters (9 parameters):
 
 
 [width="100%",cols="2,5,^1,2",options="header"]
 |===
 | Name | Description | Default | Type
+| *allowContextMapAll* (producer) | Sets whether the context map should allow access to all details. By default only the message body and headers can be accessed. This option can be enabled for full access to the current Exchange and CamelContext. Doing so impose a potential security risk as this opens access to the full power of CamelContext API. | false | boolean
+| *allowTemplateFromHeader* (producer) | Whether to allow to use resource template from header or not (default false). Enabling this allows to specify dynamic templates via message header. However this can be seen as a potential security vulnerability if the header is coming from a malicious user, so use this with care. | false | boolean
 | *contentCache* (producer) | Sets whether to use resource content cache or not | false | boolean
 | *encoding* (producer) | Character encoding of the resource content. |  | String
 | *lazyStartProducer* (producer) | Whether the producer should be started lazy (on the first message). By starting lazy you can use this to allow CamelContext and routes to startup in situations where a producer may otherwise fail during starting and cause the route to fail being started. By deferring this startup to be lazy then the startup failure can be handled during routing messages via Camel's routing error handlers. Beware that when the first message is processed then creating and starting the producer may take a little time and prolong the total processing time of the processing. | false | boolean
@@ -90,39 +104,10 @@ with the following path and query parameters:
 | *synchronous* (advanced) | Sets whether synchronous processing should be strictly used, or Camel is allowed to use asynchronous processing (if supported). | false | boolean
 |===
 // endpoint options: END
-// spring-boot-auto-configure options: START
-=== Spring Boot Auto-Configuration
-
-When using Spring Boot make sure to use the following Maven dependency to have support for auto configuration:
-
-[source,xml]
-----
-<dependency>
-  <groupId>org.apache.camel</groupId>
-  <artifactId>camel-velocity-starter</artifactId>
-  <version>x.x.x</version>
-  <!-- use the same version as your Camel core version -->
-</dependency>
-----
-
-
-The component supports 4 options, which are listed below.
 
 
 
-[width="100%",cols="2,5,^1,2",options="header"]
-|===
-| Name | Description | Default | Type
-| *camel.component.velocity.basic-property-binding* | Whether the component should use basic property binding (Camel 2.x) or the newer property binding with additional capabilities | false | Boolean
-| *camel.component.velocity.enabled* | Enable velocity component | true | Boolean
-| *camel.component.velocity.resolve-property-placeholders* | Whether the component should resolve property placeholders on itself when starting. Only properties which are of String type can use property placeholders. | true | Boolean
-| *camel.component.velocity.velocity-engine* | To use the VelocityEngine otherwise a new engine is created. The option is a org.apache.velocity.app.VelocityEngine type. |  | String
-|===
-// spring-boot-auto-configure options: END
-
-
-
-### Message Headers
+== Message Headers
 
 You can use the following headers on the message:
 
@@ -153,7 +138,7 @@ $in.setHeader("fruit", "Apple")
 
 The `fruit` header is now accessible from the `message.out.headers`.
 
-### Velocity Context
+== Velocity Context
 
 Camel will provide exchange information in the Velocity context (just a
 `Map`). The `Exchange` is transfered as:
@@ -182,7 +167,7 @@ Camel will provide exchange information in the Velocity context (just a
 |=======================================================================
 
 You can setup a custom Velocity Context yourself by
-setting the message header *CamelVelocityContext *just like this
+setting the message header *CamelVelocityContext *just like this
 
 [source,java]
 -----------------------------------------------------------------------
@@ -190,9 +175,9 @@ setting the message header *CamelVelocityContext *just like this
    exchange.getIn().setHeader("CamelVelocityContext", velocityContext);
 -----------------------------------------------------------------------
 
- 
+ 
 
-### Hot reloading
+== Hot reloading
 
 The Velocity template resource is, by default, hot reloadable for both
 file and classpath resources (expanded jar). If you set
@@ -200,9 +185,9 @@ file and classpath resources (expanded jar). If you set
 hot reloading is not possible. This scenario can be used in production,
 when the resource never changes.
 
-### Dynamic templates
+== Dynamic templates
 
-*Available as of Camel 2.1* +
+*Since Camel 2.1* +
  Camel provides two headers by which you can define a different resource
 location for a template or the template content itself. If any of these
 headers is set then Camel uses this over the endpoint configured
@@ -218,7 +203,7 @@ endpoint configured.
 |CamelVelocityTemplate |String |The template to use instead of the endpoint configured.
 |=======================================================================
 
-### Samples
+== Samples
 
 For example you could use something like
 
@@ -280,7 +265,7 @@ from("direct:in").
   to("velocity:dummy");
 ---------------------------------------------------------------------------------------------------------------
 
-### The Email Sample
+== The Email Sample
 
 In this sample we want to use Velocity templating for an order
 confirmation email. The email template is laid out in Velocity as:
@@ -297,9 +282,5 @@ ${body}
 
 And the java code:
 
-### See Also
 
-* Configuring Camel
-* Component
-* Endpoint
-* Getting Started
+include::camel-spring-boot::page$velocity-starter.adoc[]

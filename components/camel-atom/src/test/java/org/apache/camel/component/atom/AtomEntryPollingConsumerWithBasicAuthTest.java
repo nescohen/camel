@@ -15,36 +15,37 @@
  * limitations under the License.
  */
 package org.apache.camel.component.atom;
+
 import org.apache.camel.builder.RouteBuilder;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 public class AtomEntryPollingConsumerWithBasicAuthTest extends AtomEntryPollingConsumerTest {
 
     @Override
-    protected RouteBuilder createRouteBuilder() throws Exception {
+    protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             @Override
-            public void configure() throws Exception {
-                from("atom:http://localhost:" + JettyTestServer.getInstance().port + "/?splitEntries=true&consumer.delay=500&username=camel&password=camelPass")
+            public void configure() {
+                from("atom:http://localhost:" + JettyTestServer.getInstance().port + "/?splitEntries=true&delay=500&username=camel&password=camelPass")
                         .to("mock:result1");
 
-                from("atom:http://localhost:" + JettyTestServer.getInstance().port + "/?splitEntries=true&filter=false&consumer.delay=500&username=camel&password=camelPass")
+                from("atom:http://localhost:" + JettyTestServer.getInstance().port + "/?splitEntries=true&filter=false&delay=500&username=camel&password=camelPass")
                         .to("mock:result2");
 
-                from("atom:http://localhost:" + JettyTestServer.getInstance().port + "/?splitEntries=true&filter=true&lastUpdate=#myDate&consumer.delay=500&username=camel&password=camelPass")
+                from("atom:http://localhost:" + JettyTestServer.getInstance().port + "/?splitEntries=true&filter=true&lastUpdate=#myDate&delay=500&username=camel&password=camelPass")
                         .to("mock:result3");
             }
         };
     }
 
-    @BeforeClass
-    public static void startServer() {
+    @BeforeAll
+    static void startServer() {
         JettyTestServer.getInstance().startServer();
     }
 
-    @AfterClass
-    public static void stopServer() {
+    @AfterAll
+    static void stopServer() {
         JettyTestServer.getInstance().stopServer();
     }
 }

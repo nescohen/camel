@@ -38,29 +38,29 @@ public class Calculator {
      * lists and exception lists are specified using the exact same syntax as
      * field lists in struct or exception definitions.
      */
-    public void ping() throws org.apache.thrift.TException;
+    void ping() throws org.apache.thrift.TException;
 
-    public int add(int num1, int num2) throws org.apache.thrift.TException;
+    int add(int num1, int num2) throws org.apache.thrift.TException;
 
-    public int calculate(int logid, Work w) throws InvalidOperation, org.apache.thrift.TException;
+    int calculate(int logid, Work w) throws InvalidOperation, org.apache.thrift.TException;
 
     /**
      * This method has a oneway modifier. That means the client only makes
      * a request and does not listen for any response at all. Oneway methods
      * must be void.
      */
-    public void zip() throws org.apache.thrift.TException;
+    void zip() throws org.apache.thrift.TException;
 
     /**
      * This method echoed input object as return value.
-     * 
+     *
      * @param w
      */
-    public Work echo(Work w) throws org.apache.thrift.TException;
+    Work echo(Work w) throws org.apache.thrift.TException;
 
     /**
      * This method contains all possible simple, special, struct and container types as input parameters
-     * 
+     *
      * @param v1
      * @param v2
      * @param v3
@@ -74,23 +74,23 @@ public class Calculator {
      * @param v11
      * @param v12
      */
-    public int alltypes(boolean v1, byte v2, short v3, int v4, long v5, double v6, java.lang.String v7, java.nio.ByteBuffer v8, Work v9, java.util.List<java.lang.Integer> v10, java.util.Set<java.lang.String> v11, java.util.Map<java.lang.String,java.lang.Long> v12) throws org.apache.thrift.TException;
+    int alltypes(boolean v1, byte v2, short v3, int v4, long v5, double v6, java.lang.String v7, java.nio.ByteBuffer v8, Work v9, java.util.List<java.lang.Integer> v10, java.util.Set<java.lang.String> v11, java.util.Map<java.lang.String,java.lang.Long> v12) throws org.apache.thrift.TException;
 
   }
 
   public interface AsyncIface {
 
-    public void ping(org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    void ping(org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void add(int num1, int num2, org.apache.thrift.async.AsyncMethodCallback<java.lang.Integer> resultHandler) throws org.apache.thrift.TException;
+    void add(int num1, int num2, org.apache.thrift.async.AsyncMethodCallback<java.lang.Integer> resultHandler) throws org.apache.thrift.TException;
 
-    public void calculate(int logid, Work w, org.apache.thrift.async.AsyncMethodCallback<java.lang.Integer> resultHandler) throws org.apache.thrift.TException;
+    void calculate(int logid, Work w, org.apache.thrift.async.AsyncMethodCallback<java.lang.Integer> resultHandler) throws org.apache.thrift.TException;
 
-    public void zip(org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    void zip(org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void echo(Work w, org.apache.thrift.async.AsyncMethodCallback<Work> resultHandler) throws org.apache.thrift.TException;
+    void echo(Work w, org.apache.thrift.async.AsyncMethodCallback<Work> resultHandler) throws org.apache.thrift.TException;
 
-    public void alltypes(boolean v1, byte v2, short v3, int v4, long v5, double v6, java.lang.String v7, java.nio.ByteBuffer v8, Work v9, java.util.List<java.lang.Integer> v10, java.util.Set<java.lang.String> v11, java.util.Map<java.lang.String,java.lang.Long> v12, org.apache.thrift.async.AsyncMethodCallback<java.lang.Integer> resultHandler) throws org.apache.thrift.TException;
+    void alltypes(boolean v1, byte v2, short v3, int v4, long v5, double v6, java.lang.String v7, java.nio.ByteBuffer v8, Work v9, java.util.List<java.lang.Integer> v10, java.util.Set<java.lang.String> v11, java.util.Map<java.lang.String,java.lang.Long> v12, org.apache.thrift.async.AsyncMethodCallback<java.lang.Integer> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -676,7 +676,7 @@ public class Calculator {
 
       public org.apache.thrift.async.AsyncMethodCallback<Void> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<Void>() { 
+        return new org.apache.thrift.async.AsyncMethodCallback<Void>() {
           public void onComplete(Void o) {
             ping_result result = new ping_result();
             try {
@@ -736,7 +736,7 @@ public class Calculator {
 
       public org.apache.thrift.async.AsyncMethodCallback<java.lang.Integer> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<java.lang.Integer>() { 
+        return new org.apache.thrift.async.AsyncMethodCallback<java.lang.Integer>() {
           public void onComplete(java.lang.Integer o) {
             add_result result = new add_result();
             result.success = o;
@@ -798,7 +798,7 @@ public class Calculator {
 
       public org.apache.thrift.async.AsyncMethodCallback<java.lang.Integer> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<java.lang.Integer>() { 
+        return new org.apache.thrift.async.AsyncMethodCallback<java.lang.Integer>() {
           public void onComplete(java.lang.Integer o) {
             calculate_result result = new calculate_result();
             result.success = o;
@@ -864,7 +864,7 @@ public class Calculator {
 
       public org.apache.thrift.async.AsyncMethodCallback<Void> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<Void>() { 
+        return new org.apache.thrift.async.AsyncMethodCallback<Void>() {
           public void onComplete(Void o) {
           }
           public void onError(java.lang.Exception e) {
@@ -898,7 +898,7 @@ public class Calculator {
 
       public org.apache.thrift.async.AsyncMethodCallback<Work> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<Work>() { 
+        return new org.apache.thrift.async.AsyncMethodCallback<Work>() {
           public void onComplete(Work o) {
             echo_result result = new echo_result();
             result.success = o;
@@ -959,7 +959,7 @@ public class Calculator {
 
       public org.apache.thrift.async.AsyncMethodCallback<java.lang.Integer> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<java.lang.Integer>() { 
+        return new org.apache.thrift.async.AsyncMethodCallback<java.lang.Integer>() {
           public void onComplete(java.lang.Integer o) {
             alltypes_result result = new alltypes_result();
             result.success = o;
@@ -1022,9 +1022,9 @@ public class Calculator {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-;
+      ;
 
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<>();
 
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
@@ -1077,7 +1077,7 @@ public class Calculator {
     }
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<>(_Fields.class);
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ping_args.class, metaDataMap);
     }
@@ -1213,7 +1213,7 @@ public class Calculator {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -1272,9 +1272,9 @@ public class Calculator {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-;
+      ;
 
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<>();
 
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
@@ -1327,7 +1327,7 @@ public class Calculator {
     }
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<>(_Fields.class);
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ping_result.class, metaDataMap);
     }
@@ -1417,7 +1417,7 @@ public class Calculator {
 
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       scheme(oprot).write(oprot, this);
-      }
+    }
 
     @Override
     public java.lang.String toString() {
@@ -1463,7 +1463,7 @@ public class Calculator {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -1529,7 +1529,7 @@ public class Calculator {
       NUM1((short)1, "num1"),
       NUM2((short)2, "num2");
 
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<>();
 
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
@@ -1591,11 +1591,11 @@ public class Calculator {
     private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.NUM1, new org.apache.thrift.meta_data.FieldMetaData("num1", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
-      tmpMap.put(_Fields.NUM2, new org.apache.thrift.meta_data.FieldMetaData("num2", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<>(_Fields.class);
+      tmpMap.put(_Fields.NUM1, new org.apache.thrift.meta_data.FieldMetaData("num1", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+      tmpMap.put(_Fields.NUM2, new org.apache.thrift.meta_data.FieldMetaData("num2", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(add_args.class, metaDataMap);
     }
@@ -1604,8 +1604,8 @@ public class Calculator {
     }
 
     public add_args(
-      int num1,
-      int num2)
+            int num1,
+            int num2)
     {
       this();
       this.num1 = num1;
@@ -1683,32 +1683,32 @@ public class Calculator {
 
     public void setFieldValue(_Fields field, java.lang.Object value) {
       switch (field) {
-      case NUM1:
-        if (value == null) {
-          unsetNum1();
-        } else {
-          setNum1((java.lang.Integer)value);
-        }
-        break;
+        case NUM1:
+          if (value == null) {
+            unsetNum1();
+          } else {
+            setNum1((java.lang.Integer)value);
+          }
+          break;
 
-      case NUM2:
-        if (value == null) {
-          unsetNum2();
-        } else {
-          setNum2((java.lang.Integer)value);
-        }
-        break;
+        case NUM2:
+          if (value == null) {
+            unsetNum2();
+          } else {
+            setNum2((java.lang.Integer)value);
+          }
+          break;
 
       }
     }
 
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case NUM1:
-        return getNum1();
+        case NUM1:
+          return getNum1();
 
-      case NUM2:
-        return getNum2();
+        case NUM2:
+          return getNum2();
 
       }
       throw new java.lang.IllegalStateException();
@@ -1721,10 +1721,10 @@ public class Calculator {
       }
 
       switch (field) {
-      case NUM1:
-        return isSetNum1();
-      case NUM2:
-        return isSetNum2();
+        case NUM1:
+          return isSetNum1();
+        case NUM2:
+          return isSetNum2();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -1872,7 +1872,7 @@ public class Calculator {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -1880,7 +1880,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
                 struct.num1 = iprot.readI32();
                 struct.setNum1IsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -1888,7 +1888,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
                 struct.num2 = iprot.readI32();
                 struct.setNum2IsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -1980,7 +1980,7 @@ public class Calculator {
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success");
 
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<>();
 
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
@@ -2039,9 +2039,9 @@ public class Calculator {
     private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(add_result.class, metaDataMap);
     }
@@ -2050,7 +2050,7 @@ public class Calculator {
     }
 
     public add_result(
-      int success)
+            int success)
     {
       this();
       this.success = success;
@@ -2100,21 +2100,21 @@ public class Calculator {
 
     public void setFieldValue(_Fields field, java.lang.Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((java.lang.Integer)value);
-        }
-        break;
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((java.lang.Integer)value);
+          }
+          break;
 
       }
     }
 
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
+        case SUCCESS:
+          return getSuccess();
 
       }
       throw new java.lang.IllegalStateException();
@@ -2127,8 +2127,8 @@ public class Calculator {
       }
 
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
+        case SUCCESS:
+          return isSetSuccess();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -2200,7 +2200,7 @@ public class Calculator {
 
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       scheme(oprot).write(oprot, this);
-      }
+    }
 
     @Override
     public java.lang.String toString() {
@@ -2251,7 +2251,7 @@ public class Calculator {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -2259,7 +2259,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
                 struct.success = iprot.readI32();
                 struct.setSuccessIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -2343,7 +2343,7 @@ public class Calculator {
       LOGID((short)1, "logid"),
       W((short)2, "w");
 
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<>();
 
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
@@ -2404,11 +2404,11 @@ public class Calculator {
     private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.LOGID, new org.apache.thrift.meta_data.FieldMetaData("logid", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
-      tmpMap.put(_Fields.W, new org.apache.thrift.meta_data.FieldMetaData("w", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Work.class)));
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<>(_Fields.class);
+      tmpMap.put(_Fields.LOGID, new org.apache.thrift.meta_data.FieldMetaData("logid", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+      tmpMap.put(_Fields.W, new org.apache.thrift.meta_data.FieldMetaData("w", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Work.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(calculate_args.class, metaDataMap);
     }
@@ -2417,8 +2417,8 @@ public class Calculator {
     }
 
     public calculate_args(
-      int logid,
-      Work w)
+            int logid,
+            Work w)
     {
       this();
       this.logid = logid;
@@ -2497,32 +2497,32 @@ public class Calculator {
 
     public void setFieldValue(_Fields field, java.lang.Object value) {
       switch (field) {
-      case LOGID:
-        if (value == null) {
-          unsetLogid();
-        } else {
-          setLogid((java.lang.Integer)value);
-        }
-        break;
+        case LOGID:
+          if (value == null) {
+            unsetLogid();
+          } else {
+            setLogid((java.lang.Integer)value);
+          }
+          break;
 
-      case W:
-        if (value == null) {
-          unsetW();
-        } else {
-          setW((Work)value);
-        }
-        break;
+        case W:
+          if (value == null) {
+            unsetW();
+          } else {
+            setW((Work)value);
+          }
+          break;
 
       }
     }
 
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case LOGID:
-        return getLogid();
+        case LOGID:
+          return getLogid();
 
-      case W:
-        return getW();
+        case W:
+          return getW();
 
       }
       throw new java.lang.IllegalStateException();
@@ -2535,10 +2535,10 @@ public class Calculator {
       }
 
       switch (field) {
-      case LOGID:
-        return isSetLogid();
-      case W:
-        return isSetW();
+        case LOGID:
+          return isSetLogid();
+        case W:
+          return isSetW();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -2695,7 +2695,7 @@ public class Calculator {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -2703,7 +2703,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
                 struct.logid = iprot.readI32();
                 struct.setLogidIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -2712,7 +2712,7 @@ public class Calculator {
                 struct.w = new Work();
                 struct.w.read(iprot);
                 struct.setWIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -2810,7 +2810,7 @@ public class Calculator {
       SUCCESS((short)0, "success"),
       OUCH((short)1, "ouch");
 
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<>();
 
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
@@ -2871,11 +2871,11 @@ public class Calculator {
     private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
-      tmpMap.put(_Fields.OUCH, new org.apache.thrift.meta_data.FieldMetaData("ouch", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, InvalidOperation.class)));
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+      tmpMap.put(_Fields.OUCH, new org.apache.thrift.meta_data.FieldMetaData("ouch", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, InvalidOperation.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(calculate_result.class, metaDataMap);
     }
@@ -2884,8 +2884,8 @@ public class Calculator {
     }
 
     public calculate_result(
-      int success,
-      InvalidOperation ouch)
+            int success,
+            InvalidOperation ouch)
     {
       this();
       this.success = success;
@@ -2964,32 +2964,32 @@ public class Calculator {
 
     public void setFieldValue(_Fields field, java.lang.Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((java.lang.Integer)value);
-        }
-        break;
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((java.lang.Integer)value);
+          }
+          break;
 
-      case OUCH:
-        if (value == null) {
-          unsetOuch();
-        } else {
-          setOuch((InvalidOperation)value);
-        }
-        break;
+        case OUCH:
+          if (value == null) {
+            unsetOuch();
+          } else {
+            setOuch((InvalidOperation)value);
+          }
+          break;
 
       }
     }
 
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
+        case SUCCESS:
+          return getSuccess();
 
-      case OUCH:
-        return getOuch();
+        case OUCH:
+          return getOuch();
 
       }
       throw new java.lang.IllegalStateException();
@@ -3002,10 +3002,10 @@ public class Calculator {
       }
 
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case OUCH:
-        return isSetOuch();
+        case SUCCESS:
+          return isSetSuccess();
+        case OUCH:
+          return isSetOuch();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -3100,7 +3100,7 @@ public class Calculator {
 
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       scheme(oprot).write(oprot, this);
-      }
+    }
 
     @Override
     public java.lang.String toString() {
@@ -3159,7 +3159,7 @@ public class Calculator {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -3167,7 +3167,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
                 struct.success = iprot.readI32();
                 struct.setSuccessIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -3176,7 +3176,7 @@ public class Calculator {
                 struct.ouch = new InvalidOperation();
                 struct.ouch.read(iprot);
                 struct.setOuchIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -3269,9 +3269,9 @@ public class Calculator {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-;
+      ;
 
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<>();
 
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
@@ -3324,7 +3324,7 @@ public class Calculator {
     }
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<>(_Fields.class);
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(zip_args.class, metaDataMap);
     }
@@ -3460,7 +3460,7 @@ public class Calculator {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -3523,7 +3523,7 @@ public class Calculator {
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       W((short)1, "w");
 
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<>();
 
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
@@ -3580,9 +3580,9 @@ public class Calculator {
     // isset id assignments
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.W, new org.apache.thrift.meta_data.FieldMetaData("w", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Work.class)));
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<>(_Fields.class);
+      tmpMap.put(_Fields.W, new org.apache.thrift.meta_data.FieldMetaData("w", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Work.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(echo_args.class, metaDataMap);
     }
@@ -3591,7 +3591,7 @@ public class Calculator {
     }
 
     public echo_args(
-      Work w)
+            Work w)
     {
       this();
       this.w = w;
@@ -3641,21 +3641,21 @@ public class Calculator {
 
     public void setFieldValue(_Fields field, java.lang.Object value) {
       switch (field) {
-      case W:
-        if (value == null) {
-          unsetW();
-        } else {
-          setW((Work)value);
-        }
-        break;
+        case W:
+          if (value == null) {
+            unsetW();
+          } else {
+            setW((Work)value);
+          }
+          break;
 
       }
     }
 
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case W:
-        return getW();
+        case W:
+          return getW();
 
       }
       throw new java.lang.IllegalStateException();
@@ -3668,8 +3668,8 @@ public class Calculator {
       }
 
       switch (field) {
-      case W:
-        return isSetW();
+        case W:
+          return isSetW();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -3799,7 +3799,7 @@ public class Calculator {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -3808,7 +3808,7 @@ public class Calculator {
                 struct.w = new Work();
                 struct.w.read(iprot);
                 struct.setWIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -3890,7 +3890,7 @@ public class Calculator {
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success");
 
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<>();
 
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
@@ -3947,9 +3947,9 @@ public class Calculator {
     // isset id assignments
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Work.class)));
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Work.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(echo_result.class, metaDataMap);
     }
@@ -3958,7 +3958,7 @@ public class Calculator {
     }
 
     public echo_result(
-      Work success)
+            Work success)
     {
       this();
       this.success = success;
@@ -4008,21 +4008,21 @@ public class Calculator {
 
     public void setFieldValue(_Fields field, java.lang.Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((Work)value);
-        }
-        break;
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((Work)value);
+          }
+          break;
 
       }
     }
 
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
+        case SUCCESS:
+          return getSuccess();
 
       }
       throw new java.lang.IllegalStateException();
@@ -4035,8 +4035,8 @@ public class Calculator {
       }
 
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
+        case SUCCESS:
+          return isSetSuccess();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -4110,7 +4110,7 @@ public class Calculator {
 
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       scheme(oprot).write(oprot, this);
-      }
+    }
 
     @Override
     public java.lang.String toString() {
@@ -4166,7 +4166,7 @@ public class Calculator {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -4175,7 +4175,7 @@ public class Calculator {
                 struct.success = new Work();
                 struct.success.read(iprot);
                 struct.setSuccessIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -4290,7 +4290,7 @@ public class Calculator {
       V11((short)11, "v11"),
       V12((short)12, "v12");
 
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<>();
 
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
@@ -4376,35 +4376,35 @@ public class Calculator {
     private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.V1, new org.apache.thrift.meta_data.FieldMetaData("v1", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
-      tmpMap.put(_Fields.V2, new org.apache.thrift.meta_data.FieldMetaData("v2", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BYTE)));
-      tmpMap.put(_Fields.V3, new org.apache.thrift.meta_data.FieldMetaData("v3", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I16)));
-      tmpMap.put(_Fields.V4, new org.apache.thrift.meta_data.FieldMetaData("v4", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
-      tmpMap.put(_Fields.V5, new org.apache.thrift.meta_data.FieldMetaData("v5", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-      tmpMap.put(_Fields.V6, new org.apache.thrift.meta_data.FieldMetaData("v6", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
-      tmpMap.put(_Fields.V7, new org.apache.thrift.meta_data.FieldMetaData("v7", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.V8, new org.apache.thrift.meta_data.FieldMetaData("v8", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING          , true)));
-      tmpMap.put(_Fields.V9, new org.apache.thrift.meta_data.FieldMetaData("v9", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Work.class)));
-      tmpMap.put(_Fields.V10, new org.apache.thrift.meta_data.FieldMetaData("v10", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32))));
-      tmpMap.put(_Fields.V11, new org.apache.thrift.meta_data.FieldMetaData("v11", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.SetMetaData(org.apache.thrift.protocol.TType.SET, 
-              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
-      tmpMap.put(_Fields.V12, new org.apache.thrift.meta_data.FieldMetaData("v12", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
-              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64))));
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<>(_Fields.class);
+      tmpMap.put(_Fields.V1, new org.apache.thrift.meta_data.FieldMetaData("v1", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
+      tmpMap.put(_Fields.V2, new org.apache.thrift.meta_data.FieldMetaData("v2", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BYTE)));
+      tmpMap.put(_Fields.V3, new org.apache.thrift.meta_data.FieldMetaData("v3", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I16)));
+      tmpMap.put(_Fields.V4, new org.apache.thrift.meta_data.FieldMetaData("v4", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+      tmpMap.put(_Fields.V5, new org.apache.thrift.meta_data.FieldMetaData("v5", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+      tmpMap.put(_Fields.V6, new org.apache.thrift.meta_data.FieldMetaData("v6", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
+      tmpMap.put(_Fields.V7, new org.apache.thrift.meta_data.FieldMetaData("v7", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.V8, new org.apache.thrift.meta_data.FieldMetaData("v8", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING          , true)));
+      tmpMap.put(_Fields.V9, new org.apache.thrift.meta_data.FieldMetaData("v9", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Work.class)));
+      tmpMap.put(_Fields.V10, new org.apache.thrift.meta_data.FieldMetaData("v10", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST,
+                      new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32))));
+      tmpMap.put(_Fields.V11, new org.apache.thrift.meta_data.FieldMetaData("v11", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.SetMetaData(org.apache.thrift.protocol.TType.SET,
+                      new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
+      tmpMap.put(_Fields.V12, new org.apache.thrift.meta_data.FieldMetaData("v12", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP,
+                      new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING),
+                      new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64))));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(alltypes_args.class, metaDataMap);
     }
@@ -4413,18 +4413,18 @@ public class Calculator {
     }
 
     public alltypes_args(
-      boolean v1,
-      byte v2,
-      short v3,
-      int v4,
-      long v5,
-      double v6,
-      java.lang.String v7,
-      java.nio.ByteBuffer v8,
-      Work v9,
-      java.util.List<java.lang.Integer> v10,
-      java.util.Set<java.lang.String> v11,
-      java.util.Map<java.lang.String,java.lang.Long> v12)
+            boolean v1,
+            byte v2,
+            short v3,
+            int v4,
+            long v5,
+            double v6,
+            java.lang.String v7,
+            java.nio.ByteBuffer v8,
+            Work v9,
+            java.util.List<java.lang.Integer> v10,
+            java.util.Set<java.lang.String> v11,
+            java.util.Map<java.lang.String,java.lang.Long> v12)
     {
       this();
       this.v1 = v1;
@@ -4468,15 +4468,15 @@ public class Calculator {
         this.v9 = new Work(other.v9);
       }
       if (other.isSetV10()) {
-        java.util.List<java.lang.Integer> __this__v10 = new java.util.ArrayList<java.lang.Integer>(other.v10);
+        java.util.List<java.lang.Integer> __this__v10 = new java.util.ArrayList<>(other.v10);
         this.v10 = __this__v10;
       }
       if (other.isSetV11()) {
-        java.util.Set<java.lang.String> __this__v11 = new java.util.HashSet<java.lang.String>(other.v11);
+        java.util.Set<java.lang.String> __this__v11 = new java.util.HashSet<>(other.v11);
         this.v11 = __this__v11;
       }
       if (other.isSetV12()) {
-        java.util.Map<java.lang.String,java.lang.Long> __this__v12 = new java.util.HashMap<java.lang.String,java.lang.Long>(other.v12);
+        java.util.Map<java.lang.String,java.lang.Long> __this__v12 = new java.util.HashMap<>(other.v12);
         this.v12 = __this__v12;
       }
     }
@@ -4737,7 +4737,7 @@ public class Calculator {
 
     public void addToV10(int elem) {
       if (this.v10 == null) {
-        this.v10 = new java.util.ArrayList<java.lang.Integer>();
+        this.v10 = new java.util.ArrayList<>();
       }
       this.v10.add(elem);
     }
@@ -4776,7 +4776,7 @@ public class Calculator {
 
     public void addToV11(java.lang.String elem) {
       if (this.v11 == null) {
-        this.v11 = new java.util.HashSet<java.lang.String>();
+        this.v11 = new java.util.HashSet<>();
       }
       this.v11.add(elem);
     }
@@ -4811,7 +4811,7 @@ public class Calculator {
 
     public void putToV12(java.lang.String key, long val) {
       if (this.v12 == null) {
-        this.v12 = new java.util.HashMap<java.lang.String,java.lang.Long>();
+        this.v12 = new java.util.HashMap<>();
       }
       this.v12.put(key, val);
     }
@@ -4842,146 +4842,146 @@ public class Calculator {
 
     public void setFieldValue(_Fields field, java.lang.Object value) {
       switch (field) {
-      case V1:
-        if (value == null) {
-          unsetV1();
-        } else {
-          setV1((java.lang.Boolean)value);
-        }
-        break;
-
-      case V2:
-        if (value == null) {
-          unsetV2();
-        } else {
-          setV2((java.lang.Byte)value);
-        }
-        break;
-
-      case V3:
-        if (value == null) {
-          unsetV3();
-        } else {
-          setV3((java.lang.Short)value);
-        }
-        break;
-
-      case V4:
-        if (value == null) {
-          unsetV4();
-        } else {
-          setV4((java.lang.Integer)value);
-        }
-        break;
-
-      case V5:
-        if (value == null) {
-          unsetV5();
-        } else {
-          setV5((java.lang.Long)value);
-        }
-        break;
-
-      case V6:
-        if (value == null) {
-          unsetV6();
-        } else {
-          setV6((java.lang.Double)value);
-        }
-        break;
-
-      case V7:
-        if (value == null) {
-          unsetV7();
-        } else {
-          setV7((java.lang.String)value);
-        }
-        break;
-
-      case V8:
-        if (value == null) {
-          unsetV8();
-        } else {
-          if (value instanceof byte[]) {
-            setV8((byte[])value);
+        case V1:
+          if (value == null) {
+            unsetV1();
           } else {
-            setV8((java.nio.ByteBuffer)value);
+            setV1((java.lang.Boolean)value);
           }
-        }
-        break;
+          break;
 
-      case V9:
-        if (value == null) {
-          unsetV9();
-        } else {
-          setV9((Work)value);
-        }
-        break;
+        case V2:
+          if (value == null) {
+            unsetV2();
+          } else {
+            setV2((java.lang.Byte)value);
+          }
+          break;
 
-      case V10:
-        if (value == null) {
-          unsetV10();
-        } else {
-          setV10((java.util.List<java.lang.Integer>)value);
-        }
-        break;
+        case V3:
+          if (value == null) {
+            unsetV3();
+          } else {
+            setV3((java.lang.Short)value);
+          }
+          break;
 
-      case V11:
-        if (value == null) {
-          unsetV11();
-        } else {
-          setV11((java.util.Set<java.lang.String>)value);
-        }
-        break;
+        case V4:
+          if (value == null) {
+            unsetV4();
+          } else {
+            setV4((java.lang.Integer)value);
+          }
+          break;
 
-      case V12:
-        if (value == null) {
-          unsetV12();
-        } else {
-          setV12((java.util.Map<java.lang.String,java.lang.Long>)value);
-        }
-        break;
+        case V5:
+          if (value == null) {
+            unsetV5();
+          } else {
+            setV5((java.lang.Long)value);
+          }
+          break;
+
+        case V6:
+          if (value == null) {
+            unsetV6();
+          } else {
+            setV6((java.lang.Double)value);
+          }
+          break;
+
+        case V7:
+          if (value == null) {
+            unsetV7();
+          } else {
+            setV7((java.lang.String)value);
+          }
+          break;
+
+        case V8:
+          if (value == null) {
+            unsetV8();
+          } else {
+            if (value instanceof byte[]) {
+              setV8((byte[])value);
+            } else {
+              setV8((java.nio.ByteBuffer)value);
+            }
+          }
+          break;
+
+        case V9:
+          if (value == null) {
+            unsetV9();
+          } else {
+            setV9((Work)value);
+          }
+          break;
+
+        case V10:
+          if (value == null) {
+            unsetV10();
+          } else {
+            setV10((java.util.List<java.lang.Integer>)value);
+          }
+          break;
+
+        case V11:
+          if (value == null) {
+            unsetV11();
+          } else {
+            setV11((java.util.Set<java.lang.String>)value);
+          }
+          break;
+
+        case V12:
+          if (value == null) {
+            unsetV12();
+          } else {
+            setV12((java.util.Map<java.lang.String,java.lang.Long>)value);
+          }
+          break;
 
       }
     }
 
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case V1:
-        return isV1();
+        case V1:
+          return isV1();
 
-      case V2:
-        return getV2();
+        case V2:
+          return getV2();
 
-      case V3:
-        return getV3();
+        case V3:
+          return getV3();
 
-      case V4:
-        return getV4();
+        case V4:
+          return getV4();
 
-      case V5:
-        return getV5();
+        case V5:
+          return getV5();
 
-      case V6:
-        return getV6();
+        case V6:
+          return getV6();
 
-      case V7:
-        return getV7();
+        case V7:
+          return getV7();
 
-      case V8:
-        return getV8();
+        case V8:
+          return getV8();
 
-      case V9:
-        return getV9();
+        case V9:
+          return getV9();
 
-      case V10:
-        return getV10();
+        case V10:
+          return getV10();
 
-      case V11:
-        return getV11();
+        case V11:
+          return getV11();
 
-      case V12:
-        return getV12();
+        case V12:
+          return getV12();
 
       }
       throw new java.lang.IllegalStateException();
@@ -4994,30 +4994,30 @@ public class Calculator {
       }
 
       switch (field) {
-      case V1:
-        return isSetV1();
-      case V2:
-        return isSetV2();
-      case V3:
-        return isSetV3();
-      case V4:
-        return isSetV4();
-      case V5:
-        return isSetV5();
-      case V6:
-        return isSetV6();
-      case V7:
-        return isSetV7();
-      case V8:
-        return isSetV8();
-      case V9:
-        return isSetV9();
-      case V10:
-        return isSetV10();
-      case V11:
-        return isSetV11();
-      case V12:
-        return isSetV12();
+        case V1:
+          return isSetV1();
+        case V2:
+          return isSetV2();
+        case V3:
+          return isSetV3();
+        case V4:
+          return isSetV4();
+        case V5:
+          return isSetV5();
+        case V6:
+          return isSetV6();
+        case V7:
+          return isSetV7();
+        case V8:
+          return isSetV8();
+        case V9:
+          return isSetV9();
+        case V10:
+          return isSetV10();
+        case V11:
+          return isSetV11();
+        case V12:
+          return isSetV12();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -5154,7 +5154,7 @@ public class Calculator {
 
       hashCode = hashCode * 8191 + ((v1) ? 131071 : 524287);
 
-      hashCode = hashCode * 8191 + (int) (v2);
+      hashCode = hashCode * 8191 + (v2);
 
       hashCode = hashCode * 8191 + v3;
 
@@ -5454,7 +5454,7 @@ public class Calculator {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -5462,7 +5462,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
                 struct.v1 = iprot.readBool();
                 struct.setV1IsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -5470,7 +5470,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.BYTE) {
                 struct.v2 = iprot.readByte();
                 struct.setV2IsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -5478,7 +5478,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.I16) {
                 struct.v3 = iprot.readI16();
                 struct.setV3IsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -5486,7 +5486,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
                 struct.v4 = iprot.readI32();
                 struct.setV4IsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -5494,7 +5494,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
                 struct.v5 = iprot.readI64();
                 struct.setV5IsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -5502,7 +5502,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
                 struct.v6 = iprot.readDouble();
                 struct.setV6IsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -5510,7 +5510,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.v7 = iprot.readString();
                 struct.setV7IsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -5518,7 +5518,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.v8 = iprot.readBinary();
                 struct.setV8IsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -5527,7 +5527,7 @@ public class Calculator {
                 struct.v9 = new Work();
                 struct.v9.read(iprot);
                 struct.setV9IsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -5535,7 +5535,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
                   org.apache.thrift.protocol.TList _list0 = iprot.readListBegin();
-                  struct.v10 = new java.util.ArrayList<java.lang.Integer>(_list0.size);
+                  struct.v10 = new java.util.ArrayList<>(_list0.size);
                   int _elem1;
                   for (int _i2 = 0; _i2 < _list0.size; ++_i2)
                   {
@@ -5545,7 +5545,7 @@ public class Calculator {
                   iprot.readListEnd();
                 }
                 struct.setV10IsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -5553,7 +5553,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
                 {
                   org.apache.thrift.protocol.TSet _set3 = iprot.readSetBegin();
-                  struct.v11 = new java.util.HashSet<java.lang.String>(2*_set3.size);
+                  struct.v11 = new java.util.HashSet<>(2*_set3.size);
                   java.lang.String _elem4;
                   for (int _i5 = 0; _i5 < _set3.size; ++_i5)
                   {
@@ -5563,7 +5563,7 @@ public class Calculator {
                   iprot.readSetEnd();
                 }
                 struct.setV11IsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -5571,7 +5571,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
                   org.apache.thrift.protocol.TMap _map6 = iprot.readMapBegin();
-                  struct.v12 = new java.util.HashMap<java.lang.String,java.lang.Long>(2*_map6.size);
+                  struct.v12 = new java.util.HashMap<>(2*_map6.size);
                   java.lang.String _key7;
                   long _val8;
                   for (int _i9 = 0; _i9 < _map6.size; ++_i9)
@@ -5583,7 +5583,7 @@ public class Calculator {
                   iprot.readMapEnd();
                 }
                 struct.setV12IsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -5828,7 +5828,7 @@ public class Calculator {
         if (incoming.get(9)) {
           {
             org.apache.thrift.protocol.TList _list16 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.I32, iprot.readI32());
-            struct.v10 = new java.util.ArrayList<java.lang.Integer>(_list16.size);
+            struct.v10 = new java.util.ArrayList<>(_list16.size);
             int _elem17;
             for (int _i18 = 0; _i18 < _list16.size; ++_i18)
             {
@@ -5841,7 +5841,7 @@ public class Calculator {
         if (incoming.get(10)) {
           {
             org.apache.thrift.protocol.TSet _set19 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.v11 = new java.util.HashSet<java.lang.String>(2*_set19.size);
+            struct.v11 = new java.util.HashSet<>(2*_set19.size);
             java.lang.String _elem20;
             for (int _i21 = 0; _i21 < _set19.size; ++_i21)
             {
@@ -5854,7 +5854,7 @@ public class Calculator {
         if (incoming.get(11)) {
           {
             org.apache.thrift.protocol.TMap _map22 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I64, iprot.readI32());
-            struct.v12 = new java.util.HashMap<java.lang.String,java.lang.Long>(2*_map22.size);
+            struct.v12 = new java.util.HashMap<>(2*_map22.size);
             java.lang.String _key23;
             long _val24;
             for (int _i25 = 0; _i25 < _map22.size; ++_i25)
@@ -5888,7 +5888,7 @@ public class Calculator {
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success");
 
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<>();
 
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
@@ -5947,9 +5947,9 @@ public class Calculator {
     private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(alltypes_result.class, metaDataMap);
     }
@@ -5958,7 +5958,7 @@ public class Calculator {
     }
 
     public alltypes_result(
-      int success)
+            int success)
     {
       this();
       this.success = success;
@@ -6008,21 +6008,21 @@ public class Calculator {
 
     public void setFieldValue(_Fields field, java.lang.Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((java.lang.Integer)value);
-        }
-        break;
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((java.lang.Integer)value);
+          }
+          break;
 
       }
     }
 
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
+        case SUCCESS:
+          return getSuccess();
 
       }
       throw new java.lang.IllegalStateException();
@@ -6035,8 +6035,8 @@ public class Calculator {
       }
 
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
+        case SUCCESS:
+          return isSetSuccess();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -6108,7 +6108,7 @@ public class Calculator {
 
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       scheme(oprot).write(oprot, this);
-      }
+    }
 
     @Override
     public java.lang.String toString() {
@@ -6159,7 +6159,7 @@ public class Calculator {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -6167,7 +6167,7 @@ public class Calculator {
               if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
                 struct.success = iprot.readI32();
                 struct.setSuccessIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;

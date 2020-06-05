@@ -16,6 +16,7 @@
  */
 package org.apache.camel.component.zookeepermaster;
 
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.DelegateEndpoint;
 import org.apache.camel.Endpoint;
@@ -29,11 +30,11 @@ import org.apache.camel.spi.UriPath;
 import org.apache.camel.support.DefaultEndpoint;
 
 /**
- * Represents an endpoint which only becomes active when it obtains the master lock
+ * Have only a single consumer in a cluster consuming from a given endpoint; with automatic failover if the JVM dies.
  */
 @ManagedResource(description = "Managed ZooKeeper Master Endpoint")
 @UriEndpoint(firstVersion = "2.19.0", scheme = "zookeeper-master", syntax = "zookeeper-master:groupName:consumerEndpointUri", consumerOnly = true,
-    title = "ZooKeeper Master", lenientProperties = true, label = "clustering")
+    title = "ZooKeeper Master", lenientProperties = true, category = {Category.CLUSTERING, Category.MANAGEMENT, Category.BIGDATA})
 public class MasterEndpoint extends DefaultEndpoint implements DelegateEndpoint {
 
     private final MasterComponent component;
@@ -55,6 +56,7 @@ public class MasterEndpoint extends DefaultEndpoint implements DelegateEndpoint 
         this.consumerEndpoint = getCamelContext().getEndpoint(consumerEndpointUri);
     }
 
+    @Override
     public Endpoint getEndpoint() {
         return consumerEndpoint;
     }
@@ -78,6 +80,7 @@ public class MasterEndpoint extends DefaultEndpoint implements DelegateEndpoint 
         throw new UnsupportedOperationException("Cannot produce from this endpoint");
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         return new MasterConsumer(this, processor);
     }
@@ -88,6 +91,7 @@ public class MasterEndpoint extends DefaultEndpoint implements DelegateEndpoint 
         return true;
     }
 
+    @Override
     public MasterComponent getComponent() {
         return component;
     }

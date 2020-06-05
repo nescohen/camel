@@ -19,21 +19,24 @@ package org.apache.camel.component.file.remote;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.Producer;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * Unit test to poll a fixed file from the FTP server without using the list command.
+ * Unit test to poll a fixed file from the FTP server without using the list
+ * command.
  */
 public class FtpConsumerTemplateUseListFalseTest extends FtpServerTestSupport {
 
     private String getFtpUrl() {
-        return "ftp://admin@localhost:" + getPort() + "/nolist/?password=admin"
-                + "&stepwise=false&useList=false&ignoreFileNotFoundOrPermissionError=true&delete=true";
+        return "ftp://admin@localhost:" + getPort() + "/nolist/?password=admin" + "&stepwise=false&useList=false&ignoreFileNotFoundOrPermissionError=true&delete=true";
     }
 
     @Override
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         prepareFtpServer();
@@ -46,15 +49,16 @@ public class FtpConsumerTemplateUseListFalseTest extends FtpServerTestSupport {
 
         // try a 2nd time and the file is deleted
         data = consumer.receiveBody(getFtpUrl() + "&fileName=report.txt", 1000, String.class);
-        assertNull("The file should no longer exist", data);
+        assertNull(data, "The file should no longer exist");
 
         // and try a non existing file name
         data = consumer.receiveBody(getFtpUrl() + "&fileName=report2.txt", 1000, String.class);
-        assertNull("The file should no longer exist", data);
+        assertNull(data, "The file should no longer exist");
     }
-    
+
     private void prepareFtpServer() throws Exception {
-        // prepares the FTP Server by creating a file on the server that we want to unit
+        // prepares the FTP Server by creating a file on the server that we want
+        // to unit
         // test that we can pool and store as a local file
         Endpoint endpoint = context.getEndpoint("ftp://admin@localhost:" + getPort() + "/nolist/?password=admin&binary=false");
         Exchange exchange = endpoint.createExchange();

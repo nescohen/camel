@@ -30,7 +30,7 @@ import org.apache.camel.SSLContextParametersAware;
 import org.apache.camel.spi.Metadata;
 import org.apache.camel.spi.annotations.Component;
 import org.apache.camel.support.HeaderFilterStrategyComponent;
-import org.apache.camel.support.IntrospectionSupport;
+import org.apache.camel.util.PropertiesHelper;
 import org.apache.camel.util.StringHelper;
 
 /**
@@ -50,7 +50,6 @@ public class MailComponent extends HeaderFilterStrategyComponent implements SSLC
     }
 
     public MailComponent(MailConfiguration configuration) {
-        super();
         this.configuration = configuration;
     }
 
@@ -77,7 +76,7 @@ public class MailComponent extends HeaderFilterStrategyComponent implements SSLC
             SearchTerm st;
             if (searchTerm instanceof SimpleSearchTerm) {
                 // okay its a SimpleSearchTerm then lets convert that to SearchTerm
-                st = MailConverters.toSearchTerm((SimpleSearchTerm) searchTerm, getCamelContext().getTypeConverter());
+                st = MailConverters.toSearchTerm((SimpleSearchTerm) searchTerm);
             } else {
                 st = getCamelContext().getTypeConverter().mandatoryConvertTo(SearchTerm.class, searchTerm);
             }
@@ -100,18 +99,17 @@ public class MailComponent extends HeaderFilterStrategyComponent implements SSLC
         }
 
         // special for searchTerm.xxx options
-        Map<String, Object> sstParams = IntrospectionSupport.extractProperties(parameters, "searchTerm.");
+        Map<String, Object> sstParams = PropertiesHelper.extractProperties(parameters, "searchTerm.");
         if (!sstParams.isEmpty()) {
             // use SimpleSearchTerm as POJO to store the configuration and then convert that to the actual SearchTerm
             SimpleSearchTerm sst = new SimpleSearchTerm();
             setProperties(sst, sstParams);
-            SearchTerm st = MailConverters.toSearchTerm(sst, getCamelContext().getTypeConverter());
+            SearchTerm st = MailConverters.toSearchTerm(sst);
             endpoint.setSearchTerm(st);
         }
 
         endpoint.setContentTypeResolver(contentTypeResolver);
         setEndpointHeaderFilterStrategy(endpoint);
-        setProperties(endpoint.getConfiguration(), parameters);
         setProperties(endpoint, parameters);
 
         // sanity check that we know the mail server

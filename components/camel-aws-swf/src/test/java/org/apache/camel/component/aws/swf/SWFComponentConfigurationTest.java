@@ -17,7 +17,6 @@
 package org.apache.camel.component.aws.swf;
 
 import com.amazonaws.regions.Regions;
-
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Test;
 
@@ -25,9 +24,9 @@ public class SWFComponentConfigurationTest extends CamelTestSupport {
     
     @Test
     public void createEndpointWithComponentElements() throws Exception {
-        SWFComponent component = new SWFComponent(context);
-        component.setAccessKey("XXX");
-        component.setSecretKey("YYY");
+        SWFComponent component = context.getComponent("aws-swf", SWFComponent.class);
+        component.getConfiguration().setAccessKey("XXX");
+        component.getConfiguration().setSecretKey("YYY");
         SWFEndpoint endpoint = (SWFEndpoint)component.createEndpoint("aws-swf://workflow");
         
         assertEquals("workflow", endpoint.getConfiguration().getType());
@@ -37,10 +36,10 @@ public class SWFComponentConfigurationTest extends CamelTestSupport {
     
     @Test
     public void createEndpointWithComponentAndEndpointElements() throws Exception {
-        SWFComponent component = new SWFComponent(context);
-        component.setAccessKey("XXX");
-        component.setSecretKey("YYY");
-        component.setRegion(Regions.US_WEST_1.toString());
+        SWFComponent component = context.getComponent("aws-swf", SWFComponent.class);
+        component.getConfiguration().setAccessKey("XXX");
+        component.getConfiguration().setSecretKey("YYY");
+        component.getConfiguration().setRegion(Regions.US_WEST_1.toString());
         SWFEndpoint endpoint = (SWFEndpoint)component.createEndpoint("aws-swf://workflow?accessKey=xxxxxx&secretKey=yyyyy&region=US_EAST_1");
         
         assertEquals("workflow", endpoint.getConfiguration().getType());

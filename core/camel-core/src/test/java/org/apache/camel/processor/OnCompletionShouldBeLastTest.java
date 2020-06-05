@@ -18,6 +18,7 @@ package org.apache.camel.processor;
 
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.support.SynchronizationAdapter;
@@ -42,47 +43,45 @@ public class OnCompletionShouldBeLastTest extends ContextTestSupport {
             public void configure() throws Exception {
                 onCompletion().to("mock:sync");
 
-                from("direct:start")
-                    .process(new Processor() {
-                        public void process(Exchange exchange) throws Exception {
-                            exchange.addOnCompletion(new SynchronizationAdapter() {
-                                @Override
-                                public void onDone(Exchange exchange) {
-                                    template.sendBody("mock:sync", "A");
-                                }
+                from("direct:start").process(new Processor() {
+                    public void process(Exchange exchange) throws Exception {
+                        exchange.adapt(ExtendedExchange.class).addOnCompletion(new SynchronizationAdapter() {
+                            @Override
+                            public void onDone(Exchange exchange) {
+                                template.sendBody("mock:sync", "A");
+                            }
 
-                                @Override
-                                public String toString() {
-                                    return "A";
-                                }
-                            });
+                            @Override
+                            public String toString() {
+                                return "A";
+                            }
+                        });
 
-                            exchange.addOnCompletion(new SynchronizationAdapter() {
-                                @Override
-                                public void onDone(Exchange exchange) {
-                                    template.sendBody("mock:sync", "B");
-                                }
+                        exchange.adapt(ExtendedExchange.class).addOnCompletion(new SynchronizationAdapter() {
+                            @Override
+                            public void onDone(Exchange exchange) {
+                                template.sendBody("mock:sync", "B");
+                            }
 
-                                @Override
-                                public String toString() {
-                                    return "B";
-                                }
-                            });
+                            @Override
+                            public String toString() {
+                                return "B";
+                            }
+                        });
 
-                            exchange.addOnCompletion(new SynchronizationAdapter() {
-                                @Override
-                                public void onDone(Exchange exchange) {
-                                    template.sendBody("mock:sync", "C");
-                                }
+                        exchange.adapt(ExtendedExchange.class).addOnCompletion(new SynchronizationAdapter() {
+                            @Override
+                            public void onDone(Exchange exchange) {
+                                template.sendBody("mock:sync", "C");
+                            }
 
-                                @Override
-                                public String toString() {
-                                    return "C";
-                                }
-                            });
-                        }
-                    })
-                    .to("mock:result");
+                            @Override
+                            public String toString() {
+                                return "C";
+                            }
+                        });
+                    }
+                }).to("mock:result");
             }
         };
     }

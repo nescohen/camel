@@ -19,14 +19,14 @@ package org.apache.camel.component.bean;
 import org.apache.camel.CamelExecutionException;
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class BeanComponentMissingParenthesisTest extends ContextTestSupport {
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myBean", new MyContactBean());
         return jndi;
     }
@@ -41,9 +41,7 @@ public class BeanComponentMissingParenthesisTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start")
-                    .to("bean:myBean?method=concat(${body}, ${header.foo})")
-                    .to("mock:result");
+                from("direct:start").to("bean:myBean?method=concat(${body}, ${header.foo})").to("mock:result");
             }
         });
         context.start();
@@ -58,9 +56,7 @@ public class BeanComponentMissingParenthesisTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start")
-                    .to("bean:myBean?method=concat(${body}, ${header.foo}")
-                    .to("mock:result");
+                from("direct:start").to("bean:myBean?method=concat(${body}, ${header.foo}").to("mock:result");
             }
         });
         context.start();
@@ -79,9 +75,7 @@ public class BeanComponentMissingParenthesisTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start")
-                    .to("bean:myBean?method=--concat(${body}, ${header.foo})")
-                    .to("mock:result");
+                from("direct:start").to("bean:myBean?method=--concat(${body}, ${header.foo})").to("mock:result");
             }
         });
         context.start();

@@ -20,7 +20,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
 
-import org.apache.camel.CamelContext;
 import org.apache.camel.Endpoint;
 import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.SSLContextParametersAware;
@@ -28,7 +27,6 @@ import org.apache.camel.component.spring.ws.bean.CamelEndpointDispatcher;
 import org.apache.camel.component.spring.ws.bean.CamelSpringWSEndpointMapping;
 import org.apache.camel.component.spring.ws.filter.MessageFilter;
 import org.apache.camel.component.spring.ws.filter.impl.BasicMessageFilter;
-import org.apache.camel.component.spring.ws.type.EndpointMappingKey;
 import org.apache.camel.component.spring.ws.type.EndpointMappingType;
 import org.apache.camel.spi.Metadata;
 import org.apache.camel.spi.annotations.Component;
@@ -36,6 +34,8 @@ import org.apache.camel.support.CamelContextHelper;
 import org.apache.camel.support.DefaultComponent;
 import org.apache.camel.support.EndpointHelper;
 import org.apache.camel.util.UnsafeUriCharactersEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ws.client.core.WebServiceTemplate;
 import org.springframework.xml.xpath.XPathExpression;
 import org.springframework.xml.xpath.XPathExpressionFactory;
@@ -46,41 +46,33 @@ import org.springframework.xml.xpath.XPathExpressionFactory;
 @Component("spring-ws")
 public class SpringWebserviceComponent extends DefaultComponent implements SSLContextParametersAware {
 
-    @Metadata(label = "security", defaultValue = "false")
+    private static final Logger LOG = LoggerFactory.getLogger(SpringWebserviceComponent.class);
+
+    @Metadata(label = "security")
     private boolean useGlobalSslContextParameters;
-
-    public SpringWebserviceComponent() {
-    }
-
-    public SpringWebserviceComponent(CamelContext context) {
-        super(context);
-    }
-
-    @Deprecated
-    protected String preProcessUri(String uri) {
-        String[] u = uri.split("\\?");
-        return u[0].replaceAll("%7B", "(").replaceAll("%7D", ")") + (u.length > 1 ? "?" + u[1] : "");
-    }
 
     @Override
     protected Endpoint createEndpoint(String uri, String remaining, Map<String, Object> parameters) throws Exception {
         SpringWebserviceConfiguration configuration = new SpringWebserviceConfiguration();
+        // need to do this first
         addConsumerConfiguration(remaining, parameters, configuration);
-        setProperties(configuration, parameters);
+
+        SpringWebserviceEndpoint endpoint = new SpringWebserviceEndpoint(this, uri, configuration);
+        setProperties(endpoint, parameters);
+        // configure and setup configuration after it has its properties set via the endpoint
         configureProducerConfiguration(remaining, configuration);
         configureMessageFilter(configuration);
-
         if (configuration.getSslContextParameters() == null) {
             configuration.setSslContextParameters(retrieveGlobalSslContextParameters());
         }
 
-        return new SpringWebserviceEndpoint(this, uri, configuration);
+        return endpoint;
     }
 
     private void addConsumerConfiguration(String remaining, Map<String, Object> parameters, SpringWebserviceConfiguration configuration) {
         EndpointMappingType type = EndpointMappingType.getTypeFromUriPrefix(remaining);
         if (type != null) {
-            log.debug("Building Spring Web Services consumer of type {}", type);
+            LOG.debug("Building Spring Web Services consumer of type {}", type);
             String lookupKey = getLookupKey(remaining, type);
             if (EndpointMappingType.BEANNAME.equals(type)) {
                 addEndpointDispatcherToConfiguration(configuration, lookupKey);
@@ -92,14 +84,16 @@ public class SpringWebserviceComponent extends DefaultComponent implements SSLCo
                 String expression = getAndRemoveParameter(parameters, "expression", String.class);
                 configuration.setExpression(expression);
                 xPathExpression = createXPathExpression(expression);
+                configuration.setxPathExpression(xPathExpression);
             }
-            configuration.setEndpointMappingKey(new EndpointMappingKey(type, lookupKey, xPathExpression));
+            configuration.setEndpointMappingType(type);
+            configuration.setEndpointMappingLookupKey(lookupKey);
         }
     }
 
     private void configureProducerConfiguration(String remaining, SpringWebserviceConfiguration configuration) throws URISyntaxException {
         if (configuration.getEndpointMapping() == null && configuration.getEndpointDispatcher() == null) {
-            log.debug("Building Spring Web Services producer");
+            LOG.debug("Building Spring Web Services producer");
             URI webServiceEndpointUri = new URI(UnsafeUriCharactersEncoder.encode(remaining));
 
             // Obtain a WebServiceTemplate from the registry when specified by

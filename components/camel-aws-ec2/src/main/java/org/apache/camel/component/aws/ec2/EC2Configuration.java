@@ -16,9 +16,8 @@
  */
 package org.apache.camel.component.aws.ec2;
 
+import com.amazonaws.Protocol;
 import com.amazonaws.services.ec2.AmazonEC2;
-import com.amazonaws.services.ec2.AmazonEC2Client;
-
 import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.spi.Metadata;
 import org.apache.camel.spi.UriParam;
@@ -39,6 +38,8 @@ public class EC2Configuration implements Cloneable {
     @UriParam(label = "producer")
     @Metadata(required = true)
     private EC2Operations operation;
+    @UriParam(enums = "HTTP,HTTPS", defaultValue = "HTTPS")
+    private Protocol proxyProtocol = Protocol.HTTPS;
     @UriParam(label = "producer")
     private String proxyHost;
     @UriParam(label = "producer")
@@ -92,6 +93,17 @@ public class EC2Configuration implements Cloneable {
         this.operation = operation;
     } 
     
+    public Protocol getProxyProtocol() {
+        return proxyProtocol;
+    }
+
+    /**
+     * To define a proxy protocol when instantiating the EC2 client
+     */
+    public void setProxyProtocol(Protocol proxyProtocol) {
+        this.proxyProtocol = proxyProtocol;
+    }
+    
     public String getProxyHost() {
         return proxyHost;
     }
@@ -119,8 +131,10 @@ public class EC2Configuration implements Cloneable {
     }
 
     /**
-     * The region in which EC2 client needs to work. When using this parameter, the configuration will expect the capitalized name of the region (for example AP_EAST_1)
-     * You'll need to use the name Regions.EU_WEST_1.name()
+     * The region in which ECS client needs to work. When using this
+     * parameter, the configuration will expect the lowercase name of the
+     * region (for example ap-east-1) You'll need to use the name
+     * Region.EU_WEST_1.id()
      */
     public void setRegion(String region) {
         this.region = region;

@@ -22,7 +22,7 @@ import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.sshd.server.auth.pubkey.PublickeyAuthenticator;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SftpECKeyFileConsumeTest extends SftpServerTestSupport {
 
@@ -57,10 +57,8 @@ public class SftpECKeyFileConsumeTest extends SftpServerTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("sftp://localhost:" + getPort() + "/" + FTP_ROOT_DIR
-                    + "?username=admin&knownHostsFile=./src/test/resources/known_hosts&privateKeyFile=./src/test/resources/ec.pem&delay=10s&disconnect=true")
-                    .routeId("foo").noAutoStartup()
-                    .to("mock:result");
+                from("sftp://localhost:" + getPort() + "/" + FTP_ROOT_DIR + "?username=admin&knownHostsFile=" + getKnownHostsFile()
+                     + "&privateKeyFile=./src/test/resources/ec.pem&delay=10000&disconnect=true").routeId("foo").noAutoStartup().to("mock:result");
             }
         };
     }

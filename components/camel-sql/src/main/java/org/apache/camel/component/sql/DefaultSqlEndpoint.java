@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
+
 import javax.sql.DataSource;
 
 import org.apache.camel.Component;
@@ -46,7 +47,7 @@ public abstract class DefaultSqlEndpoint extends DefaultPollingEndpoint {
     @UriParam(description = "Sets the DataSource to use to communicate with the database.")
     private DataSource dataSource;
     @UriParam(label = "consumer", description = "Enables or disables transaction. If enabled then if processing an exchange failed then the consumer"
-            + "break out processing any further exchanges to cause a rollback eager.")
+            + " breaks out processing any further exchanges to cause a rollback eager.")
     private boolean transacted;
     @UriParam(label = "producer", description = "Enables or disables batch mode")
     private boolean batch;
@@ -108,7 +109,8 @@ public abstract class DefaultSqlEndpoint extends DefaultPollingEndpoint {
             + " in the message body, any existing content in the message body is discarded. If outputHeader is set, the value is used as the name of the header"
             + " to store the query result and the original message body is preserved.")
     private String outputHeader;
-    @UriParam(label = "producer", description = "Whether to use the message body as the SQL and then headers for parameters. If this option is enabled then the SQL in the uri is not used.")
+    @UriParam(label = "producer", description = "Whether to use the message body as the SQL and then headers for parameters. If this option is enabled then the SQL in the uri is not used."
+                                                + " Note that query parameters in the message body are represented by a question mark instead of a <tt>#</tt> symbol.")
     private boolean useMessageBodyForSql;
     @UriParam(label = "advanced", defaultValue = "#", description = "Specifies a character that will be replaced to ? in SQL query."
             + " Notice, that it is simple String.replaceAll() operation and no SQL parsing is involved (quoted strings will also change).")

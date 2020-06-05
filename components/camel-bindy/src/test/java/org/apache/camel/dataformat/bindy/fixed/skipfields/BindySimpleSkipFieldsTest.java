@@ -29,7 +29,6 @@ import org.apache.camel.model.dataformat.BindyType;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Test;
 
-
 /**
  * This test validates that bindy can skip values in the fixed-length record when absolute pos
  * values are provided
@@ -85,7 +84,7 @@ public class BindySimpleSkipFieldsTest extends CamelTestSupport {
                 BindyDataFormat bindy = new BindyDataFormat();
                 bindy.setClassType(BindySimpleSkipFieldsTest.Order.class);
                 bindy.setLocale("en");
-                bindy.setType(BindyType.Fixed);
+                bindy.type(BindyType.Fixed);
 
                 from(URI_DIRECT_MARSHALL)
                     .marshal(bindy)

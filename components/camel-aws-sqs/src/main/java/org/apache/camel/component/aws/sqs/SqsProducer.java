@@ -43,12 +43,16 @@ import org.apache.camel.spi.HeaderFilterStrategy;
 import org.apache.camel.support.DefaultProducer;
 import org.apache.camel.util.ObjectHelper;
 import org.apache.camel.util.URISupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A Producer which sends messages to the Amazon Web Service Simple Queue
  * Service <a href="http://aws.amazon.com/sqs/">AWS SQS</a>
  */
 public class SqsProducer extends DefaultProducer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SqsProducer.class);
 
     private transient String sqsProducerToString;
 
@@ -59,23 +63,24 @@ public class SqsProducer extends DefaultProducer {
         }
     }
 
+    @Override
     public void process(Exchange exchange) throws Exception {
         SqsOperations operation = determineOperation(exchange);
         if (ObjectHelper.isEmpty(operation)) {
             processSingleMessage(exchange);
         } else {
             switch (operation) {
-            case sendBatchMessage:
-                sendBatchMessage(getClient(), exchange);
-                break;
-            case deleteMessage:
-                deleteMessage(getClient(), exchange);
-                break;
-            case listQueues:
-                listQueues(getClient(), exchange);
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported operation");
+                case sendBatchMessage:
+                    sendBatchMessage(getClient(), exchange);
+                    break;
+                case deleteMessage:
+                    deleteMessage(getClient(), exchange);
+                    break;
+                case listQueues:
+                    listQueues(getClient(), exchange);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported operation");
             }
         }
     }
@@ -87,11 +92,11 @@ public class SqsProducer extends DefaultProducer {
         addDelay(request, exchange);
         configureFifoAttributes(request, exchange);
 
-        log.trace("Sending request [{}] from exchange [{}]...", request, exchange);
+        LOG.trace("Sending request [{}] from exchange [{}]...", request, exchange);
 
         SendMessageResult result = getClient().sendMessage(request);
 
-        log.trace("Received result [{}]", result);
+        LOG.trace("Received result [{}]", result);
 
         Message message = getMessageForResponse(exchange);
         message.setHeader(SqsConstants.MESSAGE_ID, result.getMessageId());
@@ -104,7 +109,7 @@ public class SqsProducer extends DefaultProducer {
         if (exchange.getIn().getBody() instanceof Iterable) {
             Iterable c = exchange.getIn().getBody(Iterable.class);
             for (Object o : c) {
-                String object = (String) o;
+                String object = (String)o;
                 SendMessageBatchRequestEntry entry = new SendMessageBatchRequestEntry();
                 entry.setId(UUID.randomUUID().toString());
                 entry.setMessageAttributes(translateAttributes(exchange.getIn().getHeaders(), exchange));
@@ -124,7 +129,7 @@ public class SqsProducer extends DefaultProducer {
             message.setBody(result);
         }
     }
-    
+
     private void deleteMessage(AmazonSQS amazonSQS, Exchange exchange) {
         String receiptHandle = exchange.getIn().getHeader(SqsConstants.RECEIPT_HANDLE, String.class);
         DeleteMessageRequest request = new DeleteMessageRequest();
@@ -137,7 +142,7 @@ public class SqsProducer extends DefaultProducer {
         Message message = getMessageForResponse(exchange);
         message.setBody(result);
     }
-    
+
     private void listQueues(AmazonSQS amazonSQS, Exchange exchange) {
         ListQueuesRequest request = new ListQueuesRequest();
         if (ObjectHelper.isNotEmpty(exchange.getIn().getHeader(SqsConstants.SQS_QUEUE_PREFIX))) {
@@ -180,13 +185,13 @@ public class SqsProducer extends DefaultProducer {
         Integer headerValue = exchange.getIn().getHeader(SqsConstants.DELAY_HEADER, Integer.class);
         Integer delayValue;
         if (headerValue == null) {
-            log.trace("Using the config delay");
+            LOG.trace("Using the config delay");
             delayValue = getEndpoint().getConfiguration().getDelaySeconds();
         } else {
-            log.trace("Using the header delay");
+            LOG.trace("Using the header delay");
             delayValue = headerValue;
         }
-        log.trace("found delay: {}", delayValue);
+        LOG.trace("found delay: {}", delayValue);
         request.setDelaySeconds(delayValue == null ? Integer.valueOf(0) : delayValue);
     }
 
@@ -194,13 +199,13 @@ public class SqsProducer extends DefaultProducer {
         Integer headerValue = exchange.getIn().getHeader(SqsConstants.DELAY_HEADER, Integer.class);
         Integer delayValue;
         if (headerValue == null) {
-            log.trace("Using the config delay");
+            LOG.trace("Using the config delay");
             delayValue = getEndpoint().getConfiguration().getDelaySeconds();
         } else {
-            log.trace("Using the header delay");
+            LOG.trace("Using the header delay");
             delayValue = headerValue;
         }
-        log.trace("found delay: {}", delayValue);
+        LOG.trace("found delay: {}", delayValue);
         request.setDelaySeconds(delayValue == null ? Integer.valueOf(0) : delayValue);
     }
 
@@ -281,7 +286,7 @@ public class SqsProducer extends DefaultProducer {
                 } else {
                     // cannot translate the message header to message attribute
                     // value
-                    log.warn("Cannot put the message header key={}, value={} into Sqs MessageAttribute", entry.getKey(), entry.getValue());
+                    LOG.warn("Cannot put the message header key={}, value={} into Sqs MessageAttribute", entry.getKey(), entry.getValue());
                 }
             }
         }
@@ -289,12 +294,7 @@ public class SqsProducer extends DefaultProducer {
     }
 
     public static Message getMessageForResponse(final Exchange exchange) {
-        if (exchange.getPattern().isOutCapable()) {
-            Message out = exchange.getOut();
-            out.copyFrom(exchange.getIn());
-            return out;
-        }
-        return exchange.getIn();
+        return exchange.getMessage();
     }
 
     private SqsOperations determineOperation(Exchange exchange) {

@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.issues;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.concurrent.CountDownLatch;
@@ -24,7 +25,7 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.apache.camel.support.processor.idempotent.FileIdempotentRepository;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,8 +55,8 @@ public class SedaFileIdempotentIssueTest extends ContextTestSupport {
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
 
         repository.setFileStore(new File("target/repo.txt"));
         jndi.bind("repo", repository);
@@ -69,12 +70,9 @@ public class SedaFileIdempotentIssueTest extends ContextTestSupport {
             public void configure() throws Exception {
                 onException(RuntimeException.class).process(new ShutDown());
 
-                from("file:target/data/inbox?idempotent=true&noop=true&idempotentRepository=#repo&initialDelay=0&delay=10")
-                    .to("log:begin")
-                    .inOut("seda:process");
+                from("file:target/data/inbox?idempotent=true&noop=true&idempotentRepository=#repo&initialDelay=0&delay=10").to("log:begin").inOut("seda:process");
 
-                from("seda:process")
-                    .throwException(new RuntimeException("Testing with exception"));
+                from("seda:process").throwException(new RuntimeException("Testing with exception"));
             }
         };
     }

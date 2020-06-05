@@ -20,15 +20,16 @@ import java.io.InputStream;
 
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.Processor;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class LoadRouteFromXmlWithOnExceptionTest extends ContextTestSupport {
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myProcessor", new MyProcessor());
         return jndi;
     }
@@ -41,7 +42,9 @@ public class LoadRouteFromXmlWithOnExceptionTest extends ContextTestSupport {
     @Test
     public void testLoadRouteFromXmlWitOnException() throws Exception {
         InputStream is = getClass().getResourceAsStream("barOnExceptionRoute.xml");
-        context.addRouteDefinitions(is);
+        ExtendedCamelContext ecc = context.adapt(ExtendedCamelContext.class);
+        RoutesDefinition routes = (RoutesDefinition) ecc.getXMLRoutesDefinitionLoader().loadRoutesDefinition(ecc, is);
+        context.addRouteDefinitions(routes.getRoutes());
         context.start();
 
         assertNotNull("Loaded bar route should be there", context.getRoute("bar"));
@@ -59,6 +62,7 @@ public class LoadRouteFromXmlWithOnExceptionTest extends ContextTestSupport {
 
     private static final class MyProcessor implements Processor {
 
+        @Override
         public void process(Exchange exchange) throws Exception {
             String body = exchange.getIn().getBody(String.class);
             if ("Kabom".equals(body)) {

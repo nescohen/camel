@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.support.SynchronizationAdapter;
@@ -42,10 +43,7 @@ public class GertJBIIssueTest extends ContextTestSupport {
             public void configure() throws Exception {
                 errorHandler(deadLetterChannel("mock:dlc").maximumRedeliveries(0));
 
-                from("direct:start")
-                    .threads(2)
-                    .to("mock:done")
-                    .throwException(new IllegalArgumentException("Forced"));
+                from("direct:start").threads(2).to("mock:done").throwException(new IllegalArgumentException("Forced"));
 
             }
         });
@@ -66,10 +64,7 @@ public class GertJBIIssueTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start")
-                    .threads(2)
-                    .to("mock:done")
-                    .throwException(new IllegalArgumentException("Forced"));
+                from("direct:start").threads(2).to("mock:done").throwException(new IllegalArgumentException("Forced"));
             }
         });
         context.start();
@@ -80,7 +75,7 @@ public class GertJBIIssueTest extends ContextTestSupport {
 
         template.send("direct:start", new Processor() {
             public void process(Exchange exchange) throws Exception {
-                exchange.addOnCompletion(new SynchronizationAdapter() {
+                exchange.adapt(ExtendedExchange.class).addOnCompletion(new SynchronizationAdapter() {
                     @Override
                     public void onDone(Exchange exchange) {
                         cause = exchange.getException();

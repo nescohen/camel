@@ -25,7 +25,6 @@ import javax.xml.crypto.dsig.CanonicalizationMethod;
 import javax.xml.crypto.dsig.keyinfo.KeyInfo;
 import javax.xml.crypto.dsig.spec.XPathFilterParameterSpec;
 
-import org.apache.camel.CamelContext;
 import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.component.xmlsecurity.api.KeyAccessor;
 import org.apache.camel.component.xmlsecurity.api.XmlSignatureConstants;
@@ -38,47 +37,43 @@ import org.apache.camel.spi.UriParams;
 @UriParams
 public class XmlSignerConfiguration extends XmlSignatureConfiguration {
 
-    @UriParam(label = "sign")
+    @UriParam
     private XPathFilterParameterSpec parentXpath;
-    @UriParam(label = "sign")
+    @UriParam
     private List<XPathFilterParameterSpec> xpathsToIdAttributes = Collections.emptyList();
-    @UriParam(label = "sign")
+    @UriParam
     private List<AlgorithmMethod> transformMethods = Collections.singletonList(XmlSignatureHelper
             .getCanonicalizationMethod(CanonicalizationMethod.INCLUSIVE));
-    private String transformMethodsName;
-    @UriParam(label = "sign")
+    @UriParam
     private KeyAccessor keyAccessor;
-    private String keyAccessorName;
-    @UriParam(label = "sign", defaultValue = "http://www.w3.org/TR/2001/REC-xml-c14n-20010315")
+    @UriParam(defaultValue = "http://www.w3.org/TR/2001/REC-xml-c14n-20010315")
     private AlgorithmMethod canonicalizationMethod = new XmlSignatureTransform(CanonicalizationMethod.INCLUSIVE);
-    private String canonicalizationMethodName;
-    @UriParam(label = "sign", defaultValue = "http://www.w3.org/2000/09/xmldsig#rsa-sha1")
-    private String signatureAlgorithm = "http://www.w3.org/2000/09/xmldsig#rsa-sha1";
-    @UriParam(label = "sign")
+    @UriParam(defaultValue = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256")
+    private String signatureAlgorithm = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256";
+    @UriParam
     private String digestAlgorithm;
-    @UriParam(label = "sign", defaultValue = "true")
+    @UriParam(defaultValue = "true")
     private Boolean addKeyInfoReference = Boolean.TRUE;
-    @UriParam(label = "sign", defaultValue = "ds")
+    @UriParam(defaultValue = "ds")
     private String prefixForXmlSignatureNamespace = "ds";
-    @UriParam(label = "sign")
+    @UriParam
     private String contentObjectId;
-    @UriParam(label = "sign")
+    @UriParam
     private String signatureId;
-    @UriParam(label = "sign")
+    @UriParam
     private String contentReferenceUri;
-    @UriParam(label = "sign")
+    @UriParam
     private String contentReferenceType;
-    @UriParam(label = "sign")
+    @UriParam
     private String parentLocalName;
-    @UriParam(label = "sign")
+    @UriParam
     private String parentNamespace;
-    @UriParam(label = "sign", defaultValue = "false")
+    @UriParam(defaultValue = "false")
     private Boolean plainText = Boolean.FALSE;
-    @UriParam(label = "sign", defaultValue = "UTF-8")
+    @UriParam(defaultValue = "UTF-8")
     private String plainTextEncoding = "UTF-8";
-    @UriParam(label = "sign")
+    @UriParam
     private XmlSignatureProperties properties;
-    private String propertiesName;
 
     public XmlSignerConfiguration() {
     }
@@ -89,16 +84,6 @@ public class XmlSignerConfiguration extends XmlSignatureConfiguration {
         } catch (CloneNotSupportedException e) {
             throw new RuntimeCamelException(e);
         }
-    }
-
-    @Override
-    public void setCamelContext(CamelContext camelContext) {
-        super.setCamelContext(camelContext);
-        // try to retrieve the references once the context is available.
-        setTransformMethods(transformMethodsName);
-        setCanonicalizationMethod(canonicalizationMethodName);
-        setKeyAccessor(keyAccessorName);
-        setProperties(propertiesName);
     }
 
     public KeyAccessor getKeyAccessor() {
@@ -114,21 +99,6 @@ public class XmlSignerConfiguration extends XmlSignatureConfiguration {
         this.keyAccessor = keyAccessor;
     }
 
-    /**
-     * Sets the reference name for a KeyAccessor that can be found in the registry.
-     */
-    public void setKeyAccessor(String keyAccessorName) {
-        if (getCamelContext() != null && keyAccessorName != null) {
-            KeyAccessor accessor = getCamelContext().getRegistry().lookupByNameAndType(keyAccessorName, KeyAccessor.class);
-            if (accessor != null) {
-                setKeyAccessor(accessor);
-            }
-        }
-        if (keyAccessorName != null) {
-            this.keyAccessorName = keyAccessorName;
-        }
-    }
-
     public AlgorithmMethod getCanonicalizationMethod() {
         return canonicalizationMethod;
     }
@@ -142,21 +112,6 @@ public class XmlSignerConfiguration extends XmlSignatureConfiguration {
         this.canonicalizationMethod = canonicalizationMethod;
     }
 
-    /**
-     * Sets the reference name for a AlgorithmMethod that can be found in the registry.
-     */
-    public void setCanonicalizationMethod(String canonicalizationMethodName) {
-        if (getCamelContext() != null && canonicalizationMethodName != null) {
-            AlgorithmMethod method = getCamelContext().getRegistry().lookupByNameAndType(canonicalizationMethodName, AlgorithmMethod.class);
-            if (method != null) {
-                setCanonicalizationMethod(method);
-            }
-        }
-        if (canonicalizationMethodName != null) {
-            this.canonicalizationMethodName = canonicalizationMethodName;
-        }
-    }
-
     public List<AlgorithmMethod> getTransformMethods() {
         return transformMethods;
     }
@@ -168,22 +123,6 @@ public class XmlSignerConfiguration extends XmlSignatureConfiguration {
      */
     public void setTransformMethods(List<AlgorithmMethod> transformMethods) {
         this.transformMethods = transformMethods;
-    }
-
-    /**
-     * Sets the reference name for a List<AlgorithmMethod> that can be found in the registry.
-     */
-    public void setTransformMethods(String transformMethodsName) {
-        if (getCamelContext() != null && transformMethodsName != null) {
-            @SuppressWarnings("unchecked")
-            List<AlgorithmMethod> list = getCamelContext().getRegistry().lookupByNameAndType(transformMethodsName, List.class);
-            if (list != null) {
-                setTransformMethods(list);
-            }
-        }
-        if (transformMethodsName != null) {
-            this.transformMethodsName = transformMethodsName;
-        }
     }
 
     public String getSignatureAlgorithm() {
@@ -235,14 +174,14 @@ public class XmlSignerConfiguration extends XmlSignatureConfiguration {
     /**
      * Namespace prefix for the XML signature namespace
      * "http://www.w3.org/2000/09/xmldsig#". Default value is "ds".
-     * 
+     *
      * If <code>null</code> or an empty value is set then no prefix is used for
      * the XML signature namespace.
      * <p>
      * See best practice
      * http://www.w3.org/TR/xmldsig-bestpractices/#signing-xml-
      * without-namespaces
-     * 
+     *
      * @param prefixForXmlSignatureNamespace
      *            prefix
      */
@@ -256,20 +195,20 @@ public class XmlSignerConfiguration extends XmlSignatureConfiguration {
 
     /**
      * Local name of the parent element to which the XML signature element will
-     * be added. Only relevant for enveloped XML signature. Alternatively you can 
+     * be added. Only relevant for enveloped XML signature. Alternatively you can
      * also use {@link #setParentXpath(XPathFilterParameterSpec)}.
-     * 
+     *
      * <p> Default value is
      * <code>null</code>. The value must be <code>null</code> for enveloping and
      * detached XML signature.
      * <p>
      * This parameter or the parameter {@link #setParentXpath(XPathFilterParameterSpec)}
-     * for enveloped signature and the parameter {@link #setXpathsToIdAttributes(List)} 
+     * for enveloped signature and the parameter {@link #setXpathsToIdAttributes(List)}
      * for detached signature must not be set in the same configuration.
      * <p>
      * If the parameters <tt>parentXpath</tt> and <tt>parentLocalName</tt> are specified
      * in the same configuration then an exception is thrown.
-     * 
+     *
      * @param parentLocalName
      *            local name
      */
@@ -386,54 +325,6 @@ public class XmlSignerConfiguration extends XmlSignatureConfiguration {
         this.properties = properties;
     }
 
-    /**
-     * Sets the reference name for a XmlSignatureProperties that can be found in the registry.
-     */
-    public void setProperties(String propertiesName) {
-        if (getCamelContext() != null && propertiesName != null) {
-            XmlSignatureProperties props = getCamelContext().getRegistry()
-                    .lookupByNameAndType(propertiesName, XmlSignatureProperties.class);
-            if (props != null) {
-                setProperties(props);
-            }
-        }
-        if (propertiesName != null) {
-            this.propertiesName = propertiesName;
-        }
-    }
-
-    public String getKeyAccessorName() {
-        return keyAccessorName;
-    }
-
-    public void setKeyAccessorName(String keyAccessorName) {
-        this.keyAccessorName = keyAccessorName;
-    }
-
-    public String getCanonicalizationMethodName() {
-        return canonicalizationMethodName;
-    }
-
-    public void setCanonicalizationMethodName(String canonicalizationMethodName) {
-        this.canonicalizationMethodName = canonicalizationMethodName;
-    }
-
-    public String getTransformMethodsName() {
-        return transformMethodsName;
-    }
-
-    public void setTransformMethodsName(String transformMethodsName) {
-        this.transformMethodsName = transformMethodsName;
-    }
-
-    public String getPropertiesName() {
-        return propertiesName;
-    }
-
-    public void setPropertiesName(String propertiesName) {
-        this.propertiesName = propertiesName;
-    }
-
     public List<XPathFilterParameterSpec> getXpathsToIdAttributes() {
         return xpathsToIdAttributes;
     }
@@ -467,19 +358,19 @@ public class XmlSignerConfiguration extends XmlSignatureConfiguration {
 
     /**
      * Sets the XPath to find the parent node in the enveloped case.
-     * Either you specify the parent node via this method or the local name and namespace of the parent 
-     * with the methods {@link #setParentLocalName(String)} and {@link #setParentNamespace(String)}. 
+     * Either you specify the parent node via this method or the local name and namespace of the parent
+     * with the methods {@link #setParentLocalName(String)} and {@link #setParentNamespace(String)}.
      * <p>
      * Default value is <code>null</code>. The value must be <code>null</code> for enveloping and
      * detached XML signature.
      * <p>
      * If the parameters <tt>parentXpath</tt> and <tt>parentLocalName</tt> are specified
      * in the same configuration then an exception is thrown.
-     * 
+     *
      * @param parentXpath xpath to the parent node, if the xpath returns several values then the first Element node is used
      */
     public void setParentXpath(XPathFilterParameterSpec parentXpath) {
         this.parentXpath = parentXpath;
     }
-    
+
 }

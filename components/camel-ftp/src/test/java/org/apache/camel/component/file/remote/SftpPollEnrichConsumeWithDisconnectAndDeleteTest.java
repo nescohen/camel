@@ -23,9 +23,15 @@ import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.remote.sftp.SftpServerTestSupport;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class SftpPollEnrichConsumeWithDisconnectAndDeleteTest extends SftpServerTestSupport {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SftpPollEnrichConsumeWithDisconnectAndDeleteTest.class);
 
     @Test
     public void testSftpSimpleConsume() throws Exception {
@@ -50,17 +56,25 @@ public class SftpPollEnrichConsumeWithDisconnectAndDeleteTest extends SftpServer
 
         long startFileDeletionCheckTime = System.currentTimeMillis();
         boolean fileExists = true;
-        while (System.currentTimeMillis() - startFileDeletionCheckTime < 3000) {  // wait up to 3000ms for file to be deleted
+        while (System.currentTimeMillis() - startFileDeletionCheckTime < 3000) { // wait
+                                                                                 // up
+                                                                                 // to
+                                                                                 // 3000ms
+                                                                                 // for
+                                                                                 // file
+                                                                                 // to
+                                                                                 // be
+                                                                                 // deleted
             File file = new File(FTP_ROOT_DIR + "/hello.txt");
             fileExists = file.exists();
 
             if (fileExists) {
-                log.info("Will check that file has been deleted again in 200ms");
+                LOG.info("Will check that file has been deleted again in 200ms");
                 Thread.sleep(200);
             }
         }
 
-        assertFalse("The file should have been deleted", fileExists);
+        assertFalse(fileExists, "The file should have been deleted");
     }
 
     @Override
@@ -68,10 +82,8 @@ public class SftpPollEnrichConsumeWithDisconnectAndDeleteTest extends SftpServer
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("vm:trigger")
-                    .pollEnrich("sftp://localhost:" + getPort() + "/" + FTP_ROOT_DIR + "?username=admin&password=admin&delay=10s&disconnect=true&delete=true")
-                    .routeId("foo")
-                    .to("mock:result");
+                from("vm:trigger").pollEnrich("sftp://localhost:" + getPort() + "/" + FTP_ROOT_DIR + "?username=admin&password=admin&delay=10000&disconnect=true&delete=true")
+                    .routeId("foo").to("mock:result");
             }
         };
     }

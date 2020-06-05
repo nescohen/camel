@@ -26,11 +26,11 @@ import org.apache.camel.NamedNode;
 import org.apache.camel.NoFactoryAvailableException;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
+import org.apache.camel.Route;
 import org.apache.camel.processor.SendDynamicProcessor;
 import org.apache.camel.processor.UnitOfWorkProducer;
 import org.apache.camel.spi.FactoryFinder;
 import org.apache.camel.spi.ProcessorFactory;
-import org.apache.camel.spi.RouteContext;
 
 /**
  * Default {@link ProcessorFactory} that supports using 3rd party Camel components to implement the EIP {@link Processor}.
@@ -40,7 +40,7 @@ import org.apache.camel.spi.RouteContext;
  * to the name of the {@link ProcessorFactory} the Camel component implement, which gets called for creating
  * the {@link Processor}s for the EIP.
  * <p/>
- * The Hystrix EIP is such an example where {@link org.apache.camel.model.HystrixDefinition} is implemented
+ * The Hystrix EIP is such an example where the circuit breaker EIP (CircuitBreakerDefinition) is implemented
  * in the <tt>camel-hystrix</tt> component.
  */
 public class DefaultProcessorFactory implements ProcessorFactory {
@@ -48,15 +48,15 @@ public class DefaultProcessorFactory implements ProcessorFactory {
     public static final String RESOURCE_PATH = "META-INF/services/org/apache/camel/model/";
 
     @Override
-    public Processor createChildProcessor(RouteContext routeContext, NamedNode definition, boolean mandatory) throws Exception {
+    public Processor createChildProcessor(Route route, NamedNode definition, boolean mandatory) throws Exception {
         String name = definition.getClass().getSimpleName();
-        FactoryFinder finder = routeContext.getCamelContext().adapt(ExtendedCamelContext.class).getFactoryFinder(RESOURCE_PATH);
+        FactoryFinder finder = route.getCamelContext().adapt(ExtendedCamelContext.class).getFactoryFinder(RESOURCE_PATH);
         try {
             if (finder != null) {
                 Object object = finder.newInstance(name);
                 if (object instanceof ProcessorFactory) {
                     ProcessorFactory pc = (ProcessorFactory) object;
-                    return pc.createChildProcessor(routeContext, definition, mandatory);
+                    return pc.createChildProcessor(route, definition, mandatory);
                 }
             }
         } catch (NoFactoryAvailableException e) {
@@ -67,19 +67,14 @@ public class DefaultProcessorFactory implements ProcessorFactory {
     }
 
     @Override
-    public Processor createProcessor(RouteContext routeContext, NamedNode definition) throws Exception {
+    public Processor createProcessor(Route route, NamedNode definition) throws Exception {
         String name = definition.getClass().getSimpleName();
-        FactoryFinder finder = routeContext.getCamelContext().adapt(ExtendedCamelContext.class).getFactoryFinder(RESOURCE_PATH);
-        try {
-            if (finder != null) {
-                Object object = finder.newInstance(name);
-                if (object instanceof ProcessorFactory) {
-                    ProcessorFactory pc = (ProcessorFactory) object;
-                    return pc.createProcessor(routeContext, definition);
-                }
+        FactoryFinder finder = route.getCamelContext().adapt(ExtendedCamelContext.class).getFactoryFinder(RESOURCE_PATH);
+        if (finder != null) {
+            ProcessorFactory pc = finder.newInstance(name, ProcessorFactory.class).orElse(null);
+            if (pc != null) {
+                return pc.createProcessor(route, definition);
             }
-        } catch (NoFactoryAvailableException e) {
-            // ignore there is no custom factory
         }
 
         return null;
@@ -87,23 +82,22 @@ public class DefaultProcessorFactory implements ProcessorFactory {
 
     @Override
     public Processor createProcessor(CamelContext camelContext, String definitionName, Map<String, Object> args) throws Exception {
-        // currently only SendDynamicProcessor is supported
-        SendDynamicProcessor answer = null;
         if ("SendDynamicProcessor".equals(definitionName)) {
             String uri = (String) args.get("uri");
             Expression expression = (Expression) args.get("expression");
             ExchangePattern exchangePattern = (ExchangePattern) args.get("exchangePattern");
-            answer = new SendDynamicProcessor(uri, expression);
-            answer.setCamelContext(camelContext);
+            SendDynamicProcessor processor = new SendDynamicProcessor(uri, expression);
+            processor.setCamelContext(camelContext);
             if (exchangePattern != null) {
-                answer.setPattern(exchangePattern);
+                processor.setPattern(exchangePattern);
             }
+            return processor;
         } else if ("UnitOfWorkProducer".equals(definitionName)) {
             Producer producer = (Producer) args.get("producer");
             return new UnitOfWorkProducer(producer);
         }
 
-        return answer;
+        return null;
     }
     
 }

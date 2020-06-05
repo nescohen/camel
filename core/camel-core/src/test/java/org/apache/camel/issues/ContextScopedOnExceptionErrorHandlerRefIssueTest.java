@@ -20,7 +20,7 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.DeadLetterChannelBuilder;
 import org.apache.camel.builder.ErrorHandlerBuilderRef;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 /**
@@ -40,10 +40,10 @@ public class ContextScopedOnExceptionErrorHandlerRefIssueTest extends ContextTes
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myDLC", new DeadLetterChannelBuilder("mock:dead"));
-        return  jndi;
+        return jndi;
     }
 
     @Override
@@ -53,14 +53,9 @@ public class ContextScopedOnExceptionErrorHandlerRefIssueTest extends ContextTes
             public void configure() throws Exception {
                 errorHandler(new ErrorHandlerBuilderRef("myDLC"));
 
-                onException(IllegalArgumentException.class)
-                    .handled(true)
-                    .to("mock:handled")
-                    .end();
+                onException(IllegalArgumentException.class).handled(true).to("mock:handled").end();
 
-                from("direct:start")
-                    .to("mock:a")
-                    .throwException(new IllegalArgumentException("Damn"));
+                from("direct:start").to("mock:a").throwException(new IllegalArgumentException("Damn"));
             }
         };
     }

@@ -25,20 +25,23 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.sql.DataSource;
 
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.spi.Synchronization;
 import org.apache.camel.support.DefaultProducer;
 import org.apache.camel.support.PropertyBindingSupport;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 
 public class JdbcProducer extends DefaultProducer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcProducer.class);
 
     private DataSource dataSource;
     private int readSize;
@@ -59,6 +62,7 @@ public class JdbcProducer extends DefaultProducer {
     /**
      * Execute sql of exchange and set results on output
      */
+    @Override
     public void process(Exchange exchange) throws Exception {
         if (getEndpoint().isResetAutoCommit()) {
             processingSqlBySettingAutoCommit(exchange);
@@ -89,7 +93,7 @@ public class JdbcProducer extends DefaultProducer {
                     conn.rollback();
                 }
             } catch (Throwable sqle) {
-                log.warn("Error occurred during jdbc rollback. This exception will be ignored.", sqle);
+                LOG.warn("Error occurred during JDBC rollback. This exception will be ignored.", sqle);
             }
             throw e;
         } finally {
@@ -157,7 +161,7 @@ public class JdbcProducer extends DefaultProducer {
                 getEndpoint().getPrepareStatementStrategy().populateStatement(ps, it, expectedCount);
             }
 
-            log.debug("Executing JDBC PreparedStatement: {}", sql);
+            LOG.debug("Executing JDBC PreparedStatement: {}", sql);
 
             boolean stmtExecutionResult = ps.execute();
             if (stmtExecutionResult) {
@@ -196,7 +200,7 @@ public class JdbcProducer extends DefaultProducer {
                 PropertyBindingSupport.bindProperties(exchange.getContext(), stmt, copy);
             }
 
-            log.debug("Executing JDBC Statement: {}", sql);
+            LOG.debug("Executing JDBC Statement: {}", sql);
 
             Boolean shouldRetrieveGeneratedKeys = exchange.getIn().getHeader(JdbcConstants.JDBC_RETRIEVE_GENERATED_KEYS, false, Boolean.class);
 
@@ -247,7 +251,7 @@ public class JdbcProducer extends DefaultProducer {
                     rs.close();
                 }
             } catch (Throwable sqle) {
-                log.debug("Error by closing result set", sqle);
+                LOG.debug("Error by closing result set", sqle);
             }
         }
     }
@@ -259,7 +263,7 @@ public class JdbcProducer extends DefaultProducer {
                     stmt.close();
                 }
             } catch (Throwable sqle) {
-                log.debug("Error by closing statement", sqle);
+                LOG.debug("Error by closing statement", sqle);
             }
         }
     }
@@ -269,7 +273,7 @@ public class JdbcProducer extends DefaultProducer {
             try {
                 con.setAutoCommit(autoCommit);
             } catch (Throwable sqle) {
-                log.debug("Error by resetting auto commit to its original value", sqle);
+                LOG.debug("Error by resetting auto commit to its original value", sqle);
             }
         }
     }
@@ -281,7 +285,7 @@ public class JdbcProducer extends DefaultProducer {
                     con.close();
                 }
             } catch (Throwable sqle) {
-                log.debug("Error by closing connection", sqle);
+                LOG.debug("Error by closing connection", sqle);
             }
         }
     }
@@ -321,8 +325,8 @@ public class JdbcProducer extends DefaultProducer {
         JdbcOutputType outputType = getEndpoint().getOutputType();
         exchange.getOut().setHeader(JdbcConstants.JDBC_COLUMN_NAMES, iterator.getColumnNames());
         if (outputType == JdbcOutputType.StreamList) {
-            exchange.getOut().setBody(iterator);
-            exchange.addOnCompletion(new ResultSetIteratorCompletion(iterator));
+            exchange.getOut().setBody(new StreamListIterator(getEndpoint().getCamelContext(), getEndpoint().getOutputClass(), getEndpoint().getBeanRowMapper(), iterator));
+            exchange.adapt(ExtendedExchange.class).addOnCompletion(new ResultSetIteratorCompletion(iterator));
             // do not close resources as we are in streaming mode
             answer = false;
         } else if (outputType == JdbcOutputType.SelectList) {
@@ -344,7 +348,7 @@ public class JdbcProducer extends DefaultProducer {
             Map<String, Object> row = iterator.next();
             Object value;
             if (getEndpoint().getOutputClass() != null) {
-                value = newBeanInstance(row);
+                value = JdbcHelper.newBeanInstance(getEndpoint().getCamelContext(), getEndpoint().getOutputClass(), getEndpoint().getBeanRowMapper(), row);
             } else {
                 value = row;
             }
@@ -362,38 +366,12 @@ public class JdbcProducer extends DefaultProducer {
         if (iterator.hasNext()) {
             throw new SQLDataException("Query result not unique for outputType=SelectOne.");
         } else if (getEndpoint().getOutputClass() != null) {
-            return newBeanInstance(row);
+            return JdbcHelper.newBeanInstance(getEndpoint().getCamelContext(), getEndpoint().getOutputClass(), getEndpoint().getBeanRowMapper(), row);
         } else if (row.size() == 1) {
             return row.values().iterator().next();
         } else {
             return row;
         }
-    }
-
-    private Object newBeanInstance(Map<String, Object> row) throws SQLException {
-        Class<?> outputClass = getEndpoint().getCamelContext().getClassResolver().resolveClass(getEndpoint().getOutputClass());
-        Object answer = getEndpoint().getCamelContext().getInjector().newInstance(outputClass);
-
-        Map<String, Object> properties = new LinkedHashMap<>();
-
-        // map row names using the bean row mapper
-        for (Map.Entry<String, Object> entry : row.entrySet()) {
-            Object value = entry.getValue();
-            String name = getEndpoint().getBeanRowMapper().map(entry.getKey(), value);
-            properties.put(name, value);
-        }
-        try {
-            PropertyBindingSupport.bindProperties(getEndpoint().getCamelContext(), answer, properties);
-        } catch (Exception e) {
-            throw new SQLException("Error setting properties on output class " + outputClass, e);
-        }
-
-        // check we could map all properties to the bean
-        if (!properties.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Cannot map all properties to bean of type " + outputClass + ". There are " + properties.size() + " unmapped properties. " + properties);
-        }
-        return answer;
     }
 
     private static final class ResultSetIteratorCompletion implements Synchronization {

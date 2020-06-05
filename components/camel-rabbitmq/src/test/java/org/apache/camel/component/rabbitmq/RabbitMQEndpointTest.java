@@ -34,7 +34,8 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.impl.LongStringHelper;
 import org.apache.camel.Exchange;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
+import org.apache.camel.support.SimpleRegistry;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -44,8 +45,9 @@ public class RabbitMQEndpointTest extends CamelTestSupport {
     private Envelope envelope = Mockito.mock(Envelope.class);
     private AMQP.BasicProperties properties = Mockito.mock(AMQP.BasicProperties.class);
 
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry registry = super.createRegistry();
+    @Override
+    protected Registry createCamelRegistry() throws Exception {
+        SimpleRegistry registry = new SimpleRegistry();
 
         HashMap<String, Object> args = new HashMap<>();
         args.put("foo", "bar");
@@ -117,9 +119,9 @@ public class RabbitMQEndpointTest extends CamelTestSupport {
         customHeaders.put("byteArrayHeader", "foo".getBytes());
         customHeaders.put("longStringHeader", LongStringHelper.asLongString("Some really long string"));
         customHeaders.put("timestampHeader", new Timestamp(4200));
-        customHeaders.put("byteHeader", new Byte((byte)0));
-        customHeaders.put("floatHeader", new Float(42.4242));
-        customHeaders.put("longHeader", new Long(420000000000000000L));
+        customHeaders.put("byteHeader", Byte.valueOf((byte)0));
+        customHeaders.put("floatHeader", Float.valueOf((float)42.4242));
+        customHeaders.put("longHeader", Long.valueOf(420000000000000000L));
         Mockito.when(properties.getHeaders()).thenReturn(customHeaders);
 
         byte[] body = new byte[20];
@@ -136,9 +138,9 @@ public class RabbitMQEndpointTest extends CamelTestSupport {
         assertArrayEquals("foo".getBytes(), (byte[])exchange.getIn().getHeader("byteArrayHeader"));
         assertEquals("Some really long string", exchange.getIn().getHeader("longStringHeader"));
         assertEquals(new Timestamp(4200), exchange.getIn().getHeader("timestampHeader"));
-        assertEquals(new Byte((byte)0), exchange.getIn().getHeader("byteHeader"));
-        assertEquals(new Float(42.4242), exchange.getIn().getHeader("floatHeader"));
-        assertEquals(new Long(420000000000000000L), exchange.getIn().getHeader("longHeader"));
+        assertEquals(Byte.valueOf((byte)0), exchange.getIn().getHeader("byteHeader"));
+        assertEquals(Float.valueOf((float)42.4242), exchange.getIn().getHeader("floatHeader"));
+        assertEquals(Long.valueOf(420000000000000000L), exchange.getIn().getHeader("longHeader"));
         assertEquals(body, exchange.getIn().getBody());
     }
 
@@ -176,9 +178,9 @@ public class RabbitMQEndpointTest extends CamelTestSupport {
     @Test
     public void brokerEndpointAddressesSettings() throws Exception {
         RabbitMQEndpoint endpoint = context.getEndpoint("rabbitmq:localhost/exchange?addresses=server1:12345,server2:12345", RabbitMQEndpoint.class);
-        assertEquals("Wrong size of endpoint addresses.", 2, endpoint.getAddresses().length);
-        assertEquals("Get a wrong endpoint address.", new Address("server1", 12345), endpoint.getAddresses()[0]);
-        assertEquals("Get a wrong endpoint address.", new Address("server2", 12345), endpoint.getAddresses()[1]);
+        assertEquals("Wrong size of endpoint addresses.", 2, endpoint.parseAddresses().length);
+        assertEquals("Get a wrong endpoint address.", new Address("server1", 12345), endpoint.parseAddresses()[0]);
+        assertEquals("Get a wrong endpoint address.", new Address("server2", 12345), endpoint.parseAddresses()[1]);
     }
 
     private ConnectionFactory createConnectionFactory(String uri) throws TimeoutException {

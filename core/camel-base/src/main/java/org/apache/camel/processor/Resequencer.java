@@ -44,23 +44,29 @@ import org.apache.camel.Processor;
 import org.apache.camel.Traceable;
 import org.apache.camel.spi.ExceptionHandler;
 import org.apache.camel.spi.IdAware;
+import org.apache.camel.spi.RouteIdAware;
 import org.apache.camel.support.AsyncProcessorConverterHelper;
 import org.apache.camel.support.AsyncProcessorSupport;
 import org.apache.camel.support.ExpressionComparator;
 import org.apache.camel.support.LoggingExceptionHandler;
 import org.apache.camel.support.service.ServiceHelper;
 import org.apache.camel.util.ObjectHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An implementation of the <a href="http://camel.apache.org/resequencer.html">Resequencer</a>
  * which can reorder messages within a batch.
  */
-public class Resequencer extends AsyncProcessorSupport implements Navigate<Processor>, IdAware, Traceable {
+public class Resequencer extends AsyncProcessorSupport implements Navigate<Processor>, IdAware, RouteIdAware, Traceable {
 
     public static final long DEFAULT_BATCH_TIMEOUT = 1000L;
     public static final int DEFAULT_BATCH_SIZE = 100;
 
+    private static final Logger LOG = LoggerFactory.getLogger(Resequencer.class);
+
     private String id;
+    private String routeId;
     private long batchTimeout = DEFAULT_BATCH_TIMEOUT;
     private int batchSize = DEFAULT_BATCH_SIZE;
     private int outBatchSize;
@@ -105,9 +111,10 @@ public class Resequencer extends AsyncProcessorSupport implements Navigate<Proce
 
     @Override
     public String toString() {
-        return "Resequencer[to: " + getProcessor() + "]";
+        return id;
     }
 
+    @Override
     public String getTraceLabel() {
         return "resequencer";
     }
@@ -142,7 +149,7 @@ public class Resequencer extends AsyncProcessorSupport implements Navigate<Proce
         // setting batch size to 0 or negative is like disabling it, so we set it as the max value
         // as the code logic is dependent on a batch size having 1..n value
         if (batchSize <= 0) {
-            log.debug("Disabling batch size, will only be triggered by timeout");
+            LOG.debug("Disabling batch size, will only be triggered by timeout");
             this.batchSize = Integer.MAX_VALUE;
         } else {
             this.batchSize = batchSize;
@@ -224,6 +231,7 @@ public class Resequencer extends AsyncProcessorSupport implements Navigate<Proce
         return processor;
     }
 
+    @Override
     public List<Processor> next() {
         if (!hasNext()) {
             return null;
@@ -233,16 +241,29 @@ public class Resequencer extends AsyncProcessorSupport implements Navigate<Proce
         return answer;
     }
 
+    @Override
     public boolean hasNext() {
         return processor != null;
     }
 
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public void setId(String id) {
         this.id = id;
+    }
+
+    @Override
+    public String getRouteId() {
+        return routeId;
+    }
+
+    @Override
+    public void setRouteId(String routeId) {
+        this.routeId = routeId;
     }
 
     // Implementation methods
@@ -303,11 +324,13 @@ public class Resequencer extends AsyncProcessorSupport implements Navigate<Proce
         }
     }
 
+    @Override
     protected void doStart() throws Exception {
         ServiceHelper.startService(processor);
         sender.start();
     }
 
+    @Override
     protected void doStop() throws Exception {
         sender.cancel();
         ServiceHelper.stopService(processor);
@@ -317,6 +340,7 @@ public class Resequencer extends AsyncProcessorSupport implements Navigate<Proce
     /**
      * Enqueues an exchange for later batch processing.
      */
+    @Override
     public boolean process(Exchange exchange, AsyncCallback callback) {
         try {
             // if batch consumer is enabled then we need to adjust the batch size
@@ -325,14 +349,14 @@ public class Resequencer extends AsyncProcessorSupport implements Navigate<Proce
                 int size = exchange.getProperty(Exchange.BATCH_SIZE, Integer.class);
                 if (batchSize != size) {
                     batchSize = size;
-                    log.trace("Using batch consumer completion, so setting batch size to: {}", batchSize);
+                    LOG.trace("Using batch consumer completion, so setting batch size to: {}", batchSize);
                 }
             }
 
             // validate that the exchange can be used
             if (!isValid(exchange)) {
                 if (isIgnoreInvalidExchanges()) {
-                    log.debug("Invalid Exchange. This Exchange will be ignored: {}", exchange);
+                    LOG.debug("Invalid Exchange. This Exchange will be ignored: {}", exchange);
                 } else {
                     throw new CamelExchangeException("Exchange is not valid to be used by the BatchProcessor", exchange);
                 }
@@ -358,7 +382,7 @@ public class Resequencer extends AsyncProcessorSupport implements Navigate<Proce
         try {
             result = expression.evaluate(exchange, Object.class);
         } catch (Exception e) {
-            // ignore
+            LOG.debug("Error evaluating expression: " + expression + ". This exception is ignored.", e);
         }
         return result != null;
     }
@@ -408,7 +432,7 @@ public class Resequencer extends AsyncProcessorSupport implements Navigate<Proce
                 do {
                     try {
                         if (!exchangeEnqueued.get()) {
-                            log.trace("Waiting for new exchange to arrive or batchTimeout to occur after {} ms.", batchTimeout);
+                            LOG.trace("Waiting for new exchange to arrive or batchTimeout to occur after {} ms.", batchTimeout);
                             exchangeEnqueuedCondition.await(batchTimeout, TimeUnit.MILLISECONDS);
                         }
 
@@ -420,9 +444,9 @@ public class Resequencer extends AsyncProcessorSupport implements Navigate<Proce
 
                         if (id != null || !exchangeEnqueued.get()) {
                             if (id != null) {
-                                log.trace("Collecting exchanges to be aggregated triggered by completion predicate");
+                                LOG.trace("Collecting exchanges to be aggregated triggered by completion predicate");
                             } else {
-                                log.trace("Collecting exchanges to be aggregated triggered by batch timeout");
+                                LOG.trace("Collecting exchanges to be aggregated triggered by batch timeout");
                             }
                             drainQueueTo(collection, batchSize, id);
                         } else {
@@ -433,7 +457,7 @@ public class Resequencer extends AsyncProcessorSupport implements Navigate<Proce
                                 drainQueueTo(collection, batchSize, id);
                             }
                             if (drained) {
-                                log.trace("Collecting exchanges to be aggregated triggered by new exchanges received");
+                                LOG.trace("Collecting exchanges to be aggregated triggered by new exchanges received");
                             }
 
                             if (!isOutBatchCompleted()) {
@@ -493,14 +517,14 @@ public class Resequencer extends AsyncProcessorSupport implements Navigate<Proce
         }
 
         public void enqueueExchange(Exchange exchange) {
-            log.debug("Received exchange to be batched: {}", exchange);
+            LOG.debug("Received exchange to be batched: {}", exchange);
             queueLock.lock();
             try {
                 // pre test whether the completion predicate matched
                 if (completionPredicate != null) {
                     boolean matches = completionPredicate.matches(exchange);
                     if (matches) {
-                        log.trace("Exchange matched completion predicate: {}", exchange);
+                        LOG.trace("Exchange matched completion predicate: {}", exchange);
                         // add this exchange to the list of exchanges which marks the batch as complete
                         completionPredicateMatched.add(exchange.getExchangeId());
                     }
@@ -518,7 +542,7 @@ public class Resequencer extends AsyncProcessorSupport implements Navigate<Proce
             while (iter.hasNext()) {
                 Exchange exchange = iter.next();
                 iter.remove();
-                log.debug("Sending aggregated exchange: {}", exchange);
+                LOG.debug("Sending aggregated exchange: {}", exchange);
                 processExchange(exchange);
             }
         }

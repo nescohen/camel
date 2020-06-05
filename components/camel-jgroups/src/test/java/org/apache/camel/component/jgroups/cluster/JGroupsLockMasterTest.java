@@ -33,7 +33,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class JGroupsLockMasterTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(JGroupsLockMasterTest.class);
     private static final List<String> CLIENTS = IntStream.range(0, 3).mapToObj(Integer::toString).collect(Collectors.toList());
@@ -77,7 +76,7 @@ public class JGroupsLockMasterTest {
             context.addRoutes(new RouteBuilder() {
                 @Override
                 public void configure() throws Exception {
-                    from("master:jgl:timer:master?delay=1s&period=1s")
+                    from("master:jgl:timer:master?delay=1000&period=1000")
                             .routeId("route-" + id)
                             .log("From ${routeId}")
                             .process(e -> contextLatch.countDown());

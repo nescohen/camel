@@ -15,14 +15,15 @@
  * limitations under the License.
  */
 package org.apache.camel.component.file;
+
 import org.apache.camel.Consumer;
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
 import org.apache.camel.spi.PollingConsumerPollStrategy;
+import org.apache.camel.spi.Registry;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,11 +35,11 @@ public class FileConsumerPollStrategyTest extends ContextTestSupport {
     private static int counter;
     private static String event = "";
 
-    private String fileUrl = "file://target/data/pollstrategy/?consumer.pollStrategy=#myPoll&noop=true&initialDelay=0&delay=10";
+    private String fileUrl = "file://target/data/pollstrategy/?pollStrategy=#myPoll&noop=true&initialDelay=0&delay=10";
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myPoll", new MyPollStrategy());
         return jndi;
     }
@@ -66,6 +67,7 @@ public class FileConsumerPollStrategyTest extends ContextTestSupport {
         assertTrue(event.startsWith("rollbackcommit"));
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {
@@ -76,6 +78,7 @@ public class FileConsumerPollStrategyTest extends ContextTestSupport {
 
     private static class MyPollStrategy implements PollingConsumerPollStrategy {
 
+        @Override
         public boolean begin(Consumer consumer, Endpoint endpoint) {
             if (counter++ == 0) {
                 // simulate an error on first poll
@@ -84,10 +87,12 @@ public class FileConsumerPollStrategyTest extends ContextTestSupport {
             return true;
         }
 
+        @Override
         public void commit(Consumer consumer, Endpoint endpoint, int polledMessages) {
             event += "commit";
         }
 
+        @Override
         public boolean rollback(Consumer consumer, Endpoint endpoint, int retryCounter, Exception cause) throws Exception {
             if (cause.getMessage().equals("Damn I cannot do this")) {
                 event += "rollback";

@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.processor;
+
 import java.util.concurrent.TimeUnit;
 
 import org.apache.camel.ContextTestSupport;
@@ -22,7 +23,7 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,8 +37,8 @@ public class WireTapBeanAsProcessorTest extends ContextTestSupport {
     private MockEndpoint result;
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("tap", myBean);
         return jndi;
     }
@@ -64,14 +65,11 @@ public class WireTapBeanAsProcessorTest extends ContextTestSupport {
         result = getMockEndpoint("mock:result");
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
-                from("direct:start")
-                    .to("log:foo")
-                    .wireTap("bean:tap")
-                    .transform(body().prepend("Bye "))
-                    .to("mock:result");
+                from("direct:start").to("log:foo").wireTap("bean:tap").transform(body().prepend("Bye ")).to("mock:result");
             }
         };
     }

@@ -1,13 +1,18 @@
 [[xpath-language]]
-== XPath Language
+= XPath Language
+:docTitle: XPath
+:artifactId: camel-xpath
+:description: Evaluate an XPath expression against an XML payload.
+:since: 1.1
+:supportLevel: Stable
 
-*Available as of Camel version 1.1*
+*Since Camel {since}*
 
 Camel supports http://www.w3.org/TR/xpath[XPath] to allow an
 Expression or Predicate to be
-used in the DSL or xref:xml-configuration.adoc[Xml
+used in the DSL or xref:manual::xml-configuration.adoc[Xml
 Configuration]. For example you could use XPath to create an
-Predicate in a xref:message-filter.adoc[Message
+Predicate in a xref:{eip-vc}:eips:filter-eip.adoc[Message
 Filter] or as an Expression for a
 Recipient List.
 
@@ -16,7 +21,7 @@ Recipient List.
 If the message body is stream based, which means the input it receives
 is submitted to Camel as a stream. That means you will only be able to
 read the content of the stream *once*. So often when you use
-xref:xpath-language,XPath>> as <<xpath-language.adoc[Message Filter] or
+xref:xpath-language.adoc[XPath] as xref:xpath-language.adoc[Message Filter] or
 Content Based Router then you need to
 access the data multiple times, and you should use
 Stream Caching or convert the message body to
@@ -36,7 +41,7 @@ from("queue:foo").
   otherwise().to("queue:others");
 ----
 
-=== XPath Language options
+== XPath Language options
 
 // language options: START
 The XPath language supports 9 options, which are listed below.
@@ -58,12 +63,13 @@ The XPath language supports 9 options, which are listed below.
 |===
 // language options: END
 
-=== Namespaces
+
+== Namespaces
 
 You can easily use namespaces with XPath expressions using the
 Namespaces helper class.
 
-=== Variables
+== Variables
 
 Variables in XPath is defined in different namespaces. The default
 namespace is `\http://camel.apache.org/schema/spring`.
@@ -90,14 +96,14 @@ Camel will resolve variables according to either:
 * namespace given
 * no namespace given
 
-==== Namespace given
+=== Namespace given
 
 If the namespace is given then Camel is instructed exactly what to
 return. However when resolving either *in* or *out* Camel will try to
 resolve a header with the given local part first, and return it. If the
 local part has the value *body* then the body is returned instead.
 
-==== No namespace given
+=== No namespace given
 
 If there is no namespace given then Camel resolves only based on the
 local part. Camel will try to resolve a variable in the following steps:
@@ -107,7 +113,7 @@ fluent builder
 * from message.in.header if there is a header with the given key
 * from exchange.properties if there is a property with the given key
 
-=== Functions
+== Functions
 
 Camel adds the following XPath functions that can be used to access the
 exchange:
@@ -125,7 +131,7 @@ exchange:
 |out:header |the header name |Object |Will return the *out* message header.
 
 |function:properties |key for property |String |To lookup a property using the
-xref:properties-component.adoc[Properties] component (property placeholders).
+xref:ROOT:properties-component.adoc[Properties] component (property placeholders).
 
 |function:simple |simple expression |Object |To evaluate a xref:simple-language.adoc[Simple] expression.
 |===
@@ -136,7 +142,7 @@ Splitter EIP.
 
 Here's an example showing some of these functions in use.
 
-=== Using XML configuration
+== Using XML configuration
 
 If you prefer to configure your routes in your Spring
 XML file then you can use XPath expressions as follows
@@ -168,7 +174,7 @@ See also this
 http://camel.465427.n5.nabble.com/fail-filter-XPATH-camel-td476424.html[discussion
 on the mailinglist] about using your own namespaces with xpath
 
-=== Setting result type
+== Setting result type
 
 The xref:xpath-language.adoc[XPath] expression will return a result type using
 native XML objects such as `org.w3c.dom.NodeList`. But many times you
@@ -191,7 +197,7 @@ qualified classname:
 ----
 
 In @XPath: +
- *Available as of Camel 2.1*
+ *Since Camel 2.1*
 
 [source,java]
 ----
@@ -202,9 +208,9 @@ Where we use the xpath function concat to prefix the order name with
 `foo-`. In this case we have to specify that we want a String as result
 type so the concat function works.
 
-=== Using XPath on Headers
+== Using XPath on Headers
 
-*Available as of Camel 2.11*
+*Since Camel 2.11*
 
 Some users may have XML stored in a header. To apply an XPath to a
 header's value you can do this by defining the 'headerName' attribute.
@@ -217,7 +223,7 @@ shown:
   xpath("/invoice/@orderType = 'premium'", "invoiceDetails")
 ----
 
-=== Examples
+== Examples
 
 Here is a simple
 https://github.com/apache/camel/blob/master/camel-core/src/test/java/org/apache/camel/processor/XPathFilterTest.java[example]
@@ -238,7 +244,7 @@ which values is *Kong*. +
 
 And the spring XML equivalent of the route:
 
-=== XPath injection
+== XPath injection
 
 You can use Bean Integration to invoke a
 method on a bean and use various languages such as XPath to extract a
@@ -247,7 +253,7 @@ value from the message and bind it to a method parameter.
 The default XPath annotation has SOAP and XML namespaces available. If
 you want to use your own namespace URIs in an XPath expression you can
 use your own copy of the
-http://camel.apache.org/maven/current/camel-core/apidocs/org/apache/camel/language/XPath.html[XPath
+https://www.javadoc.io/doc/org.apache.camel/camel-xpath/current/org/apache/camel/language/xpath/XPath.html[XPath
 annotation] to create whatever namespace prefixes you want to use.
 
 i.e. cut and paste upper code to your own project in a different package
@@ -269,9 +275,9 @@ public class Foo {
 }
 ----
 
-=== Using XPathBuilder without an Exchange
+== Using XPathBuilder without an Exchange
 
-*Available as of Camel 2.3*
+*Since Camel 2.3*
 
 You can now use the `org.apache.camel.builder.XPathBuilder` without the
 need for an Exchange. This comes handy if you want
@@ -309,9 +315,9 @@ do it a bit simpler:
 String name = XPathBuilder.xpath("foo/bar").evaluate(context, "<foo><bar>cheese</bar></foo>");
 ----
 
-=== Using Saxon with XPathBuilder
+== Using Saxon with XPathBuilder
 
-*Available as of Camel 2.3*
+*Since Camel 2.3*
 
 You need to add *camel-saxon* as dependency to your project.
 
@@ -324,9 +330,9 @@ XPathBuilder which can be done in several ways as shown below. +
 
 The easy one
 
-=== Setting a custom XPathFactory using System Property
+== Setting a custom XPathFactory using System Property
 
-*Available as of Camel 2.3*
+*Since Camel 2.3*
 
 Camel now supports reading the
 http://java.sun.com/j2se/1.5.0/docs/api/javax/xml/xpath/XPathFactory.html#newInstance(java.lang.String)[JVM
@@ -351,9 +357,9 @@ To use Apache Xerces you can configure the system property
 -Djavax.xml.xpath.XPathFactory=org.apache.xpath.jaxp.XPathFactoryImpl
 ----
 
-=== Enabling Saxon from Spring DSL
+== Enabling Saxon from Spring DSL
 
-*Available as of Camel 2.10*
+*Since Camel 2.10*
 
 Similarly to Java DSL, to enable Saxon from Spring DSL you have three
 options:
@@ -379,9 +385,9 @@ Shortcut
 <xpath saxon="true" resultType="java.lang.String">current-dateTime()</xpath>
 ----
 
-=== Namespace auditing to aid debugging
+== Namespace auditing to aid debugging
 
-*Available as of Camel 2.10*
+*Since Camel 2.10*
 
 A large number of XPath-related issues that users frequently face are
 linked to the usage of namespaces. You may have some misalignment
@@ -423,7 +429,7 @@ logger such as `org.apache.camel` or the root logger
 xref:xpath-language.adoc[Auditing Namespaces], in which case the logging will
 occur on the INFO level
 
-=== Auditing namespaces
+== Auditing namespaces
 
 Camel is able to discover and dump all namespaces present on every
 incoming message before evaluating an XPath expression, providing all
@@ -473,9 +479,9 @@ the following:
 xmlns:b=[http://apache.org/camelA, http://apache.org/camelB]}
 ----
 
-=== Loading script from external resource
+== Loading script from external resource
 
-*Available as of Camel 2.11*
+*Since Camel 2.11*
 
 You can externalize the script and have Camel load it from a resource
 such as `"classpath:"`, `"file:"`, or `"http:"`. +
@@ -487,6 +493,8 @@ eg to refer to a file on the classpath you can do:
 .setHeader("myHeader").xpath("resource:classpath:myxpath.txt", String.class)
 ----
 
-=== Dependencies
+== Dependencies
 
 The XPath language is part of camel-core.
+
+include::camel-spring-boot::page$xpath-starter.adoc[]

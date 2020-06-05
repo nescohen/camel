@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import com.github.brainlag.nsq.NSQConfig;
 import io.netty.handler.ssl.JdkSslContext;
 import io.netty.handler.ssl.SslContext;
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
@@ -33,9 +34,9 @@ import org.apache.camel.support.DefaultEndpoint;
 import org.apache.camel.util.ObjectHelper;
 
 /**
- * Represents a nsq endpoint.
+ * Send and receive messages from NSQ realtime distributed messaging platform.
  */
-@UriEndpoint(firstVersion = "2.23.0", scheme = "nsq", title = "NSQ", syntax = "nsq:servers", label = "messaging")
+@UriEndpoint(firstVersion = "2.23.0", scheme = "nsq", title = "NSQ", syntax = "nsq:topic", category = {Category.MESSAGING})
 public class NsqEndpoint extends DefaultEndpoint {
 
     @UriParam
@@ -46,30 +47,38 @@ public class NsqEndpoint extends DefaultEndpoint {
         this.configuration = configuration;
     }
 
+    @Override
     public Producer createProducer() throws Exception {
         return new NsqProducer(this);
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         if (ObjectHelper.isEmpty(configuration.getTopic())) {
             throw new RuntimeCamelException("Missing required endpoint configuration: topic must be defined for NSQ consumer");
         }
-        return new NsqConsumer(this, processor);
+        Consumer consumer = new NsqConsumer(this, processor);
+        configureConsumer(consumer);
+        return consumer;
     }
 
     public ExecutorService createExecutor() {
         return getCamelContext().getExecutorServiceManager().newFixedThreadPool(this, "NsqTopic[" + configuration.getTopic() + "]", configuration.getPoolSize());
     }
 
-    public NsqConfiguration getNsqConfiguration() {
+    public void setConfiguration(NsqConfiguration configuration) {
+        this.configuration = configuration;
+    }
+
+    public NsqConfiguration getConfiguration() {
         return configuration;
     }
 
     public NSQConfig getNsqConfig() throws GeneralSecurityException, IOException {
         NSQConfig nsqConfig = new NSQConfig();
 
-        if (getNsqConfiguration().getSslContextParameters() != null && getNsqConfiguration().isSecure()) {
-            SslContext sslContext = new JdkSslContext(getNsqConfiguration().getSslContextParameters().createSSLContext(getCamelContext()), true, null);
+        if (getConfiguration().getSslContextParameters() != null && getConfiguration().isSecure()) {
+            SslContext sslContext = new JdkSslContext(getConfiguration().getSslContextParameters().createSSLContext(getCamelContext()), true, null);
             nsqConfig.setSslContext(sslContext);
         }
 

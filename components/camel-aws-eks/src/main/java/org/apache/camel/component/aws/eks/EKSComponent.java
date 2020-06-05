@@ -20,13 +20,11 @@ import java.util.Map;
 import java.util.Set;
 
 import com.amazonaws.services.eks.AmazonEKS;
-
 import org.apache.camel.CamelContext;
 import org.apache.camel.Endpoint;
 import org.apache.camel.spi.Metadata;
 import org.apache.camel.spi.annotations.Component;
 import org.apache.camel.support.DefaultComponent;
-import org.apache.camel.util.ObjectHelper;
 
 /**
  * For working with Amazon EKS.
@@ -34,14 +32,8 @@ import org.apache.camel.util.ObjectHelper;
 @Component("aws-eks")
 public class EKSComponent extends DefaultComponent {
 
-    @Metadata
-    private String accessKey;
-    @Metadata
-    private String secretKey;
-    @Metadata
-    private String region;
-    @Metadata(label = "advanced")    
-    private EKSConfiguration configuration;
+    @Metadata 
+    private EKSConfiguration configuration = new EKSConfiguration();
     
     public EKSComponent() {
         this(null);
@@ -50,30 +42,19 @@ public class EKSComponent extends DefaultComponent {
     public EKSComponent(CamelContext context) {
         super(context);
         
-        this.configuration = new EKSConfiguration();
         registerExtension(new EKSComponentVerifierExtension());
     }
 
     @Override
     protected Endpoint createEndpoint(String uri, String remaining, Map<String, Object> parameters) throws Exception {
-        EKSConfiguration configuration = this.configuration.copy();
-        setProperties(configuration, parameters);
-
-        if (ObjectHelper.isEmpty(configuration.getAccessKey())) {
-            setAccessKey(accessKey);
-        }
-        if (ObjectHelper.isEmpty(configuration.getSecretKey())) {
-            setSecretKey(secretKey);
-        }
-        if (ObjectHelper.isEmpty(configuration.getRegion())) {
-            setRegion(region);
-        }
+        EKSConfiguration configuration =  this.configuration != null ? this.configuration.copy() : new EKSConfiguration();
+        EKSEndpoint endpoint = new EKSEndpoint(uri, this, configuration);
+        setProperties(endpoint, parameters);
         checkAndSetRegistryClient(configuration);
         if (configuration.getEksClient() == null && (configuration.getAccessKey() == null || configuration.getSecretKey() == null)) {
             throw new IllegalArgumentException("Amazon eks client or accessKey and secretKey must be specified");
         }
         
-        EKSEndpoint endpoint = new EKSEndpoint(uri, this, configuration);
         return endpoint;
     }
     
@@ -82,43 +63,10 @@ public class EKSComponent extends DefaultComponent {
     }
 
     /**
-     * The AWS EKS default configuration
+     * The component configuration
      */
     public void setConfiguration(EKSConfiguration configuration) {
         this.configuration = configuration;
-    }
-
-    public String getAccessKey() {
-        return configuration.getAccessKey();
-    }
-
-    /**
-     * Amazon AWS Access Key
-     */
-    public void setAccessKey(String accessKey) {
-        configuration.setAccessKey(accessKey);
-    }
-
-    public String getSecretKey() {
-        return configuration.getSecretKey();
-    }
-
-    /**
-     * Amazon AWS Secret Key
-     */
-    public void setSecretKey(String secretKey) {
-        configuration.setSecretKey(secretKey);
-    }
-    
-    public String getRegion() {
-        return configuration.getRegion();
-    }
-
-    /**
-     * The region in which EKS client needs to work
-     */
-    public void setRegion(String region) {
-        configuration.setRegion(region);
     }
 
     private void checkAndSetRegistryClient(EKSConfiguration configuration) {

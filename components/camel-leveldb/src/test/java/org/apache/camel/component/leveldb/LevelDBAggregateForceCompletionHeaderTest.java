@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.component.leveldb;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,7 +55,7 @@ public class LevelDBAggregateForceCompletionHeaderTest extends CamelTestSupport 
         getMockEndpoint("mock:aggregated").expectedPropertyReceived(Exchange.AGGREGATED_COMPLETED_BY, "force");
 
         //now send the signal message to trigger completion of all groups, message should NOT be aggregated
-        template.sendBodyAndHeader("direct:start", "test5", Exchange.AGGREGATION_COMPLETE_ALL_GROUPS, true);
+        template.sendBodyAndProperty("direct:start", "test5", Exchange.AGGREGATION_COMPLETE_ALL_GROUPS, true);
 
         assertMockEndpointsSatisfied();
     }
@@ -104,6 +105,7 @@ public class LevelDBAggregateForceCompletionHeaderTest extends CamelTestSupport 
 
     public static class MyAggregationStrategy implements AggregationStrategy {
 
+        @Override
         public Exchange aggregate(Exchange oldExchange, Exchange newExchange) {
             if (oldExchange == null) {
                 return newExchange;

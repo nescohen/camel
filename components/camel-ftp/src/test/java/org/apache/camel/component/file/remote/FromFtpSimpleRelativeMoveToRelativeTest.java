@@ -19,18 +19,17 @@ package org.apache.camel.component.file.remote;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class FromFtpSimpleRelativeMoveToRelativeTest extends FtpServerTestSupport {
 
     protected String getFtpUrl() {
-        return "ftp://admin@localhost:" + getPort() + "/movefile?password=admin&recursive=true&binary=false"
-                + "&move=.done&initialDelay=2500&delay=5000";
+        return "ftp://admin@localhost:" + getPort() + "/movefile?password=admin&recursive=true&binary=false" + "&move=.done&initialDelay=2500&delay=5000";
     }
 
     @Override
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         prepareFtpServer();
@@ -52,7 +51,8 @@ public class FromFtpSimpleRelativeMoveToRelativeTest extends FtpServerTestSuppor
         template.sendBodyAndHeader(getFtpUrl(), "Bye", Exchange.FILE_NAME, "sub/bye.txt");
         template.sendBodyAndHeader(getFtpUrl(), "Goodday", Exchange.FILE_NAME, "sub/sub2/goodday.txt");
     }
-    
+
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {

@@ -21,10 +21,12 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import org.apache.camel.ContextTestSupport;
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.converter.jaxp.XmlConverter;
-import org.apache.camel.model.ModelHelper;
 import org.junit.Test;
+
+import static org.apache.camel.builder.Builder.language;
 
 /**
  *
@@ -33,7 +35,8 @@ public class DumpModelAsXmlTransformRouteLanguageTest extends ContextTestSupport
 
     @Test
     public void testDumpModelAsXml() throws Exception {
-        String xml = ModelHelper.dumpModelAsXml(context, context.getRouteDefinition("myRoute"));
+        ExtendedCamelContext ecc = context.adapt(ExtendedCamelContext.class);
+        String xml = ecc.getModelToXMLDumper().dumpModelAsXml(context, context.getRouteDefinition("myRoute"));
         assertNotNull(xml);
         log.info(xml);
 
@@ -59,9 +62,7 @@ public class DumpModelAsXmlTransformRouteLanguageTest extends ContextTestSupport
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start").routeId("myRoute")
-                   .transform(language("constant", "Hello World"))
-                   .to("mock:result").id("myMock");
+                from("direct:start").routeId("myRoute").transform(language("constant", "Hello World")).to("mock:result").id("myMock");
             }
         };
     }

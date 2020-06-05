@@ -59,10 +59,10 @@ public class VelocityTemplateInHeaderTest extends CamelTestSupport {
         });
         assertOutMessageBodyEquals(response, expectedBody);
 
-        Object template = response.getOut().getHeader(VelocityConstants.VELOCITY_TEMPLATE);
+        Object template = response.getMessage().getHeader(VelocityConstants.VELOCITY_TEMPLATE);
         assertNull("Template header should have been removed", template);
 
-        Set<Entry<String, Object>> entrySet = response.getOut().getHeaders().entrySet();
+        Set<Entry<String, Object>> entrySet = response.getMessage().getHeaders().entrySet();
         boolean keyFound = false;
         for (Entry<String, Object> entry : entrySet) {
             if (entry.getKey().equals(headerName)) {
@@ -72,9 +72,13 @@ public class VelocityTemplateInHeaderTest extends CamelTestSupport {
         assertTrue("Header should been found", keyFound);
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
+                VelocityComponent vc = context.getComponent("velocity", VelocityComponent.class);
+                vc.setAllowTemplateFromHeader(true);
+
                 from("direct:a").to("velocity://dummy");
             }
         };

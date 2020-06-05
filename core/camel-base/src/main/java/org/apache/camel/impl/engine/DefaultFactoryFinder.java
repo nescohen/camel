@@ -19,19 +19,16 @@ package org.apache.camel.impl.engine;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
-import org.apache.camel.NoFactoryAvailableException;
+import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.spi.ClassResolver;
 import org.apache.camel.spi.FactoryFinder;
-import org.apache.camel.spi.Injector;
-import org.apache.camel.util.CastUtils;
+import org.apache.camel.support.ObjectHelper;
 import org.apache.camel.util.IOHelper;
 
 /**
@@ -40,6 +37,8 @@ import org.apache.camel.util.IOHelper;
 public class DefaultFactoryFinder implements FactoryFinder {
 
     private final ConcurrentMap<String, Class<?>> classMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Boolean> classesNotFound = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Exception> classesNotFoundExceptions = new ConcurrentHashMap<>();
     private final ClassResolver classResolver;
     private final String path;
 
@@ -54,87 +53,61 @@ public class DefaultFactoryFinder implements FactoryFinder {
     }
 
     @Override
-    public Object newInstance(String key) throws NoFactoryAvailableException {
-        try {
-            return newInstance(key, null);
-        } catch (Exception e) {
-            throw new NoFactoryAvailableException(key, e);
-        }
+    public Optional<Object> newInstance(String key) {
+        return Optional.ofNullable(doNewInstance(key));
     }
 
     @Override
-    public <T> List<T> newInstances(String key, Injector injector, Class<T> type) throws ClassNotFoundException, IOException {
-        List<Class<T>> list = CastUtils.cast(findClasses(key));
-        List<T> answer = new ArrayList<>(list.size());
-        answer.add(newInstance(key, injector, type));
-        return answer;
+    public <T> Optional<T> newInstance(String key, Class<T> type) {
+        Object obj = doNewInstance(key);
+        return Optional.ofNullable(type.cast(obj));
     }
 
     @Override
-    public Class<?> findClass(String key) throws ClassNotFoundException, IOException {
-        return findClass(key, null);
-    }
+    public Optional<Class<?>> findClass(String key) {
+        final String classKey = key;
 
-    @Override
-    public Class<?> findClass(String key, String propertyPrefix) throws ClassNotFoundException, IOException {
-        final String prefix = propertyPrefix != null ? propertyPrefix : "";
-        final String classKey = prefix + key;
-
-        return addToClassMap(classKey, new ClassSupplier() {
-            @Override
-            public Class<?> get() throws ClassNotFoundException, IOException {
-                return DefaultFactoryFinder.this.newInstance(DefaultFactoryFinder.this.doFindFactoryProperties(key), prefix);
+        Class<?> clazz = addToClassMap(classKey, () -> {
+            Properties prop = doFindFactoryProperties(key);
+            if (prop != null) {
+                return doNewInstance(prop, true).orElse(null);
+            } else {
+                return null;
             }
         });
+        return Optional.ofNullable(clazz);
     }
 
     @Override
-    public Class<?> findClass(String key, String propertyPrefix, Class<?> clazz) throws ClassNotFoundException, IOException {
-        // Just ignore clazz which is only useful for OSGiFactoryFinder
-        return findClass(key, propertyPrefix);
+    public Optional<Class<?>> findOptionalClass(String key) {
+        final String classKey = key;
+
+        Class<?> clazz = addToClassMap(classKey, () -> {
+            Properties prop = doFindFactoryProperties(key);
+            if (prop != null) {
+                return doNewInstance(prop, false).orElse(null);
+            } else {
+                return null;
+            }
+        });
+        return Optional.ofNullable(clazz);
     }
 
-    private Object newInstance(String key, String propertyPrefix) throws Exception {
-        Class<?> clazz = findClass(key, propertyPrefix);
-        return clazz.getDeclaredConstructor().newInstance();
+    private Object doNewInstance(String key) {
+        Optional<Class<?>> clazz = findClass(key);
+        return clazz.map(ObjectHelper::newInstance).orElse(null);
     }
 
-    private <T> T newInstance(String key, Injector injector, Class<T> expectedType) throws IOException,
-        ClassNotFoundException {
-        return newInstance(key, injector, null, expectedType);
-    }
-
-    private <T> T newInstance(String key, Injector injector, String propertyPrefix, Class<T> expectedType)
-        throws IOException, ClassNotFoundException {
-        Class<?> type = findClass(key, propertyPrefix);
-        Object value = injector.newInstance(type, false);
-        if (expectedType.isInstance(value)) {
-            return expectedType.cast(value);
-        } else {
-            throw new ClassCastException("Not instanceof " + expectedType.getName() + " value: " + value);
-        }
-    }
-
-    private List<Class<?>> findClasses(String key) throws ClassNotFoundException, IOException {
-        return findClasses(key, null);
-    }
-
-    private List<Class<?>> findClasses(String key, String propertyPrefix) throws ClassNotFoundException, IOException {
-        Class<?> type = findClass(key, propertyPrefix);
-        return Collections.<Class<?>>singletonList(type);
-    }
-
-    private Class<?> newInstance(Properties properties, String propertyPrefix) throws ClassNotFoundException, IOException {
-        String className = properties.getProperty(propertyPrefix + "class");
-        if (className == null) {
-            throw new IOException("Expected property is missing: " + propertyPrefix + "class");
+    private Optional<Class<?>> doNewInstance(Properties properties, boolean mandatory) throws IOException {
+        String className = properties.getProperty("class");
+        if (className == null && mandatory) {
+            throw new IOException("Expected property is missing: class");
+        } else if (className == null) {
+            return Optional.empty();
         }
 
         Class<?> clazz = classResolver.resolveClass(className);
-        if (clazz == null) {
-            throw new ClassNotFoundException(className);
-        }
-        return clazz;
+        return Optional.ofNullable(clazz);
     }
 
     private Properties doFindFactoryProperties(String key) throws IOException {
@@ -142,7 +115,7 @@ public class DefaultFactoryFinder implements FactoryFinder {
 
         InputStream in = classResolver.loadResourceAsStream(uri);
         if (in == null) {
-            throw new NoFactoryAvailableException(uri);
+            return null;
         }
 
         // lets load the file
@@ -163,43 +136,39 @@ public class DefaultFactoryFinder implements FactoryFinder {
      * is wrapped by a runtime exception (WrappedRuntimeException) which we catch
      * later on with the only purpose to re-throw the original exception.
      */
-    protected Class<?> addToClassMap(String key, ClassSupplier mappingFunction) throws ClassNotFoundException, IOException {
-        try {
-            return classMap.computeIfAbsent(key, new Function<String, Class<?>>() {
-                @Override
-                public Class<?> apply(String classKey) {
-                    try {
-                        return mappingFunction.get();
-                    } catch (ClassNotFoundException e) {
-                        throw new WrappedRuntimeException(e);
-                    } catch (NoFactoryAvailableException e) {
-                        throw new WrappedRuntimeException(e);
-                    } catch (IOException e) {
-                        throw new WrappedRuntimeException(e);
-                    }
-                }
-            });
-        } catch (WrappedRuntimeException e) {
-            if (e.getCause() instanceof ClassNotFoundException) {
-                throw (ClassNotFoundException)e.getCause();
-            } else if (e.getCause() instanceof NoFactoryAvailableException) {
-                throw (NoFactoryAvailableException)e.getCause();
-            } else if (e.getCause() instanceof IOException) {
-                throw (IOException)e.getCause();
+    protected Class<?> addToClassMap(String key, ClassSupplier mappingFunction) {
+        if (classesNotFound.containsKey(key) || classesNotFoundExceptions.containsKey(key)) {
+            Exception e = classesNotFoundExceptions.get(key);
+            if (e == null) {
+                return null;
             } else {
-                throw new RuntimeException(e.getCause());
+                throw RuntimeCamelException.wrapRuntimeException(e);
             }
         }
+
+        Class<?> suppliedClass = classMap.computeIfAbsent(key, new Function<String, Class<?>>() {
+            @Override
+            public Class<?> apply(String classKey) {
+                try {
+                    return mappingFunction.get();
+                } catch (Exception e) {
+                    classesNotFoundExceptions.put(key, e);
+                    throw RuntimeCamelException.wrapRuntimeException(e);
+                }
+            }
+        });
+
+        if (suppliedClass == null) {
+            // mark the key as non-resolvable to prevent pointless searching
+            classesNotFound.put(key, Boolean.TRUE);
+        }
+
+        return suppliedClass;
     }
 
     @FunctionalInterface
     protected interface ClassSupplier {
-        Class<?> get() throws ClassNotFoundException, IOException;
+        Class<?> get() throws Exception;
     }
 
-    private final class WrappedRuntimeException extends RuntimeException {
-        WrappedRuntimeException(Exception e) {
-            super(e);
-        }
-    }
 }

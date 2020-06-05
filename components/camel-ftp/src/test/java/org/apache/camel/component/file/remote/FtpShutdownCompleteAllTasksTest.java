@@ -20,8 +20,10 @@ import org.apache.camel.Exchange;
 import org.apache.camel.ShutdownRunningTask;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Unit test to verify shutdown.
@@ -33,14 +35,15 @@ public class FtpShutdownCompleteAllTasksTest extends FtpServerTestSupport {
     }
 
     @Override
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         prepareFtpServer();
     }
 
     private void prepareFtpServer() throws Exception {
-        // prepares the FTP Server by creating files on the server that we want to unit
+        // prepares the FTP Server by creating files on the server that we want
+        // to unit
         String ftpUrl = "ftp://admin@localhost:" + getPort() + "/pending/?password=admin";
         template.sendBodyAndHeader(ftpUrl, "A", Exchange.FILE_NAME, "a.txt");
         template.sendBodyAndHeader(ftpUrl, "B", Exchange.FILE_NAME, "b.txt");
@@ -63,7 +66,7 @@ public class FtpShutdownCompleteAllTasksTest extends FtpServerTestSupport {
         context.stop();
 
         // should route all 5
-        assertEquals("Should complete all messages", 5, bar.getReceivedCounter());
+        assertEquals(5, bar.getReceivedCounter(), "Should complete all messages");
     }
 
     @Override
@@ -73,8 +76,7 @@ public class FtpShutdownCompleteAllTasksTest extends FtpServerTestSupport {
             public void configure() throws Exception {
                 from(getFtpUrl()).routeId("route1")
                     // let it complete all tasks during shutdown
-                    .shutdownRunningTask(ShutdownRunningTask.CompleteAllTasks)
-                    .delay(1000).to("seda:foo");
+                    .shutdownRunningTask(ShutdownRunningTask.CompleteAllTasks).delay(1000).to("seda:foo");
 
                 from("seda:foo").routeId("route2").to("mock:bar");
             }

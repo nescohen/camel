@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.impl;
+
 import java.net.URL;
 import java.util.List;
 
@@ -29,6 +30,7 @@ import org.apache.camel.component.rest.DummyRestConsumerFactory;
 import org.apache.camel.component.rest.DummyRestProcessorFactory;
 import org.apache.camel.model.RouteDefinition;
 import org.apache.camel.model.rest.RestDefinition;
+import org.apache.camel.spi.Registry;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,18 +39,18 @@ public class CamelContextAddRestDefinitionsFromXmlTest extends ContextTestSuppor
     protected JAXBContext jaxbContext;
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
-        jndi.bind("dummy-rest", new DummyRestConsumerFactory());
-        jndi.bind("dummy-rest-api", new DummyRestProcessorFactory());
-        return jndi;
+    protected Registry createRegistry() throws Exception {
+        Registry registry = super.createRegistry();
+        registry.bind("dummy-rest", new DummyRestConsumerFactory());
+        registry.bind("dummy-rest-api", new DummyRestProcessorFactory());
+        return registry;
     }
 
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        jaxbContext = context.adapt(ExtendedCamelContext.class).getModelJAXBContextFactory().newJAXBContext();
+        jaxbContext = (JAXBContext) context.adapt(ExtendedCamelContext.class).getModelJAXBContextFactory().newJAXBContext();
     }
 
     protected Object parseUri(String uri) throws JAXBException {

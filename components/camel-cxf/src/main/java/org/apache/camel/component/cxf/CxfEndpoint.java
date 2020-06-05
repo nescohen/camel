@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import javax.net.ssl.HostnameVerifier;
 import javax.wsdl.Definition;
 import javax.wsdl.WSDLException;
@@ -48,6 +49,7 @@ import org.w3c.dom.Node;
 import org.apache.camel.AsyncEndpoint;
 import org.apache.camel.CamelContext;
 import org.apache.camel.CamelException;
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Exchange;
 import org.apache.camel.ExchangePattern;
@@ -60,14 +62,14 @@ import org.apache.camel.component.cxf.common.message.CxfConstants;
 import org.apache.camel.component.cxf.feature.CXFMessageDataFormatFeature;
 import org.apache.camel.component.cxf.feature.PayLoadDataFormatFeature;
 import org.apache.camel.component.cxf.feature.RAWDataFormatFeature;
-import org.apache.camel.http.common.cookie.CookieHandler;
+import org.apache.camel.http.base.cookie.CookieHandler;
 import org.apache.camel.spi.HeaderFilterStrategy;
 import org.apache.camel.spi.HeaderFilterStrategyAware;
 import org.apache.camel.spi.UriEndpoint;
 import org.apache.camel.spi.UriParam;
 import org.apache.camel.spi.UriPath;
 import org.apache.camel.support.DefaultEndpoint;
-import org.apache.camel.support.EndpointHelper;
+import org.apache.camel.support.PropertyBindingSupport;
 import org.apache.camel.support.SynchronousDelegateProducer;
 import org.apache.camel.support.jsse.SSLContextParameters;
 import org.apache.camel.util.CastUtils;
@@ -112,12 +114,16 @@ import org.apache.cxf.service.model.MessagePartInfo;
 import org.apache.cxf.staxutils.StaxSource;
 import org.apache.cxf.staxutils.StaxUtils;
 import org.apache.cxf.wsdl.WSDLManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * The cxf component is used for SOAP WebServices using Apache CXF.
+ * Expose SOAP WebServices using Apache CXF or connect to external WebServices using CXF WS client.
  */
-@UriEndpoint(firstVersion = "1.0.0", scheme = "cxf", title = "CXF", syntax = "cxf:beanId:address", label = "soap,webservice")
+@UriEndpoint(firstVersion = "1.0.0", scheme = "cxf", title = "CXF", syntax = "cxf:beanId:address", category = {Category.SOAP, Category.WEBSERVICE})
 public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, HeaderFilterStrategyAware, Service, Cloneable {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CxfEndpoint.class);
 
     @UriParam(label = "advanced")
     protected Bus bus;
@@ -147,12 +153,12 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
     private String wsdlURL;
     @UriParam(label = "service")
     private Class<?> serviceClass;
-    @UriParam(label = "service", name = "portName")
-    private String portNameString;
-    private QName portName;
-    @UriParam(label = "service", name = "serviceName")
-    private String serviceNameString;
-    private QName serviceName;
+    @UriParam(label = "service")
+    private String portName;
+    private transient QName portNameQName;
+    @UriParam(label = "service")
+    private String serviceName;
+    private transient QName serviceNameQName;
     @UriParam(label = "service")
     private String bindingId;
     @UriParam(label = "service")
@@ -190,8 +196,8 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
     @UriParam(label = "advanced")
     private boolean mergeProtocolHeaders;
     @UriParam(label = "advanced")
-    private CxfEndpointConfigurer cxfEndpointConfigurer;
-    @UriParam(label = "advanced", defaultValue = "30000")
+    private CxfConfigurer cxfConfigurer;
+    @UriParam(label = "advanced", defaultValue = "30000", javaType = "java.time.Duration")
     private long continuationTimeout = 30000;
     @UriParam(label = "security", secret = true)
     private String username;
@@ -225,6 +231,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
         super.setEndpointUri(UnsafeUriCharactersEncoder.encodeHttpURI(endpointUri));
     }
 
+    @Override
     public Producer createProducer() throws Exception {
         Producer answer = new CxfProducer(this);
         if (isSynchronous()) {
@@ -234,6 +241,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
         }
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         CxfConsumer answer = new CxfConsumer(this, processor);
         configureConsumer(answer);
@@ -285,14 +293,14 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
             sfb.setWsdlURL(getWsdlURL());
         }
 
-        // service  name qname
-        if (getServiceName() != null) {
-            sfb.setServiceName(getServiceName());
+        // service name qname
+        if (getServiceNameAsQName() != null) {
+            sfb.setServiceName(getServiceNameAsQName());
         }
 
         // port qname
-        if (getPortName() != null) {
-            sfb.setEndpointName(getPortName());
+        if (getPortNameAsQName() != null) {
+            sfb.setEndpointName(getPortNameAsQName());
         }
 
         // apply feature here
@@ -314,12 +322,12 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
                 sfb.getFeatures().add(feature);
             }
         } else {
-            log.debug("Ignore DataFormat mode {} since SEI class is annotated with WebServiceProvider", getDataFormat());
+            LOG.debug("Ignore DataFormat mode {} since SEI class is annotated with WebServiceProvider", getDataFormat());
         }
 
         if (isLoggingFeatureEnabled()) {
             LoggingFeature loggingFeature = new LoggingFeature();
-            if (getLoggingSizeLimit() > 0) {
+            if (getLoggingSizeLimit() >= -1) {
                 loggingFeature.setLimit(getLoggingSizeLimit());
             }
             sfb.getFeatures().add(loggingFeature);
@@ -342,7 +350,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
             } else {
                 sfb.setProperties(getProperties());
             }
-            log.debug("ServerFactoryBean: {} added properties: {}", sfb, getProperties());
+            LOG.debug("ServerFactoryBean: {} added properties: {}", sfb, getProperties());
         }
         if (this.isSkipPayloadMessagePartCheck()) {
             if (sfb.getProperties() == null) {
@@ -360,7 +368,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
 
         sfb.setBus(getBus());
         sfb.setStart(false);
-        getNullSafeCxfEndpointConfigurer().configure(sfb);
+        getNullSafeCxfConfigurer().configure(sfb);
     }
 
     /**
@@ -483,13 +491,13 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
         }
 
         // service name qname
-        if (getServiceName() != null) {
-            factoryBean.setServiceName(getServiceName());
+        if (getServiceNameAsQName() != null) {
+            factoryBean.setServiceName(getServiceNameAsQName());
         }
 
         // port name qname
-        if (getPortName() != null) {
-            factoryBean.setEndpointName(getPortName());
+        if (getPortNameAsQName() != null) {
+            factoryBean.setEndpointName(getPortNameAsQName());
         }
 
         // apply feature here
@@ -508,7 +516,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
 
         if (isLoggingFeatureEnabled()) {
             LoggingFeature loggingFeature = new LoggingFeature();
-            if (getLoggingSizeLimit() > 0) {
+            if (getLoggingSizeLimit() >= -1) {
                 loggingFeature.setLimit(getLoggingSizeLimit());
 
             }
@@ -528,7 +536,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
             } else {
                 factoryBean.setProperties(getProperties());
             }
-            log.debug("ClientFactoryBean: {} added properties: {}", factoryBean, getProperties());
+            LOG.debug("ClientFactoryBean: {} added properties: {}", factoryBean, getProperties());
         }
 
         // setup the basic authentication property
@@ -558,7 +566,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
 
         factoryBean.setBus(getBus());
 
-        getNullSafeCxfEndpointConfigurer().configure(factoryBean);
+        getNullSafeCxfConfigurer().configure(factoryBean);
     }
 
     // Package private methods
@@ -614,15 +622,15 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
         } else {
             factoryBean = createClientFactoryBean();
         }
-        
+
         // setup client factory bean
         setupClientFactoryBean(factoryBean, cls);
-        
+
         if (cls == null) {
             checkName(factoryBean.getEndpointName(), "endpoint/port name");
             checkName(factoryBean.getServiceName(), "service name");
         }
-        
+
         Client client = factoryBean.create();
 
         // setup the handlers
@@ -632,7 +640,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
 
     void checkName(Object value, String name) {
         if (ObjectHelper.isEmpty(value)) {
-            log.warn("The " + name + " of " + this.getEndpointUri() + " is empty, cxf will try to load the first one in wsdl for you.");
+            LOG.warn("The " + name + " of " + this.getEndpointUri() + " is empty, cxf will try to load the first one in wsdl for you.");
         }
     }
 
@@ -766,39 +774,29 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
     /**
      * The service name this service is implementing, it maps to the wsdl:service@name.
      */
-    public void setServiceNameString(String service) {
-        serviceNameString = service;
-    }
-
-    /**
-     * The service name this service is implementing, it maps to the wsdl:service@name.
-     */
-    public void setServiceName(QName service) {
+    public void setServiceName(String service) {
         serviceName = service;
     }
 
-    /**
-     * The service name this service is implementing, it maps to the wsdl:service@name.
-     */
-    public void setService(String service) {
-        serviceNameString = service;
+    public String getServiceName() {
+        return serviceName;
     }
 
-    public QName getServiceName() {
-        if (serviceName == null && serviceNameString != null) {
-            serviceName = QName.valueOf(resolvePropertyPlaceholders(serviceNameString));
+    public QName getServiceNameAsQName() {
+        if (serviceNameQName == null && serviceName != null) {
+            serviceNameQName = QName.valueOf(resolvePropertyPlaceholders(serviceName));
         }
         //if not specify the service name and if the wsdlUrl is available,
         //parse the wsdl to see if only one service in it, if so set the only service
         //from wsdl to avoid ambiguity
-        if (serviceName == null && getWsdlURL() != null) {
+        if (serviceNameQName == null && getWsdlURL() != null) {
             // use wsdl manager to parse wsdl or get cached
             // definition
             try {
                 Definition definition = getBus().getExtension(WSDLManager.class)
                         .getDefinition(getWsdlURL());
                 if (definition.getServices().size() == 1) {
-                    serviceName = (QName) definition.getServices().keySet()
+                    serviceNameQName = (QName) definition.getServices().keySet()
                         .iterator().next();
 
                 }
@@ -806,46 +804,43 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
                 throw new RuntimeException(e);
             }
         }
-        return serviceName;
+        return serviceNameQName;
     }
 
-    public QName getPortName() {
-        if (portName == null && portNameString != null) {
-            portName = QName.valueOf(resolvePropertyPlaceholders(portNameString));
+    public void setServiceNameAsQName(QName qName) {
+        this.serviceNameQName = qName;
+    }
+
+    public QName getPortNameAsQName() {
+        if (portNameQName == null && portName != null) {
+            portNameQName = QName.valueOf(resolvePropertyPlaceholders(portName));
         }
+        return portNameQName;
+    }
+
+    public void setPortNameAsQName(QName qName) {
+        this.portNameQName = qName;
+    }
+
+    public String getPortName() {
         return portName;
     }
 
     /**
      * The endpoint name this service is implementing, it maps to the wsdl:port@name. In the format of ns:PORT_NAME where ns is a namespace prefix valid at this scope.
      */
-    public void setPortName(QName port) {
+    public void setPortName(String port) {
         portName = port;
     }
 
-    /**
-     * The endpoint name this service is implementing, it maps to the wsdl:port@name. In the format of ns:PORT_NAME where ns is a namespace prefix valid at this scope.
-     */
-    public void setPortNameString(String portNameString) {
-        this.portNameString = portNameString;
+    public void setEndpointName(String name) {
+        // this is on purpose as camel-cxf in xml-dsl uses endpoint-name as port-name
+        portName = name;
     }
 
-    public void setPortName(String portName) {
-        portNameString = portName;
-    }
-
-    /**
-     * The port name this service is implementing, it maps to the wsdl:port@name.
-     */
-    public void setEndpointNameString(String port) {
-        portNameString = port;
-    }
-
-    /**
-     * The port name this service is implementing, it maps to the wsdl:port@name.
-     */
-    public void setEndpointName(QName port) {
-        portName = port;
+    public void setEndpointNameAsQName(QName qName) {
+        // this is on purpose as camel-cxf in xml-dsl uses endpoint-name as port-name
+        portNameQName = qName;
     }
 
     public String getDefaultOperationName() {
@@ -920,6 +915,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
     /**
      * To use a custom HeaderFilterStrategy to filter header to and from Camel message.
      */
+    @Override
     public void setHeaderFilterStrategy(HeaderFilterStrategy headerFilterStrategy) {
         this.headerFilterStrategy = headerFilterStrategy;
         if (cxfBinding instanceof HeaderFilterStrategyAware) {
@@ -927,6 +923,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
         }
     }
 
+    @Override
     public HeaderFilterStrategy getHeaderFilterStrategy() {
         return headerFilterStrategy;
     }
@@ -943,12 +940,12 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
         if (bus == null) {
             bus = CxfEndpointUtils.createBus(getCamelContext());
             this.createBus = true;
-            log.debug("Using DefaultBus {}", bus);
+            LOG.debug("Using DefaultBus {}", bus);
         }
 
         if (!getBusHasBeenCalled.getAndSet(true) && defaultBus) {
             BusFactory.setDefaultBus(bus);
-            log.debug("Set bus {} as thread default bus", bus);
+            LOG.debug("Set bus {} as thread default bus", bus);
         }
         return bus;
     }
@@ -1004,19 +1001,17 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
         return properties;
     }
 
+    @Override
     public void setCamelContext(CamelContext c) {
         super.setCamelContext(c);
         if (this.properties != null) {
             try {
-                EndpointHelper.setReferenceProperties(getCamelContext(),
-                                             this,
-                                             this.properties);
-                EndpointHelper.setProperties(getCamelContext(),
+                PropertyBindingSupport.bindProperties(getCamelContext(),
                                              this,
                                              this.properties);
             } catch (Throwable e) {
                 // TODO: Why dont't we rethrown this exception
-                log.warn("Error setting CamelContext. This exception will be ignored.", e);
+                LOG.warn("Error setting CamelContext. This exception will be ignored.", e);
             }
         }
     }
@@ -1033,15 +1028,12 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
         }
         if (getCamelContext() != null && this.properties != null) {
             try {
-                EndpointHelper.setReferenceProperties(getCamelContext(),
-                                             this,
-                                             this.properties);
-                EndpointHelper.setProperties(getCamelContext(),
+                PropertyBindingSupport.bindProperties(getCamelContext(),
                                              this,
                                              this.properties);
             } catch (Throwable e) {
                 // TODO: Why dont't we rethrown this exception
-                log.warn("Error setting properties. This exception will be ignored.", e);
+                LOG.warn("Error setting properties. This exception will be ignored.", e);
             }
         }
     }
@@ -1058,7 +1050,9 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
     }
 
     @Override
-    protected void doStart() throws Exception {
+    protected void doInit() throws Exception {
+        super.doInit();
+
         if (headerFilterStrategy == null) {
             headerFilterStrategy = new CxfHeaderFilterStrategy();
         }
@@ -1074,7 +1068,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
     protected void doStop() throws Exception {
         // we should consider to shutdown the bus if the bus is created by cxfEndpoint
         if (createBus && bus != null) {
-            log.info("shutdown the bus ... {}", bus);
+            LOG.info("shutdown the bus ... {}", bus);
             getBus().shutdown(false);
             // clean up the bus to create a new one if the endpoint is started again
             bus = null;
@@ -1126,18 +1120,18 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
         this.username = username;
     }
 
-    public CxfEndpointConfigurer getChainedCxfEndpointConfigurer() {
-        return ChainedCxfEndpointConfigurer
-                .create(getNullSafeCxfEndpointConfigurer(),
-                        SslCxfEndpointConfigurer.create(sslContextParameters, getCamelContext()))
-                .addChild(HostnameVerifierCxfEndpointConfigurer.create(hostnameVerifier));
+    public CxfConfigurer getChainedCxfConfigurer() {
+        return ChainedCxfConfigurer
+                .create(getNullSafeCxfConfigurer(),
+                        SslCxfConfigurer.create(sslContextParameters, getCamelContext()))
+                .addChild(HostnameVerifierCxfConfigurer.create(hostnameVerifier));
     }
 
-    private CxfEndpointConfigurer getNullSafeCxfEndpointConfigurer() {
-        if (cxfEndpointConfigurer == null) {
-            return new ChainedCxfEndpointConfigurer.NullCxfEndpointConfigurer();
+    private CxfConfigurer getNullSafeCxfConfigurer() {
+        if (cxfConfigurer == null) {
+            return new ChainedCxfConfigurer.NullCxfConfigurer();
         } else {
-            return cxfEndpointConfigurer;
+            return cxfConfigurer;
         }
     }
 
@@ -1150,7 +1144,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
         CamelCxfClientImpl(Bus bus, Endpoint ep) {
             super(bus, ep);
         }
-  
+
         @Override
         protected Object[] processResult(Message message, org.apache.cxf.message.Exchange exchange,
                                          BindingOperationInfo oi, Map<String, Object> resContext)
@@ -1163,7 +1157,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
                 return null;
             }
         }
-        
+
         @SuppressWarnings("unchecked")
         @Override
         protected void setParameters(Object[] params, Message message) {
@@ -1254,7 +1248,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
                     }
                 } catch (XMLStreamException e) {
                     //ignore
-                    log.warn("Error finding the start element.", e);
+                    LOG.warn("Error finding the start element.", e);
                     return null;
                 }
                 return r.getLocalName();
@@ -1356,7 +1350,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
         this.skipFaultLogging = skipFaultLogging;
     }
 
-    public Boolean getMergeProtocolHeaders() {
+    public boolean isMergeProtocolHeaders() {
         return mergeProtocolHeaders;
     }
 
@@ -1392,16 +1386,16 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
         this.serviceFactoryBean = serviceFactoryBean;
     }
 
-    public CxfEndpointConfigurer getCxfEndpointConfigurer() {
-        return cxfEndpointConfigurer;
+    public CxfConfigurer getCxfConfigurer() {
+        return cxfConfigurer;
     }
 
     /**
      * This option could apply the implementation of org.apache.camel.component.cxf.CxfEndpointConfigurer which supports to configure the CXF endpoint
      * in  programmatic way. User can configure the CXF server and client by implementing configure{Server|Client} method of CxfEndpointConfigurer.
      */
-    public void setCxfEndpointConfigurer(CxfEndpointConfigurer configurer) {
-        this.cxfEndpointConfigurer = configurer;
+    public void setCxfConfigurer(CxfConfigurer configurer) {
+        this.cxfConfigurer = configurer;
     }
 
     public long getContinuationTimeout() {
@@ -1449,7 +1443,7 @@ public class CxfEndpoint extends DefaultEndpoint implements AsyncEndpoint, Heade
         try {
             return new URI(uriString);
         } catch (URISyntaxException e) {
-            log.error("cannot determine request URI", e);
+            LOG.error("cannot determine request URI", e);
             return null;
         }
     }

@@ -18,12 +18,10 @@ package org.apache.camel.maven.bom.generator;
 
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -48,7 +46,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import org.apache.commons.io.IOUtils;
+import org.apache.camel.tooling.util.FileUtil;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.factory.ArtifactFactory;
 import org.apache.maven.artifact.repository.ArtifactRepository;
@@ -120,7 +118,7 @@ public class BomGeneratorMojo extends AbstractMojo {
      * List of Remote Repositories used by the resolver
      */
     @Parameter(property = "project.remoteArtifactRepositories", readonly = true, required = true)
-    protected List remoteRepositories;
+    protected List<ArtifactRepository> remoteRepositories;
 
     /**
      * Location of the local repository.
@@ -157,7 +155,7 @@ public class BomGeneratorMojo extends AbstractMojo {
     private List<Dependency> enhance(List<Dependency> dependencyList) {
 
         for (Dependency dep : dependencyList) {
-            if (dep.getGroupId().startsWith(project.getGroupId()) && project.getVersion().equals(dep.getVersion())) {
+            if (dep.getGroupId().startsWith("org.apache.camel") && project.getVersion().equals(dep.getVersion())) {
                 dep.setVersion("${project.version}");
             }
         }
@@ -175,20 +173,17 @@ public class BomGeneratorMojo extends AbstractMojo {
             boolean accept = inclusions.matches(dep) && !exclusions.matches(dep);
             getLog().debug(dep + (accept ? " included in the BOM" : " excluded from BOM"));
 
-            // skip all camel-catalog and other tooling JARs as they should not be in the BOM
-            boolean catalog = dep.getArtifactId().startsWith("camel-catalog");
-            boolean parser = dep.getArtifactId().startsWith("camel-route-parser");
-            if (catalog || parser) {
-                getLog().debug("Skipping dependency: " + dep.getArtifactId());
-                accept = false;
-            }
-
             if (accept) {
                 outDependencies.add(dep);
+            } else {
+                // lets log a WARN if some Camel JARs was excluded
+                if (dep.getGroupId().startsWith("org.apache.camel")) {
+                    getLog().warn(dep + " excluded from BOM");
+                }
             }
         }
 
-        Collections.sort(outDependencies, (d1, d2) -> (d1.getGroupId() + ":" + d1.getArtifactId()).compareTo(d2.getGroupId() + ":" + d2.getArtifactId()));
+        outDependencies.sort(Comparator.comparing(d -> d.getGroupId() + ":" + d.getArtifactId()));
 
         return outDependencies;
     }
@@ -196,6 +191,7 @@ public class BomGeneratorMojo extends AbstractMojo {
     private Document loadBasePom() throws Exception {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, Boolean.TRUE);
+        dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
         DocumentBuilder builder = dbf.newDocumentBuilder();
         Document pom = builder.parse(sourcePom);
 
@@ -236,8 +232,6 @@ public class BomGeneratorMojo extends AbstractMojo {
 
         DOMSource source = new DOMSource(pom);
 
-        targetPom.getParentFile().mkdirs();
-
         String content;
         try (StringWriter out = new StringWriter()) {
             StreamResult result = new StreamResult(out);
@@ -247,35 +241,8 @@ public class BomGeneratorMojo extends AbstractMojo {
 
         // Fix header formatting problem
         content = content.replaceFirst("-->", "-->\n");
-        writeFileIfChanged(content, targetPom);
+        FileUtil.updateFile(targetPom.toPath(), content);
     }
-
-    private void writeFileIfChanged(String content, File file) throws IOException {
-        boolean write = true;
-
-        if (file.exists()) {
-            try (FileReader fr = new FileReader(file)) {
-                String oldContent = IOUtils.toString(fr);
-                if (!content.equals(oldContent)) {
-                    getLog().debug("Writing new file " + file.getAbsolutePath());
-                    fr.close();
-                } else {
-                    getLog().debug("File " + file.getAbsolutePath() + " left unchanged");
-                    write = false;
-                }
-            }
-        } else {
-            File parent = file.getParentFile();
-            parent.mkdirs();
-        }
-
-        if (write) {
-            try (FileWriter fw = new FileWriter(file)) {
-                IOUtils.write(content, fw);
-            }
-        }
-    }
-
 
     private void overwriteDependencyManagement(Document pom, List<Dependency> dependencies) throws Exception {
         XPath xpath = XPathFactory.newInstance().newXPath();

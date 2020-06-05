@@ -19,9 +19,11 @@ package org.apache.camel.component.file.remote;
 import org.apache.camel.Consumer;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Producer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * Test to ensure the FtpEndpoint URI is sanitized.
@@ -37,7 +39,7 @@ public class FtpEndpointURISanitizedTest extends FtpServerTestSupport {
     @Test
     public void testFtpDirectoryRelative() throws Exception {
         Endpoint endpoint = context.getEndpoint(getFtpUrl());
-        assertThat(((FtpEndpoint<?>) endpoint).getConfiguration().getDirectoryName(), equalTo("foo"));
+        assertThat(((FtpEndpoint<?>)endpoint).getConfiguration().getDirectoryName(), equalTo("foo"));
     }
 
     @Test

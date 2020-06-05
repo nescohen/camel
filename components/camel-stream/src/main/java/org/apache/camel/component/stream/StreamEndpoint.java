@@ -17,8 +17,8 @@
 package org.apache.camel.component.stream;
 
 import java.nio.charset.Charset;
-import java.util.Map;
 
+import org.apache.camel.Category;
 import org.apache.camel.Component;
 import org.apache.camel.Consumer;
 import org.apache.camel.Exchange;
@@ -29,19 +29,21 @@ import org.apache.camel.spi.UriEndpoint;
 import org.apache.camel.spi.UriParam;
 import org.apache.camel.spi.UriPath;
 import org.apache.camel.support.DefaultEndpoint;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * The stream: component provides access to the system-in, system-out and system-err streams as well as allowing streaming of file and URL.
+ * Read from system-in and write to system-out and system-err streams.
  */
-@UriEndpoint(firstVersion = "1.3.0", scheme = "stream", title = "Stream", syntax = "stream:kind", label = "file,system")
+@UriEndpoint(firstVersion = "1.3.0", scheme = "stream", title = "Stream", syntax = "stream:kind", category = {Category.FILE, Category.SYSTEM})
 public class StreamEndpoint extends DefaultEndpoint {
+
+    private static final Logger LOG = LoggerFactory.getLogger(StreamEndpoint.class);
 
     private transient Charset charset;
 
-    @UriPath(enums = "in,out,err,header,file,url") @Metadata(required = true)
+    @UriPath(enums = "in,out,err,header,file") @Metadata(required = true)
     private String kind;
-    @UriParam
-    private String url;
     @UriParam
     private String fileName;
     @UriParam(label = "consumer")
@@ -70,10 +72,6 @@ public class StreamEndpoint extends DefaultEndpoint {
     private int autoCloseCount;
     @UriParam(label = "consumer")
     private GroupStrategy groupStrategy = new DefaultGroupStrategy();
-    @UriParam(label = "advanced", prefix = "httpHeaders.", multiValue = true)
-    private Map<String, Object> httpHeaders;
-    @UriParam(label = "advanced")
-    private int connectTimeout;
     @UriParam(label = "advanced")
     private int readTimeout;
 
@@ -81,6 +79,7 @@ public class StreamEndpoint extends DefaultEndpoint {
         super(endpointUri, component);
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         StreamConsumer answer = new StreamConsumer(this, processor, getEndpointUri());
         if (isFileWatcher() && !"file".equals(getKind())) {
@@ -90,6 +89,7 @@ public class StreamEndpoint extends DefaultEndpoint {
         return answer;
     }
 
+    @Override
     public Producer createProducer() throws Exception {
         return new StreamProducer(this, getEndpointUri());
     }
@@ -126,18 +126,6 @@ public class StreamEndpoint extends DefaultEndpoint {
      */
     public void setFileName(String fileName) {
         this.fileName = fileName;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    /**
-     * When using the stream:url URI format, this option specifies the URL to stream to/from.
-     * The input/output stream will be opened using the JDK URLConnection facility.
-     */
-    public void setUrl(String url) {
-        this.url = url;
     }
 
     public long getDelay() {
@@ -207,7 +195,7 @@ public class StreamEndpoint extends DefaultEndpoint {
     public void setScanStream(boolean scanStream) {
         this.scanStream = scanStream;
     }
-    
+
     public GroupStrategy getGroupStrategy() {
         return groupStrategy;
     }
@@ -278,7 +266,7 @@ public class StreamEndpoint extends DefaultEndpoint {
     public void setGroupLines(int groupLines) {
         this.groupLines = groupLines;
     }
-    
+
     public int getAutoCloseCount() {
         return autoCloseCount;
     }
@@ -293,33 +281,6 @@ public class StreamEndpoint extends DefaultEndpoint {
 
     public Charset getCharset() {
         return charset;
-    }
-
-    public Map<String, Object> getHttpHeaders() {
-        return httpHeaders;
-    }
-
-    /**
-     * Optional http headers to use in request when using HTTP URL.
-     */
-    public void setHttpHeaders(Map<String, Object> httpHeaders) {
-        this.httpHeaders = httpHeaders;
-    }
-
-    public int getConnectTimeout() {
-        return connectTimeout;
-    }
-
-    /**
-     * Sets a specified timeout value, in milliseconds, to be used
-     * when opening a communications link to the resource referenced
-     * by this URLConnection.  If the timeout expires before the
-     * connection can be established, a
-     * java.net.SocketTimeoutException is raised. A timeout of zero is
-     * interpreted as an infinite timeout.
-     */
-    public void setConnectTimeout(int connectTimeout) {
-        this.connectTimeout = connectTimeout;
     }
 
     public int getReadTimeout() {
@@ -341,14 +302,16 @@ public class StreamEndpoint extends DefaultEndpoint {
     // Implementations
     //-------------------------------------------------------------------------
 
+    @Override
     protected void doStart() throws Exception {
+        super.doStart();
         charset = loadCharset();
     }
-    
+
     Charset loadCharset() {
         if (encoding == null) {
             encoding = Charset.defaultCharset().name();
-            log.debug("No encoding parameter using default charset: {}", encoding);
+            LOG.debug("No encoding parameter using default charset: {}", encoding);
         }
         if (!Charset.isSupported(encoding)) {
             throw new IllegalArgumentException("The encoding: " + encoding + " is not supported");

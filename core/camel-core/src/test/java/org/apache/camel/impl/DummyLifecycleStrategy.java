@@ -29,70 +29,83 @@ import org.apache.camel.Processor;
 import org.apache.camel.Route;
 import org.apache.camel.Service;
 import org.apache.camel.VetoCamelContextStartException;
-import org.apache.camel.spi.RouteContext;
 import org.apache.camel.support.LifecycleStrategySupport;
 
 public class DummyLifecycleStrategy extends LifecycleStrategySupport {
 
     private List<String> events = new ArrayList<>();
 
+    @Override
     public void onContextStart(CamelContext context) throws VetoCamelContextStartException {
         events.add("onContextStart");
     }
 
+    @Override
     public void onContextStop(CamelContext context) {
         events.add("onContextStop");
     }
 
+    @Override
     public void onComponentAdd(String name, Component component) {
         events.add("onComponentAdd");
     }
 
+    @Override
     public void onComponentRemove(String name, Component component) {
         events.add("onComponentRemove");
     }
 
+    @Override
     public void onEndpointAdd(Endpoint endpoint) {
         events.add("onEndpointAdd");
     }
 
+    @Override
     public void onEndpointRemove(Endpoint endpoint) {
         events.add("onEndpointRemove");
     }
 
-    public void onServiceAdd(CamelContext context, Service service, Route route) {
+    @Override
+    public void onServiceAdd(CamelContext context, Service service, org.apache.camel.Route route) {
         events.add("onServiceAdd");
     }
 
-    public void onServiceRemove(CamelContext context, Service service, Route route) {
+    @Override
+    public void onServiceRemove(CamelContext context, Service service, org.apache.camel.Route route) {
         events.add("onServiceRemove");
     }
 
-    public void onRoutesAdd(Collection<Route> routes) {
+    @Override
+    public void onRoutesAdd(Collection<org.apache.camel.Route> routes) {
         events.add("onRoutesAdd");
     }
 
-    public void onRoutesRemove(Collection<Route> routes) {
+    @Override
+    public void onRoutesRemove(Collection<org.apache.camel.Route> routes) {
         events.add("onRoutesRemove");
     }
 
-    public void onRouteContextCreate(RouteContext routeContext) {
+    @Override
+    public void onRouteContextCreate(Route route) {
         events.add("onRouteContextCreate");
     }
 
-    public void onErrorHandlerAdd(RouteContext routeContext, Processor errorHandler, ErrorHandlerFactory errorHandlerBuilder) {
+    @Override
+    public void onErrorHandlerAdd(Route route, Processor errorHandler, ErrorHandlerFactory errorHandlerBuilder) {
         events.add("onErrorHandlerAdd");
     }
 
-    public void onErrorHandlerRemove(RouteContext routeContext, Processor errorHandler, ErrorHandlerFactory errorHandlerBuilder) {
+    @Override
+    public void onErrorHandlerRemove(Route route, Processor errorHandler, ErrorHandlerFactory errorHandlerBuilder) {
         events.add("onErrorHandlerRemove");
     }
 
-    public void onThreadPoolAdd(CamelContext camelContext, ThreadPoolExecutor threadPool, String id,
-                                String sourceId, String routeId, String threadPoolProfileId) {
+    @Override
+    public void onThreadPoolAdd(CamelContext camelContext, ThreadPoolExecutor threadPool, String id, String sourceId, String routeId, String threadPoolProfileId) {
         events.add("onThreadPoolAdd");
     }
 
+    @Override
     public void onThreadPoolRemove(CamelContext camelContext, ThreadPoolExecutor threadPool) {
         events.add("onThreadPoolRemove");
     }

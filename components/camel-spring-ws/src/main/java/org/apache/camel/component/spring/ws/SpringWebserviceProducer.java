@@ -33,8 +33,11 @@ import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.camel.RuntimeCamelException;
+import org.apache.camel.attachment.AttachmentMessage;
 import org.apache.camel.support.DefaultProducer;
 import org.apache.camel.support.ExchangeHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ws.WebServiceMessage;
 import org.springframework.ws.client.core.WebServiceMessageCallback;
 import org.springframework.ws.client.core.WebServiceTemplate;
@@ -56,6 +59,8 @@ import static org.apache.camel.component.spring.ws.SpringWebserviceHelper.toResu
 
 public class SpringWebserviceProducer extends DefaultProducer {
 
+    private static final Logger LOG = LoggerFactory.getLogger(SpringWebserviceProducer.class);
+
     public SpringWebserviceProducer(Endpoint endpoint) {
         super(endpoint);
         prepareMessageSenders(getEndpoint().getConfiguration());
@@ -66,6 +71,7 @@ public class SpringWebserviceProducer extends DefaultProducer {
         return (SpringWebserviceEndpoint) super.getEndpoint();
     }
 
+    @Override
     public void process(Exchange exchange) throws Exception {
         // Let Camel TypeConverter hierarchy handle the conversion of XML messages to Source objects
         Source sourcePayload = exchange.getIn().getMandatoryBody(Source.class);
@@ -96,10 +102,10 @@ public class SpringWebserviceProducer extends DefaultProducer {
                 SoapMessage soapMessage = (SoapMessage) responseMessage;
                 if (ExchangeHelper.isOutCapable(exchange)) {
                     exchange.getOut().copyFromWithNewBody(exchange.getIn(), soapMessage.getPayloadSource());
-                    populateHeaderAndAttachmentsFromResponse(exchange.getOut(), soapMessage);
+                    populateHeaderAndAttachmentsFromResponse(exchange.getOut(AttachmentMessage.class), soapMessage);
                 } else {
                     exchange.getIn().setBody(soapMessage.getPayloadSource());
-                    populateHeaderAndAttachmentsFromResponse(exchange.getIn(), soapMessage);
+                    populateHeaderAndAttachmentsFromResponse(exchange.getIn(AttachmentMessage.class), soapMessage);
                 }
 
             }
@@ -109,7 +115,7 @@ public class SpringWebserviceProducer extends DefaultProducer {
     /**
      * Populates soap message headers and attachments from soap response
      */
-    private void populateHeaderAndAttachmentsFromResponse(Message inOrOut, SoapMessage soapMessage) {
+    private void populateHeaderAndAttachmentsFromResponse(AttachmentMessage inOrOut, SoapMessage soapMessage) {
         if (soapMessage.getSoapHeader() != null && getEndpoint().getConfiguration().isAllowResponseHeaderOverride()) {
             populateMessageHeaderFromResponse(inOrOut, soapMessage.getSoapHeader());
         }
@@ -142,10 +148,10 @@ public class SpringWebserviceProducer extends DefaultProducer {
     /**
      * Populates message attachments from soap response attachments 
      */
-    private void populateMessageAttachmentsFromResponse(Message inOrOut, Iterator<Attachment> attachments) {
+    private void populateMessageAttachmentsFromResponse(AttachmentMessage inOrOut, Iterator<Attachment> attachments) {
         while (attachments.hasNext()) {
             Attachment attachment = attachments.next();
-            inOrOut.getAttachments().put(attachment.getContentId(), attachment.getDataHandler());
+            inOrOut.addAttachment(attachment.getContentId(), attachment.getDataHandler());
         }
     }    
     
@@ -163,7 +169,7 @@ public class SpringWebserviceProducer extends DefaultProducer {
             WebServiceMessageSender messageSender = messageSenders[i];
             if (messageSender instanceof HttpComponentsMessageSender) {
                 if (configuration.getSslContextParameters() != null) {
-                    log.warn("Not applying SSLContextParameters based configuration to HttpComponentsMessageSender.  "
+                    LOG.warn("Not applying SSLContextParameters based configuration to HttpComponentsMessageSender.  "
                             + "If you are using this MessageSender, which you are not by default, you will need "
                             + "to configure SSL using the Commons HTTP 3.x Protocol registry.");
                 }
@@ -172,7 +178,7 @@ public class SpringWebserviceProducer extends DefaultProducer {
                     if (messageSender.getClass().equals(HttpComponentsMessageSender.class)) {
                         ((HttpComponentsMessageSender) messageSender).setReadTimeout(configuration.getTimeout());
                     } else {
-                        log.warn("Not applying timeout configuration to HttpComponentsMessageSender based implementation.  "
+                        LOG.warn("Not applying timeout configuration to HttpComponentsMessageSender based implementation.  "
                                 + "You are using what appears to be a custom MessageSender, which you are not doing by default. "
                                 + "You will need configure timeout on your own.");
                     }
@@ -183,7 +189,7 @@ public class SpringWebserviceProducer extends DefaultProducer {
                 messageSenders[i] = new AbstractHttpWebServiceMessageSenderDecorator((HttpUrlConnectionMessageSender) messageSender, configuration, getEndpoint().getCamelContext());
             } else {
                 // For example this will be the case during unit-testing with the net.javacrumbs.spring-ws-test API
-                log.warn("Ignoring the timeout and SSLContextParameters options for {}.  You will need to configure "
+                LOG.warn("Ignoring the timeout and SSLContextParameters options for {}.  You will need to configure "
                         + "these options directly on your custom configured WebServiceMessageSender", messageSender);
             }
         }
@@ -275,6 +281,7 @@ public class SpringWebserviceProducer extends DefaultProducer {
             this.exchange = exchange;
         }
 
+        @Override
         public void doWithMessage(WebServiceMessage message) throws IOException, TransformerException {
             // Add SoapAction to webservice request. Note that exchange header
             // takes precedence over endpoint option

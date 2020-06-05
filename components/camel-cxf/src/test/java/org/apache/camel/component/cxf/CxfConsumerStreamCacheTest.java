@@ -19,6 +19,7 @@ package org.apache.camel.component.cxf;
 import org.w3c.dom.Node;
 
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.Message;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
@@ -27,7 +28,6 @@ import org.apache.camel.converter.stream.CachedOutputStream;
 import org.apache.camel.spi.Synchronization;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Test;
-
 
 //Modified from https://issues.apache.org/jira/secure/attachment/12730161/0001-CAMEL-8419-Camel-StreamCache-does-not-work-with-CXF-.patch
 public class CxfConsumerStreamCacheTest extends CamelTestSupport {
@@ -50,6 +50,7 @@ public class CxfConsumerStreamCacheTest extends CamelTestSupport {
     public boolean isCreateCamelContextPerClass() {
         return true;
     }
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
@@ -66,7 +67,7 @@ public class CxfConsumerStreamCacheTest extends CamelTestSupport {
                         cos.close();
                         exchange.getOut().setBody(cos.newStreamCache());
 
-                        exchange.addOnCompletion(new Synchronization() {
+                        exchange.adapt(ExtendedExchange.class).addOnCompletion(new Synchronization() {
                             @Override
                             public void onComplete(Exchange exchange) {
                                 template.sendBody("mock:onComplete", "");

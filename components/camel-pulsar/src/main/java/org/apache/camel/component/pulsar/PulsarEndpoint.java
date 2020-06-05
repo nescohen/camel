@@ -16,10 +16,10 @@
  */
 package org.apache.camel.component.pulsar;
 
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
-import org.apache.camel.component.pulsar.configuration.PulsarConfiguration;
 import org.apache.camel.spi.Metadata;
 import org.apache.camel.spi.UriEndpoint;
 import org.apache.camel.spi.UriParam;
@@ -28,25 +28,37 @@ import org.apache.camel.support.DefaultEndpoint;
 import org.apache.camel.util.ObjectHelper;
 import org.apache.pulsar.client.api.PulsarClient;
 
-@UriEndpoint(scheme = "pulsar", firstVersion = "2.24.0", title = "Apache Pulsar", syntax = "pulsar:persistence://tenant/namespace/topic", label = "messaging")
+/**
+ * Send and receive messages from/to Apache Pulsar messaging system.
+ */
+@UriEndpoint(scheme = "pulsar", firstVersion = "2.24.0", title = "Pulsar", syntax = "pulsar:persistence://tenant/namespace/topic", category = {Category.MESSAGING})
 public class PulsarEndpoint extends DefaultEndpoint {
 
     private PulsarClient pulsarClient;
     private String uri;
 
-    @UriPath(enums = "persistent,non-persistent") @Metadata(required = true)
+    @UriPath(enums = "persistent,non-persistent")
+    @Metadata(required = true)
     private String persistence;
-    @UriPath @Metadata(required = true)
+    @UriPath
+    @Metadata(required = true)
     private String tenant;
-    @UriPath @Metadata(required = true)
+    @UriPath
+    @Metadata(required = true)
     private String namespace;
-    @UriPath @Metadata(required = true)
+    @UriPath
+    @Metadata(required = true)
     private String topic;
+
+    @UriParam(defaultValue = "true", label = "advanced")
+    private boolean synchronous;
+
     @UriParam
     private PulsarConfiguration pulsarConfiguration;
 
     public PulsarEndpoint(String uri, PulsarComponent component) {
         super(uri, component);
+        this.synchronous = true;
     }
 
     @Override
@@ -116,6 +128,23 @@ public class PulsarEndpoint extends DefaultEndpoint {
         this.topic = topic;
     }
 
+    /**
+     * Returns whether synchronous processing should be strictly used.
+     */
+    @Override
+    public boolean isSynchronous() {
+        return synchronous;
+    }
+
+    /**
+     * Sets whether synchronous processing should be strictly used, or Camel is
+     * allowed to use asynchronous processing (if supported).
+     */
+    @Override
+    public void setSynchronous(boolean synchronous) {
+        this.synchronous = synchronous;
+    }
+
     public PulsarConfiguration getPulsarConfiguration() {
         return pulsarConfiguration;
     }
@@ -129,12 +158,19 @@ public class PulsarEndpoint extends DefaultEndpoint {
     }
 
     @Override
-    protected void doStart() throws Exception {
+    protected void doInit() throws Exception {
+        super.doInit();
+
         ObjectHelper.notNull(persistence, "persistence", this);
         ObjectHelper.notNull(tenant, "tenant", this);
         ObjectHelper.notNull(namespace, "namespace", this);
         ObjectHelper.notNull(topic, "topic", this);
 
         uri = persistence + "://" + tenant + "/" + namespace + "/" + topic;
+    }
+
+    @Override
+    public PulsarComponent getComponent() {
+        return (PulsarComponent)super.getComponent();
     }
 }

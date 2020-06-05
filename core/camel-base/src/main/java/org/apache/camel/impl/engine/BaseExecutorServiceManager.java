@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Base {@link org.apache.camel.spi.ExecutorServiceManager} which can be used for implementations
  */
-public abstract class BaseExecutorServiceManager extends ServiceSupport implements ExecutorServiceManager {
+public class BaseExecutorServiceManager extends ServiceSupport implements ExecutorServiceManager {
     private static final Logger LOG = LoggerFactory.getLogger(BaseExecutorServiceManager.class);
 
     private final CamelContext camelContext;
@@ -133,7 +133,7 @@ public abstract class BaseExecutorServiceManager extends ServiceSupport implemen
     @Override
     public void setThreadNamePattern(String threadNamePattern) {
         // must set camel id here in the pattern and let the other placeholders be resolved on demand
-        this.threadNamePattern = threadNamePattern.replaceFirst("#camelId#", this.camelContext.getName());
+        this.threadNamePattern = StringHelper.replaceAll(threadNamePattern, "#camelId#", this.camelContext.getName());
     }
 
     @Override
@@ -421,16 +421,12 @@ public abstract class BaseExecutorServiceManager extends ServiceSupport implemen
     }
 
     @Override
-    protected void doStart() throws Exception {
+    protected void doInit() throws Exception {
+        super.doInit();
         if (threadNamePattern == null) {
             // set default name pattern which includes the camel context name
             threadNamePattern = "Camel (" + camelContext.getName() + ") thread ##counter# - #name#";
         }
-    }
-
-    @Override
-    protected void doStop() throws Exception {
-        // noop
     }
 
     @Override

@@ -22,24 +22,44 @@ import org.apache.camel.CamelContext;
  * A useful base class for {@link org.apache.camel.main.MainListener} implementations.
  */
 public class MainListenerSupport implements MainListener {
+    @Override
+    public void beforeInitialize(BaseMainSupport main) {
+        // noop
+    }
 
+    @Override
+    public void beforeConfigure(BaseMainSupport main) {
+        // noop
+    }
+
+    @Override
+    public void afterConfigure(BaseMainSupport main) {
+        // noop
+    }
+
+    @Override
+    @Deprecated
     public void configure(CamelContext context) {
         // noop
     }
 
-    public void beforeStart(MainSupport main) {
+    @Override
+    public void beforeStart(BaseMainSupport main) {
         // noop
     }
 
-    public void afterStart(MainSupport main) {
+    @Override
+    public void afterStart(BaseMainSupport main) {
         // noop
     }
 
-    public void beforeStop(MainSupport main) {
+    @Override
+    public void beforeStop(BaseMainSupport main) {
         // noop
     }
 
-    public void afterStop(MainSupport main) {
+    @Override
+    public void afterStop(BaseMainSupport main) {
         // noop
     }
 }

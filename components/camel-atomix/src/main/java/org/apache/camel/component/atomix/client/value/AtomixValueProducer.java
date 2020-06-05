@@ -21,9 +21,9 @@ import java.time.Duration;
 import io.atomix.resource.ReadConsistency;
 import io.atomix.variables.DistributedValue;
 import org.apache.camel.AsyncCallback;
-import org.apache.camel.InvokeOnHeader;
 import org.apache.camel.Message;
 import org.apache.camel.component.atomix.client.AbstractAtomixClientProducer;
+import org.apache.camel.spi.InvokeOnHeader;
 import org.apache.camel.util.ObjectHelper;
 
 import static org.apache.camel.component.atomix.client.AtomixClientConstants.RESOURCE_ACTION;
@@ -33,7 +33,7 @@ import static org.apache.camel.component.atomix.client.AtomixClientConstants.RES
 import static org.apache.camel.component.atomix.client.AtomixClientConstants.RESOURCE_TTL;
 import static org.apache.camel.component.atomix.client.AtomixClientConstants.RESOURCE_VALUE;
 
-final class AtomixValueProducer extends AbstractAtomixClientProducer<AtomixValueEndpoint, DistributedValue> {
+public final class AtomixValueProducer extends AbstractAtomixClientProducer<AtomixValueEndpoint, DistributedValue> {
     private final AtomixValueConfiguration configuration;
 
     protected AtomixValueProducer(AtomixValueEndpoint endpoint) {
@@ -45,10 +45,15 @@ final class AtomixValueProducer extends AbstractAtomixClientProducer<AtomixValue
     // Handlers
     // *********************************
 
+    private long getResourceTtl(Message message) {
+        Duration ttl = message.getHeader(RESOURCE_TTL, configuration::getTtl, Duration.class);
+        return ttl != null ? ttl.toMillis() : 0;
+    }
+
     @InvokeOnHeader("SET")
     boolean onSet(Message message, AsyncCallback callback) throws Exception {
         final DistributedValue<Object> value = getResource(message);
-        final long ttl = message.getHeader(RESOURCE_TTL, configuration::getTtl, long.class);
+        final long ttl = getResourceTtl(message);
         final Object val = message.getHeader(RESOURCE_VALUE, message::getBody, Object.class);
 
         ObjectHelper.notNull(val, RESOURCE_VALUE);
@@ -87,7 +92,7 @@ final class AtomixValueProducer extends AbstractAtomixClientProducer<AtomixValue
     @InvokeOnHeader("GET_AND_SET")
     boolean onGetAndSet(Message message, AsyncCallback callback) throws Exception {
         final DistributedValue<Object> value = getResource(message);
-        final long ttl = message.getHeader(RESOURCE_TTL, configuration::getTtl, long.class);
+        final long ttl = getResourceTtl(message);
         final Object val = message.getHeader(RESOURCE_VALUE, message::getBody, Object.class);
 
         ObjectHelper.notNull(val, RESOURCE_VALUE);
@@ -108,7 +113,7 @@ final class AtomixValueProducer extends AbstractAtomixClientProducer<AtomixValue
     @InvokeOnHeader("COMPARE_AND_SET")
     boolean onCompareAndSet(Message message, AsyncCallback callback) throws Exception {
         final DistributedValue<Object> value = getResource(message);
-        final long ttl = message.getHeader(RESOURCE_TTL, configuration::getTtl, long.class);
+        final long ttl = getResourceTtl(message);
         final Object newVal = message.getHeader(RESOURCE_VALUE, message::getBody, Object.class);
         final Object oldVal = message.getHeader(RESOURCE_OLD_VALUE, Object.class);
 

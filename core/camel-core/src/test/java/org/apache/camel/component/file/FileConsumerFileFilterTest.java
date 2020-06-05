@@ -15,11 +15,12 @@
  * limitations under the License.
  */
 package org.apache.camel.component.file;
+
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -31,8 +32,8 @@ public class FileConsumerFileFilterTest extends ContextTestSupport {
     private String fileUrl = "file://target/data/filefilter/?initialDelay=0&delay=10&filter=#myFilter";
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myFilter", new MyFileFilter<>());
         return jndi;
     }
@@ -49,8 +50,7 @@ public class FileConsumerFileFilterTest extends ContextTestSupport {
         MockEndpoint mock = getMockEndpoint("mock:result");
         mock.expectedMessageCount(0);
 
-        template.sendBodyAndHeader("file:target/data/filefilter/", "This is a file to be filtered",
-            Exchange.FILE_NAME, "skipme.txt");
+        template.sendBodyAndHeader("file:target/data/filefilter/", "This is a file to be filtered", Exchange.FILE_NAME, "skipme.txt");
 
         mock.setResultWaitTime(100);
         mock.assertIsSatisfied();
@@ -61,15 +61,14 @@ public class FileConsumerFileFilterTest extends ContextTestSupport {
         MockEndpoint mock = getMockEndpoint("mock:result");
         mock.expectedBodiesReceived("Hello World");
 
-        template.sendBodyAndHeader("file:target/data/filefilter/", "This is a file to be filtered",
-            Exchange.FILE_NAME, "skipme.txt");
+        template.sendBodyAndHeader("file:target/data/filefilter/", "This is a file to be filtered", Exchange.FILE_NAME, "skipme.txt");
 
-        template.sendBodyAndHeader("file:target/data/filefilter/", "Hello World",
-            Exchange.FILE_NAME, "hello.txt");
+        template.sendBodyAndHeader("file:target/data/filefilter/", "Hello World", Exchange.FILE_NAME, "hello.txt");
 
         mock.assertIsSatisfied();
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {
@@ -80,6 +79,7 @@ public class FileConsumerFileFilterTest extends ContextTestSupport {
 
     // START SNIPPET: e1
     public class MyFileFilter<T> implements GenericFileFilter<T> {
+        @Override
         public boolean accept(GenericFile<T> file) {
             // we want all directories
             if (file.isDirectory()) {

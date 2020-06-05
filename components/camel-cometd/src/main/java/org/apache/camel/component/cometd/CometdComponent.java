@@ -22,6 +22,7 @@ import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.servlet.DispatcherType;
 
 import org.apache.camel.Endpoint;
@@ -67,6 +68,7 @@ public class CometdComponent extends DefaultComponent implements SSLContextParam
     private String sslKeystore;
     @Metadata(label = "security")
     private SecurityPolicy securityPolicy;
+    @Metadata(label = "advanced")
     private List<BayeuxServer.Extension> extensions;
     @Metadata(label = "security")
     private SSLContextParameters sslContextParameters;

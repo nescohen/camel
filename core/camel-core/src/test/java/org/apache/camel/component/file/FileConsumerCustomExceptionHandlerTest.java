@@ -25,8 +25,8 @@ import org.apache.camel.LoggingLevel;
 import org.apache.camel.Processor;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
 import org.apache.camel.spi.ExceptionHandler;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 /**
@@ -53,8 +53,8 @@ public class FileConsumerCustomExceptionHandlerTest extends ContextTestSupport {
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myExceptionHandler", myExceptionHandler);
         jndi.bind("myReadLockStrategy", myReadLockStrategy);
         return jndi;
@@ -67,25 +67,24 @@ public class FileConsumerCustomExceptionHandlerTest extends ContextTestSupport {
             @Override
             public void configure() throws Exception {
                 // to handle any IOException being thrown
-                onException(IOException.class)
-                    .handled(true)
-                    .log("IOException occurred due: ${exception.message}")
-                    // as we handle the exception we can send it to direct:file-error,
+                onException(IOException.class).handled(true).log("IOException occurred due: ${exception.message}")
+                    // as we handle the exception we can send it to
+                    // direct:file-error,
                     // where we could send out alerts or whatever we want
                     .to("direct:file-error");
 
                 // special route that handles file errors
-                from("direct:file-error")
-                    .log("File error route triggered to deal with exception ${exception?.class}")
-                    // as this is based on unit test just transform a message and send it to a mock
-                    .transform().simple("Error ${exception.message}")
-                    .to("mock:error");
+                from("direct:file-error").log("File error route triggered to deal with exception ${exception?.class}")
+                    // as this is based on unit test just transform a message
+                    // and send it to a mock
+                    .transform().simple("Error ${exception.message}").to("mock:error");
 
-                // this is the file route that pickup files, notice how we use our custom exception handler on the consumer
-                // the exclusiveReadLockStrategy is only configured because this is from an unit test, so we use that to simulate exceptions
-                from("file:target/data/nospace?exclusiveReadLockStrategy=#myReadLockStrategy&consumer.exceptionHandler=#myExceptionHandler&initialDelay=0&delay=10")
-                    .convertBodyTo(String.class)
-                    .to("mock:result");
+                // this is the file route that pickup files, notice how we use
+                // our custom exception handler on the consumer
+                // the exclusiveReadLockStrategy is only configured because this
+                // is from an unit test, so we use that to simulate exceptions
+                from("file:target/data/nospace?exclusiveReadLockStrategy=#myReadLockStrategy&exceptionHandler=#myExceptionHandler&initialDelay=0&delay=10")
+                    .convertBodyTo(String.class).to("mock:result");
             }
         };
     }
@@ -119,12 +118,14 @@ public class FileConsumerCustomExceptionHandlerTest extends ContextTestSupport {
 
         @Override
         public void handleException(final String message, final Exchange originalExchange, final Throwable exception) {
-            // send the message to the special direct:file-error endpoint, which will trigger exception handling
+            // send the message to the special direct:file-error endpoint, which
+            // will trigger exception handling
             //
             template.send("direct:file-error", new Processor() {
                 @Override
                 public void process(Exchange exchange) throws Exception {
-                    // set an exception on the message from the start so the error handling is triggered
+                    // set an exception on the message from the start so the
+                    // error handling is triggered
                     exchange.setException(exception);
                     exchange.getIn().setBody(message);
                 }
@@ -147,7 +148,8 @@ public class FileConsumerCustomExceptionHandlerTest extends ContextTestSupport {
         public boolean acquireExclusiveReadLock(GenericFileOperations<File> operations, GenericFile<File> file, Exchange exchange) throws Exception {
             if (file.getFileNameOnly().equals("bye.txt")) {
                 if (counter++ == 0) {
-                    // force an exception on acquire attempt for the bye.txt file, on the first attempt
+                    // force an exception on acquire attempt for the bye.txt
+                    // file, on the first attempt
                     throw new IOException("Forced to simulate no space on device");
                 }
             }

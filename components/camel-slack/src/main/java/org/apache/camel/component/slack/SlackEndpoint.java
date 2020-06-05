@@ -16,6 +16,7 @@
  */
 package org.apache.camel.component.slack;
 
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Exchange;
 import org.apache.camel.ExchangePattern;
@@ -33,9 +34,9 @@ import org.apache.camel.util.ObjectHelper;
 import org.apache.camel.util.json.JsonObject;
 
 /**
- * The slack component allows you to send messages to Slack.
+ * Send and receive messages to/from Slack.
  */
-@UriEndpoint(firstVersion = "2.16.0", scheme = "slack", title = "Slack", syntax = "slack:channel", label = "social")
+@UriEndpoint(firstVersion = "2.16.0", scheme = "slack", title = "Slack", syntax = "slack:channel", category = {Category.SOCIAL})
 public class SlackEndpoint extends ScheduledPollEndpoint {
 
     @UriPath
@@ -168,7 +169,7 @@ public class SlackEndpoint extends ScheduledPollEndpoint {
     public String getServerUrl() {
         return serverUrl;
     }
-    
+
     /**
      * The Server URL of the Slack instance
      */
@@ -183,10 +184,10 @@ public class SlackEndpoint extends ScheduledPollEndpoint {
     public Exchange createExchange(ExchangePattern pattern, JsonObject object) {
         Exchange exchange = super.createExchange(pattern);
         SlackMessage slackMessage = new SlackMessage();
-        String text = object.getString("text");
-        String username = object.getString("username");
+        String text = object.getString(SlackConstants.SLACK_TEXT_FIELD);
+        String user = object.getString("user");
         slackMessage.setText(text);
-        slackMessage.setUsername(username);
+        slackMessage.setUser(user);
         if (ObjectHelper.isNotEmpty(object.get("icons"))) {
             JsonObject icons = object.getMap("icons");
             if (ObjectHelper.isNotEmpty(icons.get("emoji"))) {

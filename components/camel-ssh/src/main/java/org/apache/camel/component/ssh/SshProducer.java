@@ -26,7 +26,6 @@ import org.apache.sshd.client.SshClient;
 
 public class SshProducer extends DefaultProducer {
     private SshEndpoint endpoint;
-
     private SshClient client;
 
     public SshProducer(SshEndpoint endpoint) {
@@ -53,6 +52,12 @@ public class SshProducer extends DefaultProducer {
     }
 
     @Override
+    public boolean isSingleton() {
+        // SshClient is not thread-safe to be shared
+        return true;
+    }
+
+    @Override
     public void process(Exchange exchange) throws Exception {
         final Message in = exchange.getIn();
         String command = in.getMandatoryBody(String.class);
@@ -73,8 +78,7 @@ public class SshProducer extends DefaultProducer {
             throw new CamelExchangeException("Cannot execute command: " + command, exchange, e);
         }
 
-        // propagate headers and attachments
+        // propagate headers
         exchange.getOut().getHeaders().putAll(in.getHeaders());
-        exchange.getOut().setAttachments(in.getAttachments());
     }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.camel.component.azure.blob;
 
+import org.apache.camel.Category;
 import org.apache.camel.Component;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
@@ -27,13 +28,13 @@ import org.apache.camel.spi.UriPath;
 import org.apache.camel.support.DefaultEndpoint;
 
 /**
- * The azure-blob component is used for storing and retrieving blobs from Azure Storage Blob Service.
+ * Store and retrieve blobs from Azure Storage Blob Service.
  */
 @UriEndpoint(firstVersion = "2.19.0",
              scheme = "azure-blob",
-             title = "Azure Storage Blob Service", 
-             syntax = "azure-blob:containerOrBlobUri", 
-             label = "cloud,database,nosql")
+             title = "Azure Storage Blob Service (Legacy)",
+             syntax = "azure-blob:containerOrBlobUri",
+             category = {Category.CLOUD, Category.FILE})
 public class BlobServiceEndpoint extends DefaultEndpoint {
 
     @UriPath(description = "Container or Blob compact Uri")
@@ -47,8 +48,8 @@ public class BlobServiceEndpoint extends DefaultEndpoint {
         this.configuration = configuration;
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
-        log.trace("Creating a consumer");
         if (getConfiguration().getBlobName() == null) {
             throw new IllegalArgumentException("Blob name must be specified.");
         }
@@ -57,10 +58,10 @@ public class BlobServiceEndpoint extends DefaultEndpoint {
         return consumer;
     }
 
+    @Override
     public Producer createProducer() throws Exception {
-        log.trace("Creating a producer");
         if (getConfiguration().getBlobName() == null
-            && getConfiguration().getOperation() != null 
+            && getConfiguration().getOperation() != null
             && BlobServiceOperations.listBlobs != configuration.getOperation()) {
             // Omitting a blob name is only possible it is a (default) listBlobs producer operation
             throw new IllegalArgumentException("Blob name must be specified.");

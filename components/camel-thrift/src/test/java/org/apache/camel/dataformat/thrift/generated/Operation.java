@@ -22,11 +22,6 @@
  */
 package org.apache.camel.dataformat.thrift.generated;
 
-
-import java.util.Map;
-import java.util.HashMap;
-import org.apache.thrift.TEnum;
-
 /**
  * You can define enums, which are just 32 bit integers. Values are optional
  * and start at 1 if not supplied, C style again.
@@ -46,6 +41,7 @@ public enum Operation implements org.apache.thrift.TEnum {
   /**
    * Get the integer value of this enum value, as defined in the Thrift IDL.
    */
+  @Override
   public int getValue() {
     return value;
   }
@@ -54,7 +50,7 @@ public enum Operation implements org.apache.thrift.TEnum {
    * Find a the enum type by its integer value, as defined in the Thrift IDL.
    * @return null if the value is not found.
    */
-  public static Operation findByValue(int value) { 
+  public static Operation findByValue(int value) {
     switch (value) {
       case 1:
         return ADD;

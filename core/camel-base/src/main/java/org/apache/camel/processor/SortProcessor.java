@@ -22,16 +22,18 @@ import java.util.List;
 import org.apache.camel.AsyncCallback;
 import org.apache.camel.Exchange;
 import org.apache.camel.Expression;
-import org.apache.camel.Message;
+import org.apache.camel.Traceable;
 import org.apache.camel.spi.IdAware;
+import org.apache.camel.spi.RouteIdAware;
 import org.apache.camel.support.AsyncProcessorSupport;
 
 /**
  * A processor that sorts the expression using a comparator
  */
-public class SortProcessor<T> extends AsyncProcessorSupport implements IdAware, org.apache.camel.Traceable {
+public class SortProcessor<T> extends AsyncProcessorSupport implements IdAware, RouteIdAware, Traceable {
 
     private String id;
+    private String routeId;
     private final Expression expression;
     private final Comparator<? super T> comparator;
 
@@ -43,18 +45,11 @@ public class SortProcessor<T> extends AsyncProcessorSupport implements IdAware, 
     @Override
     public boolean process(Exchange exchange, AsyncCallback callback) {
         try {
-            Message in = exchange.getIn();
-
             @SuppressWarnings("unchecked")
             List<T> list = expression.evaluate(exchange, List.class);
             list.sort(comparator);
 
-            if (exchange.getPattern().isOutCapable()) {
-                Message out = exchange.getOut();
-                out.copyFromWithNewBody(in, list);
-            } else {
-                in.setBody(list);
-            }
+            exchange.getMessage().setBody(list);
         } catch (Exception e) {
             exchange.setException(e);
         }
@@ -63,8 +58,9 @@ public class SortProcessor<T> extends AsyncProcessorSupport implements IdAware, 
         return true;
     }
 
+    @Override
     public String toString() {
-        return "Sort[" + expression + "]";
+        return id;
     }
 
     @Override
@@ -72,12 +68,24 @@ public class SortProcessor<T> extends AsyncProcessorSupport implements IdAware, 
         return "sort[" + expression + "]";
     }
 
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public void setId(String id) {
         this.id = id;
+    }
+
+    @Override
+    public String getRouteId() {
+        return routeId;
+    }
+
+    @Override
+    public void setRouteId(String routeId) {
+        this.routeId = routeId;
     }
 
     public Expression getExpression() {

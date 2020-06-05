@@ -27,7 +27,7 @@ import java.util.Set;
 
 import com.couchbase.client.CouchbaseClient;
 import com.couchbase.client.CouchbaseConnectionFactoryBuilder;
-
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
@@ -54,10 +54,9 @@ import static org.apache.camel.component.couchbase.CouchbaseConstants.DEFAULT_TI
 import static org.apache.camel.component.couchbase.CouchbaseConstants.DEFAULT_VIEWNAME;
 
 /**
- * Represents a Couchbase endpoint that can query Views with a Poll strategy
- * and/or produce various type of operations.
+ * Query Couchbase Views with a poll strategy and/or perform various operations against Couchbase databases.
  */
-@UriEndpoint(firstVersion = "2.19.0", scheme = "couchbase", title = "Couchbase", syntax = "couchbase:protocol:hostname:port", label = "database,nosql")
+@UriEndpoint(firstVersion = "2.19.0", scheme = "couchbase", title = "Couchbase", syntax = "couchbase:protocol:hostname:port", category = {Category.DATABASE, Category.NOSQL})
 public class CouchbaseEndpoint extends ScheduledPollEndpoint {
 
     @UriPath
@@ -126,7 +125,7 @@ public class CouchbaseEndpoint extends ScheduledPollEndpoint {
     private String consumerProcessedStrategy = DEFAULT_CONSUME_PROCESSED_STRATEGY;
 
     // Connection fine tuning parameters
-    @UriParam(label = "advanced", defaultValue = "2500")
+    @UriParam(label = "advanced", defaultValue = "2500", javaType = "java.time.Duration")
     private long opTimeOut = DEFAULT_OP_TIMEOUT;
     @UriParam(label = "advanced", defaultValue = "998")
     private int timeoutExceptionThreshold = DEFAULT_TIMEOUT_EXCEPTION_THRESHOLD;
@@ -134,13 +133,13 @@ public class CouchbaseEndpoint extends ScheduledPollEndpoint {
     private int readBufferSize = DEFAULT_READ_BUFFER_SIZE;
     @UriParam(label = "advanced", defaultValue = "false")
     private boolean shouldOptimize;
-    @UriParam(label = "advanced", defaultValue = "30000")
+    @UriParam(label = "advanced", defaultValue = "30000", javaType = "java.time.Duration")
     private long maxReconnectDelay = DEFAULT_MAX_RECONNECT_DELAY;
-    @UriParam(label = "advanced", defaultValue = "10000")
+    @UriParam(label = "advanced", defaultValue = "10000", javaType = "java.time.Duration")
     private long opQueueMaxBlockTime = DEFAULT_OP_QUEUE_MAX_BLOCK_TIME;
-    @UriParam(label = "advanced", defaultValue = "400")
+    @UriParam(label = "advanced", defaultValue = "400", javaType = "java.time.Duration")
     private long obsPollInterval = DEFAULT_OBS_POLL_INTERVAL;
-    @UriParam(label = "advanced", defaultValue = "-1")
+    @UriParam(label = "advanced", defaultValue = "-1", javaType = "java.time.Duration")
     private long obsTimeout = DEFAULT_OBS_TIMEOUT;
 
     public CouchbaseEndpoint() {

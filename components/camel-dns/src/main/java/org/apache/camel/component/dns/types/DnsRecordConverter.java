@@ -32,14 +32,14 @@ import org.xbill.DNS.Type;
 /**
  * More converters for all the DNS objects used by the DNS component.
  */
-@Converter(loader = true)
+@Converter(generateLoader = true)
 public final class DnsRecordConverter {
 
     private DnsRecordConverter() {
     }
 
     /**
-     * @param ip, like "192.168.1.1"
+     * @param ip like "192.168.1.1"
      * @return the complete DNS record for that IP.
      */
     @Converter

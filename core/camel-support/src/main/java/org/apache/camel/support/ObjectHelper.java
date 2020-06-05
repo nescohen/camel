@@ -25,6 +25,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.Callable;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -41,7 +43,12 @@ import org.apache.camel.util.StringHelper;
  * A number of useful helper methods for working with Objects
  */
 public final class ObjectHelper {
+  
+    static {
+        DEFAULT_PATTERN = Pattern.compile(",(?!(?:[^\\(,]|[^\\)],[^\\)])+\\))");
+    }
 
+    private static final Pattern DEFAULT_PATTERN;
     private static final String DEFAULT_DELIMITER = ",";
 
     /**
@@ -195,7 +202,9 @@ public final class ObjectHelper {
      */
     public static Object invokeMethodSafe(Method method, Object instance, Object... parameters) throws InvocationTargetException, IllegalAccessException {
         Object answer;
-        method.setAccessible(true);
+        if (!method.isAccessible()) {
+            method.setAccessible(true);
+        }
         if (parameters != null) {
             answer = method.invoke(instance, parameters);
         } else {
@@ -296,16 +305,14 @@ public final class ObjectHelper {
      * @return the result of Callable return
      */
     public static Object callWithTCCL(Callable<?> call, ClassLoader classloader) throws Exception {
-        ClassLoader tccl = Thread.currentThread().getContextClassLoader();
+        final ClassLoader tccl = Thread.currentThread().getContextClassLoader();
         try {
             if (classloader != null) {
                 Thread.currentThread().setContextClassLoader(classloader);
             }
             return call.call();
         } finally {
-            if (tccl != null) {
-                Thread.currentThread().setContextClassLoader(tccl);
-            }
+            Thread.currentThread().setContextClassLoader(tccl);
         }
     }
 
@@ -357,7 +364,6 @@ public final class ObjectHelper {
         if (value == null) {
             return Collections.emptyList();
         } else if (delimiter != null && (pattern || value.contains(delimiter))) {
-            String del;
             if (DEFAULT_DELIMITER.equals(delimiter)) {
                 // we use the default delimiter which is a comma, then cater for bean expressions with OGNL
                 // which may have balanced parentheses pairs as well.
@@ -369,11 +375,9 @@ public final class ObjectHelper {
                 // -> bean=foo?method=killer(a,b)
                 // -> bean=bar?method=great(a,b)
                 // http://stackoverflow.com/questions/1516090/splitting-a-title-into-separate-parts
-                del = ",(?!(?:[^\\(,]|[^\\)],[^\\)])+\\))";
-            } else {
-                del = delimiter;
+                return () -> new Scanner(value, DEFAULT_PATTERN);
             }
-            return () -> new Scanner(value, del);
+            return () -> new Scanner(value, delimiter);
         } else if (allowEmptyValues || org.apache.camel.util.ObjectHelper.isNotEmpty(value)) {
             return Collections.singletonList(value);
         } else {
@@ -382,7 +386,7 @@ public final class ObjectHelper {
     }
 
     /**
-     * Creates an iterator over the value if the value is a collection, an
+     * Creates an iterator over the value if the value is a {@link Stream}, collection, an
      * Object[], a String with values separated by comma,
      * or a primitive type array; otherwise to simplify the caller's code,
      * we just create a singleton collection iterator over a single value
@@ -398,7 +402,7 @@ public final class ObjectHelper {
     }
 
     /**
-     * Creates an iterator over the value if the value is a collection, an
+     * Creates an iterator over the value if the value is a {@link Stream}, collection, an
      * Object[], a String with values separated by the given delimiter,
      * or a primitive type array; otherwise to simplify the caller's
      * code, we just create a singleton collection iterator over a single value
@@ -414,7 +418,7 @@ public final class ObjectHelper {
     }
 
     /**
-     * Creates an iterator over the value if the value is a collection, an
+     * Creates an iterator over the value if the value is a {@link Stream}, collection, an
      * Object[], a String with values separated by the given delimiter,
      * or a primitive type array; otherwise to simplify the caller's
      * code, we just create a singleton collection iterator over a single value
@@ -430,11 +434,14 @@ public final class ObjectHelper {
      * @return the iterator
      */
     public static Iterator<?> createIterator(Object value, String delimiter, boolean allowEmptyValues) {
+        if (value instanceof Stream) {
+            return ((Stream) value).iterator();
+        }
         return createIterable(value, delimiter, allowEmptyValues, false).iterator();
     }
 
     /**
-     * Creates an iterator over the value if the value is a collection, an
+     * Creates an iterator over the value if the value is a {@link Stream}, collection, an
      * Object[], a String with values separated by the given delimiter,
      * or a primitive type array; otherwise to simplify the caller's
      * code, we just create a singleton collection iterator over a single value
@@ -452,6 +459,9 @@ public final class ObjectHelper {
      */
     public static Iterator<?> createIterator(Object value, String delimiter,
                                                   boolean allowEmptyValues, boolean pattern) {
+        if (value instanceof Stream) {
+            return ((Stream) value).iterator();
+        }
         return createIterable(value, delimiter, allowEmptyValues, pattern).iterator();
     }
 
@@ -569,7 +579,6 @@ public final class ObjectHelper {
             // this code is optimized to only use a Scanner if needed, eg there is a delimiter
 
             if (delimiter != null && (pattern || s.contains(delimiter))) {
-                String del;
                 if (DEFAULT_DELIMITER.equals(delimiter)) {
                     // we use the default delimiter which is a comma, then cater for bean expressions with OGNL
                     // which may have balanced parentheses pairs as well.
@@ -581,11 +590,9 @@ public final class ObjectHelper {
                     // -> bean=foo?method=killer(a,b)
                     // -> bean=bar?method=great(a,b)
                     // http://stackoverflow.com/questions/1516090/splitting-a-title-into-separate-parts
-                    del = ",(?!(?:[^\\(,]|[^\\)],[^\\)])+\\))";
-                } else {
-                    del = delimiter;
+                    return (Iterable<String>) () -> new Scanner(s, DEFAULT_PATTERN);
                 }
-                return (Iterable<String>) () -> new Scanner(s, del);
+                return (Iterable<String>) () -> new Scanner(s, delimiter);
             } else {
                 return (Iterable<Object>) () -> {
                     // use a plain iterator that returns the value as is as there are only a single value

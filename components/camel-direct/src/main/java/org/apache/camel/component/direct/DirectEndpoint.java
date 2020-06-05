@@ -16,11 +16,10 @@
  */
 package org.apache.camel.component.direct;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
+import org.apache.camel.Category;
 import org.apache.camel.Component;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
@@ -34,15 +33,14 @@ import org.apache.camel.util.StopWatch;
 import org.apache.camel.util.StringHelper;
 
 /**
- * The direct component provides direct, synchronous call to another endpoint from the same CamelContext.
+ * Call another endpoint from the same Camel Context synchronously.
  *
  * This endpoint can be used to connect existing routes in the same CamelContext.
  */
-@UriEndpoint(firstVersion = "1.0.0", scheme = "direct", title = "Direct", syntax = "direct:name", label = "core,endpoint")
+@UriEndpoint(firstVersion = "1.0.0", scheme = "direct", title = "Direct", syntax = "direct:name", category = {Category.CORE, Category.ENDPOINT})
 public class DirectEndpoint extends DefaultEndpoint {
 
     private final Map<String, DirectConsumer> consumers;
-    private final List<DirectProducer> producers = new ArrayList<>();
 
     @UriPath(description = "Name of direct endpoint") @Metadata(required = true)
     private String name;
@@ -51,7 +49,7 @@ public class DirectEndpoint extends DefaultEndpoint {
     private boolean block = true;
     @UriParam(label = "producer", defaultValue = "30000")
     private long timeout = 30000L;
-    @UriParam(label = "producer")
+    @UriParam(label = "producer", defaultValue = "true")
     private boolean failIfNoConsumers = true;
 
     public DirectEndpoint() {
@@ -67,10 +65,12 @@ public class DirectEndpoint extends DefaultEndpoint {
         this.consumers = consumers;
     }
 
+    @Override
     public Producer createProducer() throws Exception {
         return new DirectProducer(this);
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         Consumer answer = new DirectConsumer(this, processor);
         configureConsumer(answer);
@@ -92,18 +92,6 @@ public class DirectEndpoint extends DefaultEndpoint {
         synchronized (consumers) {
             consumers.remove(key, consumer);
             consumers.notifyAll();
-        }
-    }
-
-    public void addProducer(DirectProducer producer) {
-        synchronized (consumers) {
-            producers.add(producer);
-        }
-    }
-
-    public void removeProducer(DirectProducer producer) {
-        synchronized (consumers) {
-            producers.remove(producer);
         }
     }
 

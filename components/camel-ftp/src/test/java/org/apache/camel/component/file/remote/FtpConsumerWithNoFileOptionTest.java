@@ -20,8 +20,11 @@ import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.FileComponent;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Unit test CAMEL-1247
@@ -29,11 +32,11 @@ import org.junit.Test;
 public class FtpConsumerWithNoFileOptionTest extends FtpServerTestSupport {
 
     private String getFtpUrl() {
-        return "ftp://admin@localhost:" + getPort() + "?password=admin&consumer.delay=5000";
+        return "ftp://admin@localhost:" + getPort() + "?password=admin&delay=5000";
     }
 
     @Override
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         prepareFtpServer();
@@ -47,17 +50,18 @@ public class FtpConsumerWithNoFileOptionTest extends FtpServerTestSupport {
         assertMockEndpointsSatisfied();
 
         Exchange exchange = mock.getExchanges().get(0);
-        RemoteFile<?> file = (RemoteFile<?>) exchange.getProperty(FileComponent.FILE_EXCHANGE_FILE);
+        RemoteFile<?> file = (RemoteFile<?>)exchange.getProperty(FileComponent.FILE_EXCHANGE_FILE);
         assertNotNull(file);
         assertEquals("hello.txt", file.getAbsoluteFilePath());
         assertEquals("hello.txt", file.getRelativeFilePath());
         assertEquals("hello.txt", file.getFileName());
     }
-    
+
     private void prepareFtpServer() throws Exception {
         sendFile(getFtpUrl(), "Hello World", "hello.txt");
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {

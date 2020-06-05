@@ -15,16 +15,15 @@
  * limitations under the License.
  */
 package org.apache.camel.processor.routingslip;
-import java.util.concurrent.TimeUnit;
 
-import javax.naming.Context;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.support.jndi.JndiContext;
+import org.apache.camel.spi.Registry;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,7 +42,7 @@ public class RoutingSlipWithExceptionTest extends ContextTestSupport {
         endEndpoint.expectedMessageCount(1);
         exceptionEndpoint.expectedMessageCount(0);
         aEndpoint.expectedMessageCount(1);
-        
+
         sendRoutingSlipWithNoExceptionThrowingComponent();
 
         assertEndpointsSatisfied();
@@ -97,30 +96,24 @@ public class RoutingSlipWithExceptionTest extends ContextTestSupport {
         MockEndpoint.assertIsSatisfied(5, TimeUnit.SECONDS, endEndpoint, exceptionEndpoint, aEndpoint);
     }
 
-
     protected void sendRoutingSlipWithExceptionThrowingComponentFirstInList() {
-        template.sendBodyAndHeader("direct:start", ANSWER, ROUTING_SLIP_HEADER,
-                "bean:myBean?method=throwException,mock:a");
+        template.sendBodyAndHeader("direct:start", ANSWER, ROUTING_SLIP_HEADER, "bean:myBean?method=throwException,mock:a");
     }
 
     protected void sendRoutingSlipWithExceptionThrowingComponentSecondInList() {
-        template.sendBodyAndHeader("direct:start", ANSWER, ROUTING_SLIP_HEADER,
-                "mock:a,bean:myBean?method=throwException");
+        template.sendBodyAndHeader("direct:start", ANSWER, ROUTING_SLIP_HEADER, "mock:a,bean:myBean?method=throwException");
     }
 
     protected void sendRoutingSlipWithNoExceptionThrowingComponent() {
-        template.sendBodyAndHeader("direct:start", ANSWER, ROUTING_SLIP_HEADER,
-                "mock:a");
+        template.sendBodyAndHeader("direct:start", ANSWER, ROUTING_SLIP_HEADER, "mock:a");
     }
 
     protected void sendRoutingSlipWithExceptionSettingComponentFirstInList() {
-        template.sendBodyAndHeader("direct:start", ANSWER, ROUTING_SLIP_HEADER,
-                "mock:exceptionSetting,mock:a");
+        template.sendBodyAndHeader("direct:start", ANSWER, ROUTING_SLIP_HEADER, "mock:exceptionSetting,mock:a");
     }
 
     protected void sendRoutingSlipWithExceptionSettingComponentSecondInList() {
-        template.sendBodyAndHeader("direct:start", ANSWER, ROUTING_SLIP_HEADER,
-                "mock:a,mock:exceptionSetting");
+        template.sendBodyAndHeader("direct:start", ANSWER, ROUTING_SLIP_HEADER, "mock:a,mock:exceptionSetting");
     }
 
     @Override
@@ -132,7 +125,7 @@ public class RoutingSlipWithExceptionTest extends ContextTestSupport {
         exceptionEndpoint = resolveMandatoryEndpoint("mock:exception", MockEndpoint.class);
         exceptionSettingEndpoint = resolveMandatoryEndpoint("mock:exceptionSetting", MockEndpoint.class);
         aEndpoint = resolveMandatoryEndpoint("mock:a", MockEndpoint.class);
-        
+
         exceptionSettingEndpoint.whenAnyExchangeReceived(new Processor() {
             public void process(Exchange exchange) throws Exception {
                 exchange.setException(new Exception("Throw me!"));
@@ -144,20 +137,17 @@ public class RoutingSlipWithExceptionTest extends ContextTestSupport {
     }
 
     @Override
-    protected Context createJndiContext() throws Exception {
-        JndiContext answer = new JndiContext();
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
         answer.bind("myBean", myBean);
         return answer;
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
-                from("direct:start").
-                        doTry().
-                        routingSlip(header(ROUTING_SLIP_HEADER)).end().to("mock:noexception").
-                        doCatch(Exception.class).
-                    to("mock:exception");
+                from("direct:start").doTry().routingSlip(header(ROUTING_SLIP_HEADER)).end().to("mock:noexception").doCatch(Exception.class).to("mock:exception");
             }
         };
     }

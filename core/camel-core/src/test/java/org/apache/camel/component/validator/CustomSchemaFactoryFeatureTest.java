@@ -20,39 +20,27 @@ import javax.xml.XMLConstants;
 import javax.xml.validation.SchemaFactory;
 
 import org.apache.camel.ContextTestSupport;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class CustomSchemaFactoryFeatureTest extends ContextTestSupport {
     // Need to bind the CustomerSchemaFactory
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry registry = super.createRegistry();
-        SchemaFactory mySchemaFactory =  SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+    @Override
+    protected Registry createRegistry() throws Exception {
+        Registry registry = super.createRegistry();
+        SchemaFactory mySchemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
         mySchemaFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, false);
         registry.bind("MySchemaFactory", mySchemaFactory);
         return registry;
     }
-    
-    
+
     // just inject the SchemaFactory as we want
     @Test
     public void testCustomSchemaFactory() throws Exception {
         ValidatorComponent v = new ValidatorComponent();
         v.setCamelContext(context);
+        v.init();
         v.createEndpoint("validator:org/apache/camel/component/validator/unsecuredSchema.xsd?schemaFactory=#MySchemaFactory");
-       
-        try {
-            v.createEndpoint("validator:org/apache/camel/component/validator/unsecuredSchema.xsd");
-            // we should get an security exception in JDK 7 with Oracle or Sun JDK
-            String jdkVendor = System.getProperty("java.vm.vendor");
-            if (jdkVendor != null && (jdkVendor.indexOf("Oracle") > 0 || jdkVendor.indexOf("Sun") > 0)) {
-                fail("Expect exception here");
-            }
-        } catch (Exception ex) {
-            // do nothing here
-        }
     }
-    
-    
 
 }

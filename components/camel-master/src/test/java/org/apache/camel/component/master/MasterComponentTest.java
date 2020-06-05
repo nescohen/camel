@@ -34,7 +34,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class MasterComponentTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(MasterComponentTest.class);
     private static final List<String> INSTANCES = IntStream.range(0, 3).mapToObj(Integer::toString).collect(Collectors.toList());
@@ -77,7 +76,7 @@ public class MasterComponentTest {
             context.addRoutes(new RouteBuilder() {
                 @Override
                 public void configure() throws Exception {
-                    from("master:ns:timer:test?delay=1s&period=1s")
+                    from("master:ns:timer:test?delay=1000&period=1000")
                         .routeId("route-" + id)
                         .log("From ${routeId}")
                         .process(e -> contextLatch.countDown());

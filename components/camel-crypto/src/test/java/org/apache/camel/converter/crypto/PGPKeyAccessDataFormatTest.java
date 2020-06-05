@@ -17,10 +17,11 @@
 package org.apache.camel.converter.crypto;
 
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.test.junit4.CamelTestSupport;
+import org.apache.camel.test.junit5.CamelTestSupport;
 
 public class PGPKeyAccessDataFormatTest extends CamelTestSupport {
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
 
         return new RouteBuilder() {
@@ -28,12 +29,12 @@ public class PGPKeyAccessDataFormatTest extends CamelTestSupport {
 
                 PGPPublicKeyAccessor publicKeyAccessor = new DefaultPGPPublicKeyAccessor(PGPDataFormatTest.getPublicKeyRing());
                 PGPSecretKeyAccessor secretKeyAccessor = new DefaultPGPSecretKeyAccessor(PGPDataFormatTest.getSecKeyRing(), "sdude", "BC");
-                PGPKeyAccessDataFormat dt = new PGPKeyAccessDataFormat();
-                dt.setPublicKeyAccessor(publicKeyAccessor);
-                dt.setSecretKeyAccessor(secretKeyAccessor);               
-                dt.setKeyUserid("sdude");
-                dt.setSignatureKeyUserid("sdude");
-
+                try (PGPKeyAccessDataFormat dt = new PGPKeyAccessDataFormat()) {
+                    dt.setPublicKeyAccessor(publicKeyAccessor);
+                    dt.setSecretKeyAccessor(secretKeyAccessor);
+                    dt.setKeyUserid("sdude");
+                    dt.setSignatureKeyUserid("sdude");
+                }
             }
         };
     }

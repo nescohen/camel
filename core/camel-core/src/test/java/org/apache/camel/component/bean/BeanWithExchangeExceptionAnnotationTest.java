@@ -16,13 +16,11 @@
  */
 package org.apache.camel.component.bean;
 
-import javax.naming.Context;
-
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.ExchangeException;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.support.jndi.JndiContext;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class BeanWithExchangeExceptionAnnotationTest extends ContextTestSupport {
@@ -31,37 +29,33 @@ public class BeanWithExchangeExceptionAnnotationTest extends ContextTestSupport 
     public void testBeanWithAnnotationAndExchangeTest() throws Exception {
         MockEndpoint result = getMockEndpoint("mock:result");
         MockEndpoint error = getMockEndpoint("mock:error");
-        
+
         result.expectedMessageCount(0);
         error.expectedMessageCount(1);
         error.expectedBodiesReceived("The Body");
-        
+
         template.requestBody("direct:start", "The Body");
 
         result.assertIsSatisfied();
         error.assertIsSatisfied();
     }
 
-    protected Context createJndiContext() throws Exception {
-        JndiContext answer = new JndiContext();
+    @Override
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
         answer.bind("myBean", new MyBean());
         return answer;
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {
                 errorHandler(deadLetterChannel("mock:error"));
-                
-                onException(MyCustomException.class).
-                    maximumRedeliveries(0).
-                    handled(true).
-                    bean("myBean", "handleException").
-                    to("mock:error");
-                
-                from("direct:start").
-                    bean("myBean", "throwException").
-                    to("mock:result");
+
+                onException(MyCustomException.class).maximumRedeliveries(0).handled(true).bean("myBean", "handleException").to("mock:error");
+
+                from("direct:start").bean("myBean", "throwException").to("mock:result");
             }
         };
     }
@@ -70,8 +64,8 @@ public class BeanWithExchangeExceptionAnnotationTest extends ContextTestSupport 
 
         public void throwException() throws MyCustomException {
             throw new MyCustomException("I'm being thrown!!");
-        }       
-        
+        }
+
         public void handleException(@ExchangeException Exception exception) {
             assertNotNull(exception);
             assertEquals("I'm being thrown!!", exception.getMessage());

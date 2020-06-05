@@ -16,12 +16,17 @@
  */
 package org.apache.camel.component.rabbitmq.qpid;
 
-import org.apache.camel.component.rabbitmq.RabbitMQConsumerIntTestReplyTo;
+import org.apache.camel.component.rabbitmq.integration.RabbitMQConsumerIntTestReplyTo;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
 public class RabbitMQConsumerQpidTestReplyTo extends RabbitMQConsumerIntTestReplyTo {
+    @Override
+    public boolean isStartDocker() {
+        return false;
+    }
+
     @BeforeClass
     public static void startBroker() throws Exception {
         systemLauncher.startup(createQpidSystemConfig());
@@ -31,12 +36,12 @@ public class RabbitMQConsumerQpidTestReplyTo extends RabbitMQConsumerIntTestRepl
     public static void stopBroker() {
         systemLauncher.shutdown();
     }
-    
+
     @Override
     @Before
     public void setUpRabbitMQ() throws Exception {
         super.setUpRabbitMQ();
-        
+
         channel.queueDeclare(QUEUE, false, false, true, null);
     }
 }

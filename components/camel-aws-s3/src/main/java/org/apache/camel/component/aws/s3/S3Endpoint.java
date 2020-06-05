@@ -22,10 +22,12 @@ import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
+import org.apache.camel.Category;
 import org.apache.camel.Component;
 import org.apache.camel.Consumer;
 import org.apache.camel.Exchange;
 import org.apache.camel.ExchangePattern;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.Message;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
@@ -42,10 +44,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The aws-s3 component is used for storing and retrieving objecct from Amazon
- * S3 Storage Service.
+ * Store and retrie objects from AWS S3 Storage Service.
  */
-@UriEndpoint(firstVersion = "2.8.0", scheme = "aws-s3", title = "AWS S3 Storage Service", syntax = "aws-s3:bucketNameOrArn", label = "cloud,file")
+@UriEndpoint(firstVersion = "2.8.0", scheme = "aws-s3", title = "AWS S3 Storage Service", syntax = "aws-s3://bucketNameOrArn", category = {Category.CLOUD, Category.FILE})
 public class S3Endpoint extends ScheduledPollEndpoint {
 
     private static final Logger LOG = LoggerFactory.getLogger(S3Endpoint.class);
@@ -67,6 +68,7 @@ public class S3Endpoint extends ScheduledPollEndpoint {
         this.configuration = configuration;
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         S3Consumer s3Consumer = new S3Consumer(this, processor);
         configureConsumer(s3Consumer);
@@ -74,6 +76,7 @@ public class S3Endpoint extends ScheduledPollEndpoint {
         return s3Consumer;
     }
 
+    @Override
     public Producer createProducer() throws Exception {
         return new S3Producer(this);
     }
@@ -97,7 +100,7 @@ public class S3Endpoint extends ScheduledPollEndpoint {
         String prefix = getConfiguration().getPrefix();
 
         try {
-            s3Client.listObjects(new ListObjectsRequest(bucketName, prefix, null, null, 0));
+            s3Client.listObjects(new ListObjectsRequest(bucketName, prefix, null, null, maxMessagesPerPoll));
             LOG.trace("Bucket [{}] already exists", bucketName);
             return;
         } catch (AmazonServiceException ase) {
@@ -187,7 +190,7 @@ public class S3Endpoint extends ScheduledPollEndpoint {
             IOHelper.close(s3Object);
         } else {
             if (configuration.isAutocloseBody()) {
-                exchange.addOnCompletion(new SynchronizationAdapter() {
+                exchange.adapt(ExtendedExchange.class).addOnCompletion(new SynchronizationAdapter() {
                     @Override
                     public void onDone(Exchange exchange) {
                         IOHelper.close(s3Object);
@@ -222,7 +225,8 @@ public class S3Endpoint extends ScheduledPollEndpoint {
     /**
      * Gets the maximum number of messages as a limit to poll at each polling.
      * <p/>
-     * Is default unlimited, but use 0 or negative number to disable it as
+     * Gets the maximum number of messages as a limit to poll at each polling.
+     * The default value is 10. Use 0 or a negative number to set it as
      * unlimited.
      */
     public void setMaxMessagesPerPoll(int maxMessagesPerPoll) {

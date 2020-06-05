@@ -21,9 +21,9 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
 import org.apache.camel.processor.aggregate.UseLatestAggregationStrategy;
 import org.apache.camel.spi.PollingConsumerPollStrategy;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class PollEnrichBridgeErrorHandlerTest extends ContextTestSupport {
@@ -31,8 +31,8 @@ public class PollEnrichBridgeErrorHandlerTest extends ContextTestSupport {
     private MyPollingStrategy myPoll = new MyPollingStrategy();
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myPoll", myPoll);
         return jndi;
     }
@@ -63,8 +63,9 @@ public class PollEnrichBridgeErrorHandlerTest extends ContextTestSupport {
                 errorHandler(deadLetterChannel("mock:dead").maximumRedeliveries(3).redeliveryDelay(0));
 
                 from("seda:start")
-                    // bridge the error handler when doing a polling so we can let Camel's error handler decide what to do
-                    .pollEnrich("file:target/data/foo?initialDelay=0&delay=10&pollStrategy=#myPoll&consumer.bridgeErrorHandler=true", 10000, new UseLatestAggregationStrategy())
+                    // bridge the error handler when doing a polling so we can
+                    // let Camel's error handler decide what to do
+                    .pollEnrich("file:target/data/foo?initialDelay=0&delay=10&pollStrategy=#myPoll&bridgeErrorHandler=true", 10000, new UseLatestAggregationStrategy())
                     .to("mock:result");
             }
         };
@@ -94,5 +95,5 @@ public class PollEnrichBridgeErrorHandlerTest extends ContextTestSupport {
             return counter;
         }
     }
-    
+
 }

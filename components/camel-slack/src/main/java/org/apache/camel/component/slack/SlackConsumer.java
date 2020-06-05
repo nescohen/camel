@@ -18,12 +18,12 @@ package org.apache.camel.component.slack;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-import org.apache.camel.AsyncCallback;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.support.ScheduledBatchPollingConsumer;
@@ -59,9 +59,9 @@ public class SlackConsumer extends ScheduledBatchPollingConsumer {
         Queue<Exchange> exchanges;
 
         HttpClient client = HttpClientBuilder.create().useSystemProperties().build();
-        HttpPost httpPost = new HttpPost(slackEndpoint.getServerUrl() + "/api/channels.history");
-        List<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
-        params.add(new BasicNameValuePair("channel", channelId));
+        HttpPost httpPost = new HttpPost(slackEndpoint.getServerUrl() + "/api/conversations.history");
+        List<BasicNameValuePair> params = new ArrayList<>();
+        params.add(new BasicNameValuePair(SlackConstants.SLACK_CHANNEL_FIELD, channelId));
         if (ObjectHelper.isNotEmpty(timestamp)) {
             params.add(new BasicNameValuePair("oldest", timestamp));
         }
@@ -113,11 +113,8 @@ public class SlackConsumer extends ScheduledBatchPollingConsumer {
             // update pending number of exchanges
             pendingExchanges = total - index - 1;
 
-            getAsyncProcessor().process(exchange, new AsyncCallback() {
-                @Override
-                public void done(boolean doneSync) {
-                    log.trace("Processing exchange done");
-                }
+            getAsyncProcessor().process(exchange, doneSync -> {
+                // noop
             });
         }
 
@@ -126,9 +123,9 @@ public class SlackConsumer extends ScheduledBatchPollingConsumer {
 
     private String getChannelId(String channel) throws IOException, DeserializationException {
         HttpClient client = HttpClientBuilder.create().useSystemProperties().build();
-        HttpPost httpPost = new HttpPost(slackEndpoint.getServerUrl() + "/api/channels.list");
-
-        List<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
+        HttpPost httpPost = new HttpPost(slackEndpoint.getServerUrl() + "/api/conversations.list");
+        
+        List<BasicNameValuePair> params = new ArrayList<>();
         params.add(new BasicNameValuePair("token", slackEndpoint.getToken()));
         httpPost.setEntity(new UrlEncodedFormEntity(params));
 
@@ -136,8 +133,8 @@ public class SlackConsumer extends ScheduledBatchPollingConsumer {
 
         String jsonString = readResponse(response);
         JsonObject c = (JsonObject) Jsoner.deserialize(jsonString);
-        JsonArray list = (JsonArray) c.getCollection("channels");
-        for (JsonObject singleChannel : (List<JsonObject>)(List) list) {
+        Collection<JsonObject> channels = c.getCollection("channels");
+        for (JsonObject singleChannel : channels) {
             if (singleChannel.get("name") != null) {
                 if (singleChannel.get("name").equals(channel)) {
                     if (singleChannel.get("id") != null) {

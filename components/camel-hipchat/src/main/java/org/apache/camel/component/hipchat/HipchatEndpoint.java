@@ -16,6 +16,7 @@
  */
 package org.apache.camel.component.hipchat;
 
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
@@ -24,29 +25,35 @@ import org.apache.camel.spi.UriParam;
 import org.apache.camel.support.ScheduledPollEndpoint;
 
 /**
- * The hipchat component supports producing and consuming messages from/to Hipchat service.
+ * Send and receive messages to/from Hipchat service.
  */
-@UriEndpoint(firstVersion = "2.15.0", scheme = "hipchat", title = "Hipchat", syntax = "hipchat:protocol:host:port", label = "api,cloud")
+@UriEndpoint(firstVersion = "2.15.0", scheme = "hipchat", title = "Hipchat", syntax = "hipchat:protocol:host:port", category = {Category.API, Category.CHAT, Category.CLOUD})
 public class HipchatEndpoint extends ScheduledPollEndpoint {
+
+    @UriParam(defaultValue = "" + HipchatConsumer.DEFAULT_CONSUMER_DELAY, label = "consumer,scheduler",
+            description = "Milliseconds before the next poll.")
+    private long delay = HipchatConsumer.DEFAULT_CONSUMER_DELAY;
 
     @UriParam
     private HipchatConfiguration configuration;
 
     public HipchatEndpoint(String uri, HipchatComponent component) {
         super(uri, component);
+        //Default delay of 500 millis is too often and would result in Rate Limit error's from
+        //HipChat API as per https://www.hipchat.com/docs/apiv2/rate_limiting. End user can override using
+        //consumer.delay parameter
+        setDelay(HipchatConsumer.DEFAULT_CONSUMER_DELAY);
         configuration = new HipchatConfiguration();
     }
 
+    @Override
     public Producer createProducer() throws Exception {
         return new HipchatProducer(this);
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         HipchatConsumer consumer =  new HipchatConsumer(this, processor);
-        //Default delay of 500 millis is too often and would result in Rate Limit error's from
-        //HipChat API as per https://www.hipchat.com/docs/apiv2/rate_limiting. End user can override using
-        //consumer.delay parameter
-        consumer.setDelay(HipchatConsumer.DEFAULT_CONSUMER_DELAY);
         configureConsumer(consumer);
         return consumer;
     }
@@ -54,4 +61,14 @@ public class HipchatEndpoint extends ScheduledPollEndpoint {
     public HipchatConfiguration getConfiguration() {
         return configuration;
     }
+
+    /**
+     * Milliseconds before the next poll.
+     */
+    @Override
+    public void setDelay(long delay) {
+        super.setDelay(delay);
+        this.delay = delay;
+    }
+
 }

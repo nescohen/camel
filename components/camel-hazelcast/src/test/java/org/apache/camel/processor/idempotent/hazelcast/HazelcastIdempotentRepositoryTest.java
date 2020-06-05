@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 package org.apache.camel.processor.idempotent.hazelcast;
+
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IMap;
+import com.hazelcast.map.IMap;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.test.junit4.CamelTestSupport;
@@ -34,6 +35,7 @@ public class HazelcastIdempotentRepositoryTest extends CamelTestSupport {
     private String key01 = "123";
     private String key02 = "456";
 
+    @Override
     @Before
     public void setUp() throws Exception {
         hazelcastInstance = Hazelcast.newHazelcastInstance(null);
@@ -44,6 +46,7 @@ public class HazelcastIdempotentRepositoryTest extends CamelTestSupport {
         repo.start();
     }
 
+    @Override
     @After
     public void tearDown() throws Exception {
         repo.stop();
@@ -130,6 +133,7 @@ public class HazelcastIdempotentRepositoryTest extends CamelTestSupport {
         assertMockEndpointsSatisfied();
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             @Override

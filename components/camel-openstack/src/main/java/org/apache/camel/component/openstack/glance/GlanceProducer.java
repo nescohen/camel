@@ -45,29 +45,29 @@ public class GlanceProducer extends AbstractOpenstackProducer {
         String operation = getOperation(exchange);
 
         switch (operation) {
-        case GlanceConstants.RESERVE:
-            doReserve(exchange);
-            break;
-        case OpenstackConstants.CREATE:
-            doCreate(exchange);
-            break;
-        case OpenstackConstants.UPDATE:
-            doUpdate(exchange);
-            break;
-        case GlanceConstants.UPLOAD:
-            doUpload(exchange);
-            break;
-        case OpenstackConstants.GET:
-            doGet(exchange);
-            break;
-        case OpenstackConstants.GET_ALL:
-            doGetAll(exchange);
-            break;
-        case OpenstackConstants.DELETE:
-            doDelete(exchange);
-            break;
-        default:
-            throw new IllegalArgumentException("Unsupported operation " + operation);
+            case GlanceConstants.RESERVE:
+                doReserve(exchange);
+                break;
+            case OpenstackConstants.CREATE:
+                doCreate(exchange);
+                break;
+            case OpenstackConstants.UPDATE:
+                doUpdate(exchange);
+                break;
+            case GlanceConstants.UPLOAD:
+                doUpload(exchange);
+                break;
+            case OpenstackConstants.GET:
+                doGet(exchange);
+                break;
+            case OpenstackConstants.GET_ALL:
+                doGetAll(exchange);
+                break;
+            case OpenstackConstants.DELETE:
+                doDelete(exchange);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported operation " + operation);
         }
     }
 
@@ -120,7 +120,7 @@ public class GlanceProducer extends AbstractOpenstackProducer {
         final String imageId = msg.getHeader(OpenstackConstants.ID, String.class);
         StringHelper.notEmpty(imageId, "ImageID");
         final ActionResponse response = os.compute().images().delete(imageId);
-        checkFailure(response, msg, "Delete image " + imageId);
+        checkFailure(response, exchange, "Delete image " + imageId);
     }
 
     private Image messageToImage(Message message) {

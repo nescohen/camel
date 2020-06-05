@@ -20,24 +20,8 @@ import org.apache.camel.Consumer;
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.camel.Processor;
-import org.apache.camel.Producer;
 import org.apache.camel.component.twitter.consumer.AbstractTwitterConsumerHandler;
 import org.apache.camel.component.twitter.consumer.DefaultTwitterConsumer;
-import org.apache.camel.component.twitter.data.ConsumerType;
-import org.apache.camel.component.twitter.data.StreamingType;
-import org.apache.camel.component.twitter.data.TimelineType;
-import org.apache.camel.component.twitter.directmessage.DirectMessageConsumerHandler;
-import org.apache.camel.component.twitter.directmessage.DirectMessageProducer;
-import org.apache.camel.component.twitter.search.SearchConsumerHandler;
-import org.apache.camel.component.twitter.search.SearchProducer;
-import org.apache.camel.component.twitter.streaming.FilterStreamingConsumerHandler;
-import org.apache.camel.component.twitter.streaming.SampleStreamingConsumerHandler;
-import org.apache.camel.component.twitter.streaming.UserStreamingConsumerHandler;
-import org.apache.camel.component.twitter.timeline.HomeConsumerHandler;
-import org.apache.camel.component.twitter.timeline.MentionsConsumerHandler;
-import org.apache.camel.component.twitter.timeline.RetweetsConsumerHandler;
-import org.apache.camel.component.twitter.timeline.UserConsumerHandler;
-import org.apache.camel.component.twitter.timeline.UserProducer;
 import twitter4j.User;
 
 public final class TwitterHelper {
@@ -64,15 +48,15 @@ public final class TwitterHelper {
     public static Consumer createConsumer(Processor processor, AbstractTwitterEndpoint endpoint, AbstractTwitterConsumerHandler handler) throws Exception {
         Consumer answer = new DefaultTwitterConsumer(endpoint, processor, handler);
         switch (endpoint.getEndpointType()) {
-        case POLLING:
-            handler.setLastId(endpoint.getProperties().getSinceId());
-            endpoint.configureConsumer(answer);
-            break;
-        case DIRECT:
-            endpoint.configureConsumer(answer);
-            break;
-        default:
-            break;
+            case POLLING:
+                handler.setLastId(endpoint.getProperties().getSinceId());
+                endpoint.configureConsumer(answer);
+                break;
+            case DIRECT:
+                endpoint.configureConsumer(answer);
+                break;
+            default:
+                break;
         }
         return answer;
     }

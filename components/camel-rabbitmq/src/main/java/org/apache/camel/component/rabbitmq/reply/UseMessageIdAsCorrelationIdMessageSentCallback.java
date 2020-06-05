@@ -21,10 +21,12 @@ import java.util.UUID;
 import com.rabbitmq.client.Connection;
 
 /**
- * Callback to be used when using the option <tt>useMessageIDAsCorrelationID</tt>.
+ * Callback to be used when using the option
+ * <tt>useMessageIDAsCorrelationID</tt>.
  * <p/>
- * This callback will keep the correlation registration in {@link ReplyManager} up-to-date with
- * the <tt>JMSMessageID</tt> which was assigned and used when the message was sent.
+ * This callback will keep the correlation registration in {@link ReplyManager}
+ * up-to-date with the <tt>JMSMessageID</tt> which was assigned and used when
+ * the message was sent.
  */
 public class UseMessageIdAsCorrelationIdMessageSentCallback implements MessageSentCallback {
 
@@ -38,6 +40,7 @@ public class UseMessageIdAsCorrelationIdMessageSentCallback implements MessageSe
         this.requestTimeout = requestTimeout;
     }
 
+    @Override
     public void sent(Connection session, byte[] message, String destination) {
         String newCorrelationID = UUID.randomUUID().toString();
         if (newCorrelationID != null) {

@@ -38,11 +38,11 @@ public final class GrpcUtils {
     }
     
     public static String extractServiceName(String service) {
-        return service.contains(".") ? service.substring(service.lastIndexOf(".") + 1) : service;
+        return service.contains(".") ? service.substring(service.lastIndexOf('.') + 1) : service;
     }
 
     public static String extractServicePackage(String service) {
-        return service.contains(".") ? service.substring(0, service.lastIndexOf(".")) : "";
+        return service.contains(".") ? service.substring(0, service.lastIndexOf('.')) : "";
     }
 
     public static Object constructGrpcAsyncStub(String packageName, String serviceName, Channel channel, final CallCredentials creds, final CamelContext context) {
@@ -120,9 +120,7 @@ public final class GrpcUtils {
             StreamObserver<Object> requestObserver = (StreamObserver<Object>) ObjectHelper.invokeMethod(method, asyncStubClass, responseObserver);
             if (request instanceof List) {
                 List<Object> requestList = (List<Object>)request;
-                requestList.forEach((requestItem) -> {
-                    requestObserver.onNext(requestItem);
-                });
+                requestList.forEach(requestObserver::onNext);
             } else {
                 requestObserver.onNext(request);
             }
@@ -177,7 +175,7 @@ public final class GrpcUtils {
     public static String convertMethod2CamelCase(final String method) {
         StringBuilder sb = new StringBuilder(method.length());
         sb.append(method.substring(0, 1).toLowerCase());
-        Boolean afterUnderscore = false;
+        boolean afterUnderscore = false;
         for (int i = 1; i < method.length(); i++) {
             if (method.charAt(i) == '_') {
                 afterUnderscore = true;

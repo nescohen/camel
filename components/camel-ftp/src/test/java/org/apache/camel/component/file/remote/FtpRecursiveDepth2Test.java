@@ -19,7 +19,7 @@ package org.apache.camel.component.file.remote;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class FtpRecursiveDepth2Test extends FtpServerTestSupport {
 
@@ -47,9 +47,7 @@ public class FtpRecursiveDepth2Test extends FtpServerTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(getFtpUrl() + "&minDepth=2&maxDepth=99")
-                        .convertBodyTo(String.class)
-                        .to("mock:result");
+                from(getFtpUrl() + "&minDepth=2&maxDepth=99").convertBodyTo(String.class).to("mock:result");
             }
         };
     }

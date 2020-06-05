@@ -18,7 +18,7 @@ package org.apache.camel.component.file.remote;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class FtpConsumerDualDoneFileNameTest extends FtpServerTestSupport {
 
@@ -54,9 +54,7 @@ public class FtpConsumerDualDoneFileNameTest extends FtpServerTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(getFtpUrl() + "&doneFileName=${file:name}.ready")
-                    .convertBodyTo(String.class)
-                    .to("mock:result");
+                from(getFtpUrl() + "&doneFileName=${file:name}.ready").convertBodyTo(String.class).to("mock:result");
             }
         };
     }

@@ -16,30 +16,21 @@
  */
 package org.apache.camel.processor.idempotent.kafka;
 
+import org.apache.camel.BindToRegistry;
 import org.apache.camel.CamelExecutionException;
 import org.apache.camel.EndpointInject;
 import org.apache.camel.RoutesBuilder;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.component.kafka.embedded.EmbeddedKafkaBroker;
-import org.apache.camel.component.kafka.embedded.EmbeddedZookeeper;
+import org.apache.camel.component.kafka.BaseEmbeddedKafkaTest;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
-import org.apache.camel.test.junit4.CamelTestSupport;
-import org.junit.Rule;
 import org.junit.Test;
 
 /**
  * Test for eager idempotentRepository usage.
  */
-public class KafkaIdempotentRepositoryEagerTest extends CamelTestSupport {
-
-    @Rule
-    public EmbeddedZookeeper zookeeper = new EmbeddedZookeeper();
-
-    @Rule
-    public EmbeddedKafkaBroker kafkaBroker = new EmbeddedKafkaBroker(0, zookeeper.getConnection());
-
-    private KafkaIdempotentRepository kafkaIdempotentRepository;
+public class KafkaIdempotentRepositoryEagerTest extends BaseEmbeddedKafkaTest {
+    @BindToRegistry("kafkaIdempotentRepository")
+    private KafkaIdempotentRepository kafkaIdempotentRepository = new KafkaIdempotentRepository("TEST_IDEM", getBootstrapServers());
 
     @EndpointInject("mock:out")
     private MockEndpoint mockOut;
@@ -48,25 +39,11 @@ public class KafkaIdempotentRepositoryEagerTest extends CamelTestSupport {
     private MockEndpoint mockBefore;
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
-
-        kafkaIdempotentRepository = new KafkaIdempotentRepository("TEST_IDEM", kafkaBroker.getBrokerList());
-        jndi.bind("kafkaIdempotentRepository", kafkaIdempotentRepository);
-
-        return jndi;
-    }
-
-    @Override
     protected RoutesBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:in")
-                    .to("mock:before")
-                    .idempotentConsumer(header("id")).messageIdRepositoryRef("kafkaIdempotentRepository")
-                        .to("mock:out")
-                    .end();
+                from("direct:in").to("mock:before").idempotentConsumer(header("id")).messageIdRepositoryRef("kafkaIdempotentRepository").to("mock:out").end();
             }
         };
     }
@@ -100,9 +77,14 @@ public class KafkaIdempotentRepositoryEagerTest extends CamelTestSupport {
             }
         }
 
-        assertEquals(4, kafkaIdempotentRepository.getDuplicateCount()); // id{0} is not a duplicate
+        assertEquals(4, kafkaIdempotentRepository.getDuplicateCount()); // id{0}
+                                                                        // is
+                                                                        // not a
+                                                                        // duplicate
 
-        assertEquals(6, mockOut.getReceivedCounter()); // id{0} goes through the idempotency check twice
+        assertEquals(6, mockOut.getReceivedCounter()); // id{0} goes through the
+                                                       // idempotency check
+                                                       // twice
         assertEquals(10, mockBefore.getReceivedCounter());
     }
 

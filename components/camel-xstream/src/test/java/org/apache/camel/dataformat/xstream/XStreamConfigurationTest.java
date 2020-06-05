@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.dataformat.xstream;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,18 +42,13 @@ public class XStreamConfigurationTest extends CamelTestSupport {
 
     private static volatile boolean constructorInjected;
     private static volatile boolean methodInjected;
-    
+
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
         constructorInjected = false;
         methodInjected = false;
-    }
-
-    public void testXStreamInjection() {
-        assertTrue(constructorInjected);
-        assertTrue(methodInjected);
     }
 
     @Test
@@ -142,15 +138,15 @@ public class XStreamConfigurationTest extends CamelTestSupport {
                 xstreamDefinition.setAliases(aliases);
                 xstreamDefinition.setPermissions(PurchaseOrder.class, PurchaseHistory.class);
 
-                List<String> converters = new ArrayList<>();
-                converters.add(PurchaseOrderConverter.class.getName());
-                converters.add(CheckMethodInjection.class.getName());
-                converters.add(CheckConstructorInjection.class.getName());
+                Map<String, String> converters = new HashMap<>();
+                converters.put("1", PurchaseOrderConverter.class.getName());
+                converters.put("2", CheckMethodInjection.class.getName());
+                converters.put("3", CheckConstructorInjection.class.getName());
 
                 xstreamDefinition.setConverters(converters);
 
-                Map<String, String[]> implicits = new HashMap<>();
-                implicits.put(PurchaseHistory.class.getName(), new String[] {"history"});
+                Map<String, String> implicits = new HashMap<>();
+                implicits.put(PurchaseHistory.class.getName(), "history");
                 xstreamDefinition.setImplicitCollections(implicits);
 
                 from("direct:marshal").marshal(xstreamDefinition).to("mock:result");
@@ -163,8 +159,9 @@ public class XStreamConfigurationTest extends CamelTestSupport {
                 xstreamDefinition.setAliases(aliases);
                 xstreamDefinition.setPermissions(PurchaseOrder.class, PurchaseHistory.class);
 
-                converters = new ArrayList<>();
-                converters.add(PurchaseOrderConverter.class.getName());
+                converters = new HashMap<>();
+                converters.put("1", PurchaseOrderConverter.class.getName());
+
                 xstreamDefinition.setConverters(converters);
                 from("direct:marshal-json").marshal(xstreamDefinition).to("mock:result");
                 from("direct:unmarshal-json").unmarshal(xstreamDefinition).to("mock:result");
@@ -181,11 +178,13 @@ public class XStreamConfigurationTest extends CamelTestSupport {
 
     public static class PurchaseOrderConverter implements Converter {
 
+        @Override
         @SuppressWarnings("rawtypes")
         public boolean canConvert(Class type) {
             return PurchaseOrder.class.isAssignableFrom(type);
         }
 
+        @Override
         public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context) {
             PurchaseOrder order = new PurchaseOrder();
             order.setName(reader.getAttribute("name"));
@@ -194,6 +193,7 @@ public class XStreamConfigurationTest extends CamelTestSupport {
             return order;
         }
 
+        @Override
         public void marshal(Object object, HierarchicalStreamWriter writer, MarshallingContext context) {
 
             writer.addAttribute("name", ((PurchaseOrder) object).getName());
@@ -211,13 +211,16 @@ public class XStreamConfigurationTest extends CamelTestSupport {
             }
         }
 
+        @Override
         public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
         }
 
+        @Override
         public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context) {
             return null;
         }
 
+        @Override
         @SuppressWarnings("rawtypes")
         public boolean canConvert(Class type) {
             return false;
@@ -237,13 +240,16 @@ public class XStreamConfigurationTest extends CamelTestSupport {
             }
         }
 
+        @Override
         public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
         }
 
+        @Override
         public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context) {
             return null;
         }
 
+        @Override
         @SuppressWarnings("rawtypes")
         public boolean canConvert(Class type) {
             return false;

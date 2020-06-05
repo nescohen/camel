@@ -16,10 +16,14 @@
  */
 package org.apache.camel.component.bean;
 
+import java.util.Map;
+
 import org.apache.camel.CamelContext;
+import org.apache.camel.Exchange;
 import org.apache.camel.NoSuchBeanException;
 import org.apache.camel.Processor;
 import org.apache.camel.spi.Registry;
+import org.apache.camel.support.PropertyBindingSupport;
 
 /**
  * An implementation of a {@link BeanHolder} which will look up a bean from the registry and act as a cache of its metadata
@@ -31,6 +35,7 @@ public class RegistryBean implements BeanHolder {
     private volatile BeanInfo beanInfo;
     private volatile Class<?> clazz;
     private ParameterMappingStrategy parameterMappingStrategy;
+    private Map<String, Object> options;
 
     public RegistryBean(CamelContext context, String name) {
         this(context.getRegistry(), context, name);
@@ -58,18 +63,40 @@ public class RegistryBean implements BeanHolder {
         return "bean: " + name;
     }
 
+    @Override
+    public Map<String, Object> getOptions() {
+        return options;
+    }
+
+    @Override
+    public void setOptions(Map<String, Object> options) {
+        this.options = options;
+    }
+
     /**
-     * Creates a cached and constant {@link org.apache.camel.component.bean.BeanHolder} from this holder.
-     *
-     * @return a new {@link org.apache.camel.component.bean.BeanHolder} that has cached the lookup of the bean.
+     * Creates a singleton (cached and constant) {@link org.apache.camel.component.bean.BeanHolder} from this holder.
      */
     public ConstantBeanHolder createCacheHolder() {
-        Object bean = getBean();
+        Object bean = getBean(null);
         BeanInfo info = createBeanInfo(bean);
         return new ConstantBeanHolder(bean, info);
     }
 
-    public Object getBean() throws NoSuchBeanException {
+    @Override
+    public Object getBean(Exchange exchange) throws NoSuchBeanException {
+        Object bean = doGetBean(exchange);
+        if (options != null && !options.isEmpty()) {
+            PropertyBindingSupport.build()
+                    .withRemoveParameters(false)
+                    .withCamelContext(getBeanInfo().getCamelContext())
+                    .withProperties(options)
+                    .withTarget(bean)
+                    .bind();
+        }
+        return bean;
+    }
+
+    private Object doGetBean(Exchange exchange) throws NoSuchBeanException {
         // must always lookup bean first
         Object value = lookupBean();
 
@@ -96,22 +123,26 @@ public class RegistryBean implements BeanHolder {
         return context.getInjector().newInstance(clazz);
     }
 
+    @Override
     public Processor getProcessor() {
         return null;
     }
 
+    @Override
     public boolean supportProcessor() {
         return false;
     }
 
+    @Override
     public BeanInfo getBeanInfo() {
         if (beanInfo == null) {
-            Object bean = getBean();
+            Object bean = getBean(null);
             this.beanInfo = createBeanInfo(bean);
         }
         return beanInfo;
     }
 
+    @Override
     public BeanInfo getBeanInfo(Object bean) {
         return createBeanInfo(bean);
     }

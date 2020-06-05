@@ -18,12 +18,10 @@ package org.apache.camel.component.scheduler;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.naming.Context;
-
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.support.jndi.JndiContext;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,16 +44,14 @@ public class SchedulerRouteTest extends ContextTestSupport {
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() {
-                from("scheduler://foo?delay=100")
-                    .log("Fired scheduler")
-                    .to("bean:myBean", "mock:result");
+                from("scheduler://foo?delay=100").log("Fired scheduler").to("bean:myBean", "mock:result");
             }
         };
     }
 
     @Override
-    protected Context createJndiContext() throws Exception {
-        JndiContext answer = new JndiContext();
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
         answer.bind("myBean", bean);
         return answer;
     }

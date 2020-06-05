@@ -17,7 +17,6 @@
 package org.apache.camel.processor.interceptor;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
 
 import org.apache.camel.api.management.mbean.BacklogTracerEventMessage;
 
@@ -29,13 +28,13 @@ public final class DefaultBacklogTracerEventMessage implements BacklogTracerEven
     private static final long serialVersionUID = 1L;
 
     private final long uid;
-    private final Date timestamp;
+    private final long timestamp;
     private final String routeId;
     private final String toNode;
     private final String exchangeId;
     private final String messageAsXml;
 
-    public DefaultBacklogTracerEventMessage(long uid, Date timestamp, String routeId, String toNode, String exchangeId, String messageAsXml) {
+    public DefaultBacklogTracerEventMessage(long uid, long timestamp, String routeId, String toNode, String exchangeId, String messageAsXml) {
         this.uid = uid;
         this.timestamp = timestamp;
         this.routeId = routeId;
@@ -44,26 +43,32 @@ public final class DefaultBacklogTracerEventMessage implements BacklogTracerEven
         this.messageAsXml = messageAsXml;
     }
 
+    @Override
     public long getUid() {
         return uid;
     }
 
-    public Date getTimestamp() {
+    @Override
+    public long getTimestamp() {
         return timestamp;
     }
 
+    @Override
     public String getRouteId() {
         return routeId;
     }
 
+    @Override
     public String getToNode() {
         return toNode;
     }
 
+    @Override
     public String getExchangeId() {
         return exchangeId;
     }
 
+    @Override
     public String getMessageAsXml() {
         return messageAsXml;
     }
@@ -80,6 +85,7 @@ public final class DefaultBacklogTracerEventMessage implements BacklogTracerEven
      *
      * @return xml representation of this event
      */
+    @Override
     public String toXml(int indent) {
         StringBuilder prefix = new StringBuilder();
         for (int i = 0; i < indent; i++) {

@@ -17,27 +17,42 @@
 package org.apache.camel.processor;
 
 import org.apache.camel.AsyncCallback;
+import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.Predicate;
 import org.apache.camel.Processor;
 import org.apache.camel.Traceable;
 import org.apache.camel.spi.IdAware;
+import org.apache.camel.spi.RouteIdAware;
 import org.apache.camel.support.processor.DelegateAsyncProcessor;
 import org.apache.camel.support.service.ServiceHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The processor which implements the
  * <a href="http://camel.apache.org/message-filter.html">Message Filter</a> EIP pattern.
  */
-public class FilterProcessor extends DelegateAsyncProcessor implements Traceable, IdAware {
+public class FilterProcessor extends DelegateAsyncProcessor implements Traceable, IdAware, RouteIdAware {
 
+    private static final Logger LOG = LoggerFactory.getLogger(FilterProcessor.class);
+
+    private final CamelContext context;
     private String id;
+    private String routeId;
     private final Predicate predicate;
     private transient long filtered;
 
-    public FilterProcessor(Predicate predicate, Processor processor) {
+    public FilterProcessor(CamelContext context, Predicate predicate, Processor processor) {
         super(processor);
+        this.context = context;
         this.predicate = predicate;
+    }
+
+    @Override
+    protected void doInit() throws Exception {
+        super.doInit();
+        predicate.init(context);
     }
 
     @Override
@@ -61,7 +76,7 @@ public class FilterProcessor extends DelegateAsyncProcessor implements Traceable
     public boolean matches(Exchange exchange) {
         boolean matches = predicate.matches(exchange);
 
-        log.debug("Filter matches: {} for exchange: {}", matches, exchange);
+        LOG.debug("Filter matches: {} for exchange: {}", matches, exchange);
 
         // set property whether the filter matches or not
         exchange.setProperty(Exchange.FILTER_MATCHED, matches);
@@ -75,17 +90,30 @@ public class FilterProcessor extends DelegateAsyncProcessor implements Traceable
 
     @Override
     public String toString() {
-        return "Filter[if: " + predicate + " do: " + getProcessor() + "]";
+        return id;
     }
 
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public void setId(String id) {
         this.id = id;
     }
 
+    @Override
+    public String getRouteId() {
+        return routeId;
+    }
+
+    @Override
+    public void setRouteId(String routeId) {
+        this.routeId = routeId;
+    }
+
+    @Override
     public String getTraceLabel() {
         return "filter[if: " + predicate + "]";
     }

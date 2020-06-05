@@ -15,14 +15,15 @@
  * limitations under the License.
  */
 package org.apache.camel.component.file;
+
 import java.io.File;
 
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
 import org.apache.camel.language.bean.BeanExpression;
+import org.apache.camel.spi.Registry;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,8 +45,8 @@ public class FileConsumerMoveExpressionTest extends ContextTestSupport {
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myguidgenerator", new MyGuidGenerator());
         return jndi;
     }
@@ -55,8 +56,7 @@ public class FileConsumerMoveExpressionTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("file://target/data/filelanguage/?initialDelay=0&delay=10&exclude=.*bak"
-                        + "&move=${id}.bak").convertBodyTo(String.class).to("mock:result");
+                from("file://target/data/filelanguage/?initialDelay=0&delay=10&exclude=.*bak" + "&move=${id}.bak").convertBodyTo(String.class).to("mock:result");
             }
         });
         context.start();
@@ -79,8 +79,8 @@ public class FileConsumerMoveExpressionTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("file://target/data/filelanguage/?initialDelay=0&delay=10&exclude=.*bak"
-                     + "&move=backup-${id}-${file:name.noext}.bak").convertBodyTo(String.class).to("mock:result");
+                from("file://target/data/filelanguage/?initialDelay=0&delay=10&exclude=.*bak" + "&move=backup-${id}-${file:name.noext}.bak").convertBodyTo(String.class)
+                    .to("mock:result");
             }
         });
         context.start();
@@ -103,8 +103,8 @@ public class FileConsumerMoveExpressionTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("file://target/data/filelanguage/?initialDelay=0&delay=10&exclude=.*bak"
-                      + "&move=backup/${bean:myguidgenerator.guid}.txt").convertBodyTo(String.class).to("mock:result");
+                from("file://target/data/filelanguage/?initialDelay=0&delay=10&exclude=.*bak" + "&move=backup/${bean:myguidgenerator.guid}.txt").convertBodyTo(String.class)
+                    .to("mock:result");
             }
         });
         context.start();
@@ -122,8 +122,7 @@ public class FileConsumerMoveExpressionTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("file://target/data/filelanguage/?initialDelay=0&delay=10&exclude=.*bak"
-                     + "&move=../backup/${file:name}.bak").to("mock:result");
+                from("file://target/data/filelanguage/?initialDelay=0&delay=10&exclude=.*bak" + "&move=../backup/${file:name}.bak").to("mock:result");
             }
         });
         context.start();
@@ -159,8 +158,7 @@ public class FileConsumerMoveExpressionTest extends ContextTestSupport {
         mock.expectedBodiesReceived("Bean Language Rules The World");
         mock.expectedFileExists("target/data/filelanguage/123");
 
-        template.sendBodyAndHeader("file://target/data/filelanguage/", "Bean Language Rules The World",
-                Exchange.FILE_NAME, "report5.txt");
+        template.sendBodyAndHeader("file://target/data/filelanguage/", "Bean Language Rules The World", Exchange.FILE_NAME, "report5.txt");
         assertMockEndpointsSatisfied();
     }
 

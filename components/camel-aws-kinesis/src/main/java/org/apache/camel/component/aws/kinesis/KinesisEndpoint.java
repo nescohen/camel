@@ -26,7 +26,7 @@ import com.amazonaws.services.kinesis.AmazonKinesis;
 import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder;
 import com.amazonaws.services.kinesis.model.Record;
 import com.amazonaws.services.kinesis.model.ShardIteratorType;
-
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
@@ -37,17 +37,16 @@ import org.apache.camel.support.ScheduledPollEndpoint;
 import org.apache.camel.util.ObjectHelper;
 
 /**
- * The aws-kinesis component is for consuming and producing records from Amazon
- * Kinesis Streams.
+ * Consume and produce records from AWS Kinesis Streams.
  */
-@UriEndpoint(firstVersion = "2.17.0", scheme = "aws-kinesis", title = "AWS Kinesis", syntax = "aws-kinesis:streamName", label = "cloud,messaging")
+@UriEndpoint(firstVersion = "2.17.0", scheme = "aws-kinesis", title = "AWS Kinesis", syntax = "aws-kinesis:streamName", category = {Category.CLOUD, Category.MESSAGING})
 public class KinesisEndpoint extends ScheduledPollEndpoint {
 
     @UriParam
     private KinesisConfiguration configuration;
-    
+
     private AmazonKinesis kinesisClient;
-    
+
     public KinesisEndpoint(String uri, KinesisConfiguration configuration, KinesisComponent component) {
         super(uri, component);
         this.configuration = configuration;
@@ -58,14 +57,14 @@ public class KinesisEndpoint extends ScheduledPollEndpoint {
         super.doStart();
         kinesisClient = configuration.getAmazonKinesisClient() != null ? configuration.getAmazonKinesisClient()
             : createKinesisClient();
-       
-        
+
+
         if ((configuration.getIteratorType().equals(ShardIteratorType.AFTER_SEQUENCE_NUMBER) || configuration.getIteratorType().equals(ShardIteratorType.AT_SEQUENCE_NUMBER))
             && configuration.getSequenceNumber().isEmpty()) {
             throw new IllegalArgumentException("Sequence Number must be specified with iterator Types AFTER_SEQUENCE_NUMBER or AT_SEQUENCE_NUMBER");
         }
     }
-    
+
     @Override
     public void doStop() throws Exception {
         if (ObjectHelper.isEmpty(configuration.getAmazonKinesisClient())) {
@@ -105,7 +104,7 @@ public class KinesisEndpoint extends ScheduledPollEndpoint {
     public KinesisConfiguration getConfiguration() {
         return configuration;
     }
-    
+
     AmazonKinesis createKinesisClient() {
         AmazonKinesis client = null;
         ClientConfiguration clientConfiguration = null;
@@ -113,6 +112,7 @@ public class KinesisEndpoint extends ScheduledPollEndpoint {
         boolean isClientConfigFound = false;
         if (ObjectHelper.isNotEmpty(configuration.getProxyHost()) && ObjectHelper.isNotEmpty(configuration.getProxyPort())) {
             clientConfiguration = new ClientConfiguration();
+            clientConfiguration.setProxyProtocol(configuration.getProxyProtocol());
             clientConfiguration.setProxyHost(configuration.getProxyHost());
             clientConfiguration.setProxyPort(configuration.getProxyPort());
             isClientConfigFound = true;

@@ -23,7 +23,7 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 /**
@@ -47,8 +47,8 @@ public class FileConsumerBridgeRouteExceptionHandlerTest extends ContextTestSupp
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myReadLockStrategy", myReadLockStrategy);
         return jndi;
     }
@@ -60,16 +60,14 @@ public class FileConsumerBridgeRouteExceptionHandlerTest extends ContextTestSupp
             @Override
             public void configure() throws Exception {
                 // to handle any IOException being thrown
-                onException(IOException.class)
-                    .handled(true)
-                    .log("IOException occurred due: ${exception.message}")
-                    .transform().simple("Error ${exception.message}")
+                onException(IOException.class).handled(true).log("IOException occurred due: ${exception.message}").transform().simple("Error ${exception.message}")
                     .to("mock:error");
 
-                // this is the file route that pickup files, notice how we bridge the consumer to use the Camel routing error handler
-                // the exclusiveReadLockStrategy is only configured because this is from an unit test, so we use that to simulate exceptions
-                from("file:target/data/nospace?exclusiveReadLockStrategy=#myReadLockStrategy&consumer.bridgeErrorHandler=true&initialDelay=0&delay=10")
-                    .convertBodyTo(String.class)
+                // this is the file route that pickup files, notice how we
+                // bridge the consumer to use the Camel routing error handler
+                // the exclusiveReadLockStrategy is only configured because this
+                // is from an unit test, so we use that to simulate exceptions
+                from("file:target/data/nospace?exclusiveReadLockStrategy=#myReadLockStrategy&bridgeErrorHandler=true&initialDelay=0&delay=10").convertBodyTo(String.class)
                     .to("mock:result");
             }
         };
@@ -90,7 +88,8 @@ public class FileConsumerBridgeRouteExceptionHandlerTest extends ContextTestSupp
         public boolean acquireExclusiveReadLock(GenericFileOperations<File> operations, GenericFile<File> file, Exchange exchange) throws Exception {
             if (file.getFileNameOnly().equals("bye.txt")) {
                 if (counter++ == 0) {
-                    // force an exception on acquire attempt for the bye.txt file, on the first attempt
+                    // force an exception on acquire attempt for the bye.txt
+                    // file, on the first attempt
                     throw new IOException("Forced to simulate no space on device");
                 }
             }

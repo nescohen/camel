@@ -27,6 +27,7 @@ import org.apache.camel.spi.Metadata;
 import org.apache.camel.support.DefaultComponent;
 import org.apache.camel.support.processor.DefaultExchangeFormatter;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The <a href="http://camel.apache.org/log.html">Log Component</a>
@@ -35,12 +36,15 @@ import org.slf4j.Logger;
 @org.apache.camel.spi.annotations.Component("log")
 public class LogComponent extends DefaultComponent {
 
+    private static final Logger LOG = LoggerFactory.getLogger(LogComponent.class);
+
     @Metadata(label = "advanced")
     private ExchangeFormatter exchangeFormatter;
 
     public LogComponent() {
     }
 
+    @Override
     protected Endpoint createEndpoint(String uri, String remaining, Map<String, Object> parameters) throws Exception {
         LoggingLevel level = getLoggingLevel(parameters);
         Logger providedLogger = getLogger(parameters);
@@ -50,36 +54,32 @@ public class LogComponent extends DefaultComponent {
             Map<String, Logger> availableLoggers = getCamelContext().getRegistry().findByTypeWithName(Logger.class);
             if (availableLoggers.size() == 1) {
                 providedLogger = availableLoggers.values().iterator().next();
-                log.info("Using custom Logger: {}", providedLogger);
+                LOG.info("Using custom Logger: {}", providedLogger);
             } else if (availableLoggers.size() > 1) {
-                log.info("More than one {} instance found in the registry. Falling back to creating logger from URI {}.", Logger.class.getName(), uri);
+                LOG.info("More than one {} instance found in the registry. Falling back to creating logger from URI {}.", Logger.class.getName(), uri);
             }
         }
-        
+
+        // first, try to pick up the ExchangeFormatter from the registry
+        ExchangeFormatter logFormatter = getCamelContext().getRegistry().lookupByNameAndType("logFormatter", ExchangeFormatter.class);
+        if (logFormatter != null) {
+            setProperties(logFormatter, parameters);
+        } else if (exchangeFormatter != null) {
+            // do not set properties, the exchangeFormatter is explicitly set, therefore the
+            // user would have set its properties explicitly too
+            logFormatter = exchangeFormatter;
+        }
+
         LogEndpoint endpoint = new LogEndpoint(uri, this);
         endpoint.setLevel(level.name());
-        setProperties(endpoint, parameters);
-      
+        endpoint.setExchangeFormatter(logFormatter);
         if (providedLogger == null) {
             endpoint.setLoggerName(remaining);
         } else {
             endpoint.setProvidedLogger(providedLogger);
         }
+        setProperties(endpoint, parameters);
 
-        // first, try to pick up the ExchangeFormatter from the registry
-        ExchangeFormatter localFormatter = getCamelContext().getRegistry().lookupByNameAndType("logFormatter", ExchangeFormatter.class);
-        if (localFormatter != null) {
-            setProperties(localFormatter, parameters);
-        } else if (localFormatter == null && exchangeFormatter != null) {
-            // do not set properties, the exchangeFormatter is explicitly set, therefore the
-            // user would have set its properties explicitly too
-            localFormatter = exchangeFormatter;
-        } else {
-            // if no formatter is available in the Registry, create a local one of the default type, for a single use
-            localFormatter = new DefaultExchangeFormatter();
-            setProperties(localFormatter, parameters);
-        }
-        endpoint.setLocalFormatter(localFormatter);
         return endpoint;
     }
 

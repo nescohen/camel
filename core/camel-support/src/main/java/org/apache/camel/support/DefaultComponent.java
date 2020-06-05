@@ -27,40 +27,59 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.camel.AfterPropertiesConfigured;
 import org.apache.camel.CamelContext;
 import org.apache.camel.CamelContextAware;
 import org.apache.camel.Component;
 import org.apache.camel.Endpoint;
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.ResolveEndpointFailedException;
 import org.apache.camel.component.extension.ComponentExtension;
 import org.apache.camel.spi.Metadata;
-import org.apache.camel.spi.PropertiesComponent;
+import org.apache.camel.spi.PropertyConfigurer;
+import org.apache.camel.spi.PropertyConfigurerAware;
 import org.apache.camel.support.service.ServiceSupport;
 import org.apache.camel.util.ObjectHelper;
+import org.apache.camel.util.PropertiesHelper;
+import org.apache.camel.util.StringHelper;
 import org.apache.camel.util.URISupport;
 import org.apache.camel.util.UnsafeUriCharactersEncoder;
 import org.apache.camel.util.function.Suppliers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default component to use for base for components implementations.
  */
 public abstract class DefaultComponent extends ServiceSupport implements Component {
 
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultComponent.class);
+
     /**
      * Simple RAW() pattern used only for validating URI in this class
      */
     private static final Pattern RAW_PATTERN = Pattern.compile("RAW[({].*&&.*[)}]");
 
-    private final List<Supplier<ComponentExtension>> extensions = new ArrayList<>();
+    private static final String RESOURCE_PATH = "META-INF/services/org/apache/camel/configurer/";
 
+    private volatile PropertyConfigurer componentPropertyConfigurer;
+    private volatile PropertyConfigurer endpointPropertyConfigurer;
+    private final List<Supplier<ComponentExtension>> extensions = new ArrayList<>();
     private CamelContext camelContext;
 
-    @Metadata(label = "advanced", defaultValue = "true",
-        description = "Whether the component should resolve property placeholders on itself when starting. Only properties which are of String type can use property placeholders.")
-    private boolean resolvePropertyPlaceholders = true;
     @Metadata(label = "advanced",
         description = "Whether the component should use basic property binding (Camel 2.x) or the newer property binding with additional capabilities")
     private boolean basicPropertyBinding;
+    @Metadata(label = "consumer", description = "Allows for bridging the consumer to the Camel routing Error Handler, which mean any exceptions occurred while"
+            + " the consumer is trying to pickup incoming messages, or the likes, will now be processed as a message and handled by the routing Error Handler."
+            + " By default the consumer will use the org.apache.camel.spi.ExceptionHandler to deal with exceptions, that will be logged at WARN or ERROR level and ignored.")
+    private boolean bridgeErrorHandler;
+    @Metadata(label = "producer",
+            description = "Whether the producer should be started lazy (on the first message). By starting lazy you can use this to allow CamelContext and routes to startup"
+                    + " in situations where a producer may otherwise fail during starting and cause the route to fail being started. By deferring this startup to be lazy then"
+                    + " the startup failure can be handled during routing messages via Camel's routing error handlers. Beware that when the first message is processed"
+                    + " then creating and starting the producer may take a little time and prolong the total processing time of the processing.")
+    private boolean lazyStartProducer;
 
     public DefaultComponent() {
     }
@@ -69,16 +88,10 @@ public abstract class DefaultComponent extends ServiceSupport implements Compone
         this.camelContext = context;
     }
 
-    @Deprecated
-    protected String preProcessUri(String uri) {
-        return UnsafeUriCharactersEncoder.encode(uri);
-    }
-
     @Override
     public Endpoint createEndpoint(String uri, Map<String, Object> properties) throws Exception {
-        ObjectHelper.notNull(getCamelContext(), "camelContext");
-        // check URI string to the unsafe URI characters
-        String encodedUri = preProcessUri(uri);
+        // need to encode before its safe to parse with java.net.Uri
+        String encodedUri = UnsafeUriCharactersEncoder.encode(uri);
         URI u = new URI(encodedUri);
         String path;
         if (u.getScheme() != null) {
@@ -113,30 +126,46 @@ public abstract class DefaultComponent extends ServiceSupport implements Compone
         }
         // This special property is only to identify endpoints in a unique manner
         parameters.remove("hash");
+        // parameters using raw syntax: RAW(value)
+        // should have the token removed, so its only the value we have in parameters, as we are about to create
+        // an endpoint and want to have the parameter values without the RAW tokens
+        URISupport.resolveRawParameterValues(parameters);
 
         validateURI(uri, path, parameters);
-        if (log.isTraceEnabled()) {
+        if (LOG.isTraceEnabled()) {
             // at trace level its okay to have parameters logged, that may contain passwords
-            log.trace("Creating endpoint uri=[{}], path=[{}], parameters=[{}]", URISupport.sanitizeUri(uri), URISupport.sanitizePath(path), parameters);
-        } else if (log.isDebugEnabled()) {
+            LOG.trace("Creating endpoint uri=[{}], path=[{}], parameters=[{}]", URISupport.sanitizeUri(uri), URISupport.sanitizePath(path), parameters);
+        } else if (LOG.isDebugEnabled()) {
             // but at debug level only output sanitized uris
-            log.debug("Creating endpoint uri=[{}], path=[{}]", URISupport.sanitizeUri(uri), URISupport.sanitizePath(path));
+            LOG.debug("Creating endpoint uri=[{}], path=[{}]", URISupport.sanitizeUri(uri), URISupport.sanitizePath(path));
         }
+
+        // extract these global options and infer their value based on global/component level configuration
+        boolean basic = getAndRemoveParameter(parameters, "basicPropertyBinding", boolean.class, basicPropertyBinding
+                ? basicPropertyBinding : getCamelContext().getGlobalEndpointConfiguration().isBasicPropertyBinding());
+        boolean bridge = getAndRemoveParameter(parameters, "bridgeErrorHandler", boolean.class, bridgeErrorHandler
+                ? bridgeErrorHandler : getCamelContext().getGlobalEndpointConfiguration().isBridgeErrorHandler());
+        boolean lazy = getAndRemoveParameter(parameters, "lazyStartProducer", boolean.class, lazyStartProducer
+                ? lazyStartProducer : getCamelContext().getGlobalEndpointConfiguration().isLazyStartProducer());
+
+        // create endpoint
         Endpoint endpoint = createEndpoint(uri, path, parameters);
         if (endpoint == null) {
             return null;
         }
+        // inject camel context
+        endpoint.setCamelContext(getCamelContext());
 
-        // setup whether to use basic property binding or not which must be done before we set properties
-        boolean basic = getAndRemoveParameter(parameters, "basicPropertyBinding", boolean.class, basicPropertyBinding);
+        // and setup those global options afterwards
         if (endpoint instanceof DefaultEndpoint) {
-            ((DefaultEndpoint) endpoint).setBasicPropertyBinding(basic);
+            DefaultEndpoint de = (DefaultEndpoint) endpoint;
+            de.setBasicPropertyBinding(basic);
+            de.setBridgeErrorHandler(bridge);
+            de.setLazyStartProducer(lazy);
         }
 
-        endpoint.configureProperties(parameters);
-        if (useIntrospectionOnEndpoint()) {
-            setProperties(endpoint, parameters);
-        }
+        // configure remainder of the parameters
+        setProperties(endpoint, parameters);
 
         // if endpoint is strict (not lenient) and we have unknown parameters configured then
         // fail if there are parameters that could not be set, then they are probably misspell or not supported at all
@@ -148,10 +177,10 @@ public abstract class DefaultComponent extends ServiceSupport implements Compone
         return endpoint;
     }
 
+    @Override
     public Endpoint createEndpoint(String uri) throws Exception {
-        ObjectHelper.notNull(getCamelContext(), "camelContext");
-        // check URI string to the unsafe URI characters
-        String encodedUri = preProcessUri(uri);
+        // need to encode before its safe to parse with java.net.Uri
+        String encodedUri = UnsafeUriCharactersEncoder.encode(uri);
         URI u = new URI(encodedUri);
         String path;
         if (u.getScheme() != null) {
@@ -189,33 +218,49 @@ public abstract class DefaultComponent extends ServiceSupport implements Compone
         uri = useRawUri() ? uri : encodedUri;
 
         validateURI(uri, path, parameters);
-        if (log.isTraceEnabled()) {
+        if (LOG.isTraceEnabled()) {
             // at trace level its okay to have parameters logged, that may contain passwords
-            log.trace("Creating endpoint uri=[{}], path=[{}], parameters=[{}]", URISupport.sanitizeUri(uri), URISupport.sanitizePath(path), parameters);
-        } else if (log.isDebugEnabled()) {
+            LOG.trace("Creating endpoint uri=[{}], path=[{}], parameters=[{}]", URISupport.sanitizeUri(uri), URISupport.sanitizePath(path), parameters);
+        } else if (LOG.isDebugEnabled()) {
             // but at debug level only output sanitized uris
-            log.debug("Creating endpoint uri=[{}], path=[{}]", URISupport.sanitizeUri(uri), URISupport.sanitizePath(path));
+            LOG.debug("Creating endpoint uri=[{}], path=[{}]", URISupport.sanitizeUri(uri), URISupport.sanitizePath(path));
         }
+
+        // extract these global options and infer their value based on global/component level configuration
+        boolean basic = getAndRemoveParameter(parameters, "basicPropertyBinding", boolean.class, basicPropertyBinding
+                ? basicPropertyBinding : getCamelContext().getGlobalEndpointConfiguration().isBasicPropertyBinding());
+        boolean bridge = getAndRemoveParameter(parameters, "bridgeErrorHandler", boolean.class, bridgeErrorHandler
+                ? bridgeErrorHandler : getCamelContext().getGlobalEndpointConfiguration().isBridgeErrorHandler());
+        boolean lazy = getAndRemoveParameter(parameters, "lazyStartProducer", boolean.class, lazyStartProducer
+                ? lazyStartProducer : getCamelContext().getGlobalEndpointConfiguration().isLazyStartProducer());
+
         Endpoint endpoint = createEndpoint(uri, path, parameters);
         if (endpoint == null) {
             return null;
         }
+        // inject camel context
+        endpoint.setCamelContext(getCamelContext());
 
-        // setup whether to use basic property binding or not which must be done before we set properties 
-        boolean basic = getAndRemoveParameter(parameters, "basicPropertyBinding", boolean.class, basicPropertyBinding);
+        // and setup those global options afterwards
         if (endpoint instanceof DefaultEndpoint) {
-            ((DefaultEndpoint) endpoint).setBasicPropertyBinding(basic);
+            DefaultEndpoint de = (DefaultEndpoint) endpoint;
+            de.setBasicPropertyBinding(basic);
+            de.setBridgeErrorHandler(bridge);
+            de.setLazyStartProducer(lazy);
         }
 
-        endpoint.configureProperties(parameters);
-        if (useIntrospectionOnEndpoint()) {
-            setProperties(endpoint, parameters);
-        }
+        // configure remainder of the parameters
+        setProperties(endpoint, parameters);
 
         // if endpoint is strict (not lenient) and we have unknown parameters configured then
         // fail if there are parameters that could not be set, then they are probably misspell or not supported at all
         if (!endpoint.isLenientProperties()) {
             validateParameters(uri, parameters, null);
+        }
+
+        // allow custom configuration after properties has been configured
+        if (endpoint instanceof AfterPropertiesConfigured) {
+            ((AfterPropertiesConfigured) endpoint).afterPropertiesConfigured(getCamelContext());
         }
 
         afterConfiguration(uri, path, endpoint, parameters);
@@ -226,22 +271,6 @@ public abstract class DefaultComponent extends ServiceSupport implements Compone
     public boolean useRawUri() {
         // should use encoded uri by default
         return false;
-    }
-
-    /**
-     * Whether the component should resolve property placeholders on itself when starting.
-     * Only properties which are of String type can use property placeholders.
-     */
-    public void setResolvePropertyPlaceholders(boolean resolvePropertyPlaceholders) {
-        this.resolvePropertyPlaceholders = resolvePropertyPlaceholders;
-    }
-
-    /**
-     * Whether the component should resolve property placeholders on itself when starting.
-     * Only properties which are of String type can use property placeholders.
-     */
-    public boolean isResolvePropertyPlaceholders() {
-        return resolvePropertyPlaceholders;
     }
 
     /**
@@ -256,6 +285,36 @@ public abstract class DefaultComponent extends ServiceSupport implements Compone
      */
     public void setBasicPropertyBinding(boolean basicPropertyBinding) {
         this.basicPropertyBinding = basicPropertyBinding;
+    }
+
+    public boolean isLazyStartProducer() {
+        return lazyStartProducer;
+    }
+
+    /**
+     * Whether the producer should be started lazy (on the first message). By starting lazy you can use this to allow CamelContext and routes to startup
+     * in situations where a producer may otherwise fail during starting and cause the route to fail being started. By deferring this startup to be lazy then
+     * the startup failure can be handled during routing messages via Camel's routing error handlers. Beware that when the first message is processed
+     * then creating and starting the producer may take a little time and prolong the total processing time of the processing.
+     */
+    public void setLazyStartProducer(boolean lazyStartProducer) {
+        this.lazyStartProducer = lazyStartProducer;
+    }
+
+    public boolean isBridgeErrorHandler() {
+        return bridgeErrorHandler;
+    }
+
+    /**
+     * Allows for bridging the consumer to the Camel routing Error Handler, which mean any exceptions occurred while
+     * the consumer is trying to pickup incoming messages, or the likes, will now be processed as a message and
+     * handled by the routing Error Handler.
+     * <p/>
+     * By default the consumer will use the org.apache.camel.spi.ExceptionHandler to deal with exceptions,
+     * that will be logged at WARN/ERROR level and ignored.
+     */
+    public void setBridgeErrorHandler(boolean bridgeErrorHandler) {
+        this.bridgeErrorHandler = bridgeErrorHandler;
     }
 
     /**
@@ -289,7 +348,7 @@ public abstract class DefaultComponent extends ServiceSupport implements Compone
 
         Map<String, Object> param = parameters;
         if (optionPrefix != null) {
-            param = IntrospectionSupport.extractProperties(parameters, optionPrefix);
+            param = PropertiesHelper.extractProperties(parameters, optionPrefix);
         }
 
         if (param.size() > 0) {
@@ -326,29 +385,38 @@ public abstract class DefaultComponent extends ServiceSupport implements Compone
         }
     }
 
+    @Override
     public CamelContext getCamelContext() {
         return camelContext;
     }
 
+    @Override
     public void setCamelContext(CamelContext context) {
         this.camelContext = context;
     }
 
-    protected void doStart() throws Exception {
-        ObjectHelper.notNull(getCamelContext(), "camelContext");
-
-        if (isResolvePropertyPlaceholders()) {
-            // only resolve property placeholders if its in use
-            PropertiesComponent existing = camelContext.getPropertiesComponent(false);
-            if (existing != null) {
-                log.debug("Resolving property placeholders on component: {}", this);
-                PropertyPlaceholdersHelper.resolvePropertyPlaceholders(camelContext, this);
-            } else {
-                log.debug("Cannot resolve property placeholders on component: {} as PropertiesComponent is not in use", this);
+    @Override
+    protected void doBuild() throws Exception {
+        org.apache.camel.spi.annotations.Component ann = ObjectHelper.getAnnotation(this, org.apache.camel.spi.annotations.Component.class);
+        if (ann != null) {
+            String name = ann.value();
+            // just grab first scheme name if the component has scheme alias (eg http,https)
+            if (name.contains(",")) {
+                name = StringHelper.before(name, ",");
             }
+            final String componentConfigurerName = name + "-component-configurer";
+            componentPropertyConfigurer = getCamelContext().adapt(ExtendedCamelContext.class).getConfigurerResolver().resolvePropertyConfigurer(componentConfigurerName, getCamelContext());
+            final String endpointConfigurerName = name + "-endpoint-configurer";
+            endpointPropertyConfigurer = getCamelContext().adapt(ExtendedCamelContext.class).getConfigurerResolver().resolvePropertyConfigurer(endpointConfigurerName, getCamelContext());
         }
     }
 
+    @Override
+    protected void doStart() throws Exception {
+        ObjectHelper.notNull(getCamelContext(), "camelContext");
+    }
+
+    @Override
     protected void doStop() throws Exception {
         // noop
     }
@@ -369,6 +437,23 @@ public abstract class DefaultComponent extends ServiceSupport implements Compone
         throws Exception;
 
     /**
+     * Configure an endpoint using the given parameters.
+     * In the usual cases, this is the only call needed after having created the endpoint
+     * in the {@link #createEndpoint(String, String, Map)} method's implementation.
+     *
+     * This method will call the {@link Endpoint#configureProperties(Map)} method which
+     * should delegate the the endpoint's {@link PropertyConfigurer} instance.
+     * In some rare cases, you need to override this method to explicitely set parameters
+     * in case a simple generated configurer can not be used.
+     *
+     * @param endpoint    the endpoint
+     * @param parameters  properties to set
+     */
+    protected void setProperties(Endpoint endpoint, Map<String, Object> parameters) throws Exception {
+        endpoint.configureProperties(parameters);
+    }
+
+    /**
      * Sets the bean properties on the given bean
      *
      * @param bean        the bean
@@ -386,20 +471,45 @@ public abstract class DefaultComponent extends ServiceSupport implements Compone
      * @param parameters    properties to set
      */
     protected void setProperties(CamelContext camelContext, Object bean, Map<String, Object> parameters) throws Exception {
-        if (basicPropertyBinding) {
+        if (parameters == null || parameters.isEmpty()) {
+            return;
+        }
+
+        boolean basic = basicPropertyBinding || "true".equals(parameters.getOrDefault("basicPropertyBinding", "false"));
+        if (basic) {
             // use basic binding
             PropertyBindingSupport.build()
                     .withPlaceholder(false).withNesting(false).withDeepNesting(false).withReference(false)
                     .bind(camelContext, bean, parameters);
         } else {
+            PropertyConfigurer configurer;
+            if (bean instanceof Component) {
+                configurer = getComponentPropertyConfigurer();
+            } else if (bean instanceof Endpoint) {
+                configurer = getEndpointPropertyConfigurer();
+            } else if (bean instanceof PropertyConfigurerAware) {
+                configurer = ((PropertyConfigurerAware) bean).getPropertyConfigurer(bean);
+            } else {
+                configurer = null;
+            }
             // use advanced binding
-            PropertyBindingSupport.bindProperties(camelContext, bean, parameters);
+            PropertyBindingSupport.build().withConfigurer(configurer).bind(camelContext, bean, parameters);
         }
+    }
+
+    @Override
+    public PropertyConfigurer getComponentPropertyConfigurer() {
+        return componentPropertyConfigurer;
+    }
+
+    @Override
+    public PropertyConfigurer getEndpointPropertyConfigurer() {
+        return endpointPropertyConfigurer;
     }
 
     /**
      * Derived classes may wish to overload this to prevent the default introspection of URI parameters
-     * on the created Endpoint instance
+     * on the created {@link Endpoint} instance.
      */
     protected boolean useIntrospectionOnEndpoint() {
         return true;
@@ -480,15 +590,15 @@ public abstract class DefaultComponent extends ServiceSupport implements Compone
     }
 
     /**
-     * Resolves a reference parameter in the registry and removes it from the map. 
+     * Resolves a reference parameter in the registry and removes it from the map.
      *
      * @param <T>           type of object to lookup in the registry.
      * @param parameters    parameter map.
      * @param key           parameter map key.
      * @param type          type of object to lookup in the registry.
-     * @return the referenced object or <code>null</code> if the parameter map 
+     * @return the referenced object or <code>null</code> if the parameter map
      *         doesn't contain the key.
-     * @throws IllegalArgumentException if a non-null reference was not found in 
+     * @throws IllegalArgumentException if a non-null reference was not found in
      *         registry.
      */
     public <T> T resolveAndRemoveReferenceParameter(Map<String, Object> parameters, String key, Class<T> type) {
@@ -496,16 +606,16 @@ public abstract class DefaultComponent extends ServiceSupport implements Compone
     }
 
     /**
-     * Resolves a reference parameter in the registry and removes it from the map. 
+     * Resolves a reference parameter in the registry and removes it from the map.
      *
      * @param <T>           type of object to lookup in the registry.
      * @param parameters    parameter map.
      * @param key           parameter map key.
      * @param type          type of object to lookup in the registry.
-     * @param defaultValue  default value to use if the parameter map doesn't 
+     * @param defaultValue  default value to use if the parameter map doesn't
      *                      contain the key.
      * @return the referenced object or the default value.
-     * @throws IllegalArgumentException if referenced object was not found in 
+     * @throws IllegalArgumentException if referenced object was not found in
      *         registry.
      */
     public <T> T resolveAndRemoveReferenceParameter(Map<String, Object> parameters, String key, Class<T> type, T defaultValue) {
@@ -544,7 +654,7 @@ public abstract class DefaultComponent extends ServiceSupport implements Compone
      * @param defaultValue default value to use if the parameter map doesn't
      *            contain the key.
      * @return the list of referenced objects or the default value.
-     * @throws IllegalArgumentException if any of the referenced objects was 
+     * @throws IllegalArgumentException if any of the referenced objects was
      *         not found in registry.
      * @see EndpointHelper#resolveReferenceListParameter(CamelContext, String, Class)
      */

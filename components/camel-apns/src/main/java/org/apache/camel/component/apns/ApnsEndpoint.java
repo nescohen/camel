@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import com.notnoop.apns.ApnsService;
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
@@ -30,9 +31,9 @@ import org.apache.camel.support.DefaultConsumer;
 import org.apache.camel.support.ScheduledPollEndpoint;
 
 /**
- * For sending notifications to Apple iOS devices.
+ * Send notifications to Apple iOS devices.
  */
-@UriEndpoint(firstVersion = "2.8.0", scheme = "apns", title = "APNS", syntax = "apns:name", label = "eventbus,mobile")
+@UriEndpoint(firstVersion = "2.8.0", scheme = "apns", title = "APNS", syntax = "apns:name", category = {Category.EVENTBUS, Category.MOBILE})
 public class ApnsEndpoint extends ScheduledPollEndpoint {
 
     private final CopyOnWriteArraySet<DefaultConsumer> consumers = new CopyOnWriteArraySet<>();
@@ -77,12 +78,14 @@ public class ApnsEndpoint extends ScheduledPollEndpoint {
         return consumers;
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         ApnsConsumer apnsConsumer = new ApnsConsumer(this, processor);
         configureConsumer(apnsConsumer);
         return apnsConsumer;
     }
 
+    @Override
     public Producer createProducer() throws Exception {
         return new ApnsProducer(this);
     }

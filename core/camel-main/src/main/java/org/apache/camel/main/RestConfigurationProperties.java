@@ -18,12 +18,14 @@ package org.apache.camel.main;
 
 import java.util.HashMap;
 
+import org.apache.camel.spi.Configurer;
 import org.apache.camel.spi.RestConfiguration;
 import org.apache.camel.support.PatternHelper;
 
 /**
  * Global configuration for Rest DSL.
  */
+@Configurer
 public class RestConfigurationProperties extends RestConfiguration {
 
     private final MainConfigurationProperties parent;
@@ -46,7 +48,7 @@ public class RestConfigurationProperties extends RestConfiguration {
     // --------------------------------------------------------------
 
     /**
-     * The Camel Rest component to use for the REST transport (consumer), such as restlet, spark-rest.
+     * The Camel Rest component to use for the REST transport (consumer), such as netty-http, jetty, servlet, undertow.
      * If no component has been explicit configured, then Camel will lookup if there is a Camel component
      * that integrates with the Rest DSL, or if a org.apache.camel.spi.RestConsumerFactory is registered in the registry.
      * If either one is found, then that is being used.
@@ -142,7 +144,7 @@ public class RestConfigurationProperties extends RestConfiguration {
      * Sets a leading context-path the REST services will be using.
      * <p/>
      * This can be used when using components such as <tt>camel-servlet</tt> where the deployed web application
-     * is deployed using a context-path. Or for components such as <tt>camel-jetty</tt> or <tt>camel-netty4-http</tt>
+     * is deployed using a context-path. Or for components such as <tt>camel-jetty</tt> or <tt>camel-netty-http</tt>
      * that includes a HTTP server.
      */
     public RestConfigurationProperties withContextPath(String contextPath) {

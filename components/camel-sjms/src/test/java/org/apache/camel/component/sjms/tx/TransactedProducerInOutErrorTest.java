@@ -17,7 +17,6 @@
 package org.apache.camel.component.sjms.tx;
 
 import org.apache.camel.CamelContext;
-import org.apache.camel.FailedToCreateProducerException;
 import org.apache.camel.FailedToStartRouteException;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.sjms.CamelJmsTestHelper;
@@ -45,7 +44,6 @@ public class TransactedProducerInOutErrorTest {
             context.start();
         } catch (Throwable t) {
             Assert.assertEquals(FailedToStartRouteException.class, t.getClass());
-            Assert.assertEquals(FailedToCreateProducerException.class, t.getCause().getClass());
             Assert.assertEquals(IllegalArgumentException.class, t.getCause().getCause().getClass());
             LOG.info("Exception was thrown as expected", t);
             throw t;

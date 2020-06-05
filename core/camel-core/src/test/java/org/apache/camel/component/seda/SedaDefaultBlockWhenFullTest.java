@@ -18,7 +18,7 @@ package org.apache.camel.component.seda;
 
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 /**
@@ -35,11 +35,11 @@ public class SedaDefaultBlockWhenFullTest extends ContextTestSupport {
     private static final String DEFAULT_URI = "seda:foo" + String.format(SIZE_PARAM, QUEUE_SIZE) + "&blockWhenFull=false&timeout=0";
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
+    protected Registry createRegistry() throws Exception {
         SedaComponent component = new SedaComponent();
         component.setDefaultBlockWhenFull(true);
 
-        JndiRegistry registry = super.createRegistry();
+        Registry registry = super.createRegistry();
         registry.bind("seda", component);
 
         return registry;
@@ -81,14 +81,14 @@ public class SedaDefaultBlockWhenFullTest extends ContextTestSupport {
     @Test
     public void testSedaBlockingWhenFull() throws Exception {
         getMockEndpoint(MOCK_URI).setExpectedMessageCount(QUEUE_SIZE + 2);
-        
+
         SedaEndpoint seda = context.getEndpoint(BLOCK_WHEN_FULL_URI, SedaEndpoint.class);
         assertEquals(QUEUE_SIZE, seda.getQueue().remainingCapacity());
 
         sendTwoOverCapacity(BLOCK_WHEN_FULL_URI, QUEUE_SIZE);
         assertMockEndpointsSatisfied();
     }
-    
+
     /**
      * This method make sure that we hit the limit by sending two msg over the
      * given capacity which allows the delayer to kick in, leaving the 2nd msg
@@ -99,5 +99,5 @@ public class SedaDefaultBlockWhenFullTest extends ContextTestSupport {
             template.sendBody(uri, "Message " + i);
         }
     }
-    
+
 }

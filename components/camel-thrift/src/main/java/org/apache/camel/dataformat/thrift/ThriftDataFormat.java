@@ -24,6 +24,7 @@ import org.apache.camel.CamelContextAware;
 import org.apache.camel.CamelException;
 import org.apache.camel.Exchange;
 import org.apache.camel.spi.DataFormat;
+import org.apache.camel.spi.DataFormatContentTypeHeader;
 import org.apache.camel.spi.DataFormatName;
 import org.apache.camel.spi.annotations.Dataformat;
 import org.apache.camel.support.service.ServiceSupport;
@@ -38,7 +39,7 @@ import org.apache.thrift.protocol.TJSONProtocol;
 import org.apache.thrift.protocol.TSimpleJSONProtocol;
 
 @Dataformat("thrift")
-public class ThriftDataFormat extends ServiceSupport implements DataFormat, DataFormatName, CamelContextAware {
+public class ThriftDataFormat extends ServiceSupport implements DataFormat, DataFormatName, DataFormatContentTypeHeader, CamelContextAware {
 
     public static final String CONTENT_TYPE_FORMAT_BINARY = "binary";
     public static final String CONTENT_TYPE_FORMAT_JSON = "json";
@@ -73,10 +74,12 @@ public class ThriftDataFormat extends ServiceSupport implements DataFormat, Data
         return "thrift";
     }
 
+    @Override
     public CamelContext getCamelContext() {
         return camelContext;
     }
 
+    @Override
     public void setCamelContext(CamelContext camelContext) {
         this.camelContext = camelContext;
     }
@@ -123,6 +126,7 @@ public class ThriftDataFormat extends ServiceSupport implements DataFormat, Data
      * @see org.apache.camel.spi.DataFormat#marshal(org.apache.camel.Exchange,
      * java.lang.Object, java.io.OutputStream)
      */
+    @Override
     @SuppressWarnings("rawtypes")
     public void marshal(final Exchange exchange, final Object graph, final OutputStream outputStream) throws Exception {
         String contentTypeHeader = CONTENT_TYPE_HEADER_NATIVE;
@@ -157,6 +161,7 @@ public class ThriftDataFormat extends ServiceSupport implements DataFormat, Data
      * @see org.apache.camel.spi.DataFormat#unmarshal(org.apache.camel.Exchange,
      * java.io.InputStream)
      */
+    @Override
     public Object unmarshal(final Exchange exchange, final InputStream inputStream) throws Exception {
         TDeserializer deserializer;
         ObjectHelper.notNull(defaultInstance, "defaultInstance or instanceClassName must be set", this);

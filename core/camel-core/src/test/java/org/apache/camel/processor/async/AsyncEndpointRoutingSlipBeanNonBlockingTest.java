@@ -28,8 +28,8 @@ import org.apache.camel.Exchange;
 import org.apache.camel.ExchangePattern;
 import org.apache.camel.RoutingSlip;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
 import org.apache.camel.processor.SendProcessor;
+import org.apache.camel.spi.Registry;
 import org.apache.camel.support.AsyncProcessorSupport;
 import org.apache.camel.support.service.ServiceHelper;
 import org.junit.Assert;
@@ -40,8 +40,8 @@ public class AsyncEndpointRoutingSlipBeanNonBlockingTest extends ContextTestSupp
     private Exchange innerExchange;
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myBean", new MyRoutingSlipBean());
         return jndi;
     }
@@ -57,7 +57,7 @@ public class AsyncEndpointRoutingSlipBeanNonBlockingTest extends ContextTestSupp
         try {
             Future<Boolean> asyncFuture = executorService.submit(new ExchangeSubmitter(startEndpoint, asyncSender));
             Assert.assertFalse(asyncFuture.get(5, TimeUnit.SECONDS));
-            innerExchange.getOut().setBody("Bye Camel");
+            innerExchange.getMessage().setBody("Bye Camel");
             innerCallback.done(false);
 
             assertMockEndpointsSatisfied();
@@ -74,10 +74,8 @@ public class AsyncEndpointRoutingSlipBeanNonBlockingTest extends ContextTestSupp
             public void configure() throws Exception {
                 context.addComponent("async", new MyAsyncComponent());
 
-                from("direct:start")
-                    .to("bean:myBean");
-                from("direct:asyncRoute")
-                    .process(new MyAsyncProcessor());
+                from("direct:start").to("bean:myBean");
+                from("direct:asyncRoute").process(new MyAsyncProcessor());
             }
         };
     }

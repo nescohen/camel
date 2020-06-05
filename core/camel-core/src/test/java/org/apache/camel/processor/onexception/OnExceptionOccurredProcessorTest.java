@@ -20,14 +20,14 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class OnExceptionOccurredProcessorTest extends ContextTestSupport {
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myProcessor", new MyProcessor());
         return jndi;
     }
@@ -54,8 +54,9 @@ public class OnExceptionOccurredProcessorTest extends ContextTestSupport {
 
                 errorHandler(deadLetterChannel("mock:dead").maximumRedeliveries(3).redeliveryDelay(0).onExceptionOccurred(myProcessor));
 
-                from("direct:start")
-                    .throwException(new IllegalArgumentException("Forced"));
+                from("direct:start").to("log:a").to("direct:foo").to("log:b");
+
+                from("direct:foo").throwException(new IllegalArgumentException("Forced"));
             }
         };
     }

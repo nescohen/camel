@@ -25,7 +25,7 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.mq.AmazonMQ;
 import com.amazonaws.services.mq.AmazonMQClient;
 import com.amazonaws.services.mq.AmazonMQClientBuilder;
-
+import org.apache.camel.Category;
 import org.apache.camel.Component;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
@@ -36,9 +36,9 @@ import org.apache.camel.support.ScheduledPollEndpoint;
 import org.apache.camel.util.ObjectHelper;
 
 /**
- * The aws-mq is used for managing Amazon MQ instances.
+ * Manage AWS MQ instances.
  */
-@UriEndpoint(firstVersion = "2.21.0", scheme = "aws-mq", title = "AWS MQ", syntax = "aws-mq:label", producerOnly = true, label = "cloud,management")
+@UriEndpoint(firstVersion = "2.21.0", scheme = "aws-mq", title = "AWS MQ", syntax = "aws-mq:label", producerOnly = true, category = {Category.CLOUD, Category.MESSAGING})
 public class MQEndpoint extends ScheduledPollEndpoint {
 
     private AmazonMQ mqClient;
@@ -51,10 +51,12 @@ public class MQEndpoint extends ScheduledPollEndpoint {
         this.configuration = configuration;
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         throw new UnsupportedOperationException("You cannot receive messages from this endpoint");
     }
 
+    @Override
     public Producer createProducer() throws Exception {
         return new MQProducer(this);
     }
@@ -65,7 +67,7 @@ public class MQEndpoint extends ScheduledPollEndpoint {
 
         mqClient = configuration.getAmazonMqClient() != null ? configuration.getAmazonMqClient() : (AmazonMQClient)createMQClient();
     }
-    
+
     @Override
     public void doStop() throws Exception {
         if (ObjectHelper.isEmpty(configuration.getAmazonMqClient())) {
@@ -91,6 +93,7 @@ public class MQEndpoint extends ScheduledPollEndpoint {
         boolean isClientConfigFound = false;
         if (ObjectHelper.isNotEmpty(configuration.getProxyHost()) && ObjectHelper.isNotEmpty(configuration.getProxyPort())) {
             clientConfiguration = new ClientConfiguration();
+            clientConfiguration.setProxyProtocol(configuration.getProxyProtocol());
             clientConfiguration.setProxyHost(configuration.getProxyHost());
             clientConfiguration.setProxyPort(configuration.getProxyPort());
             isClientConfigFound = true;

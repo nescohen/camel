@@ -28,22 +28,26 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.camel.BindToRegistry;
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.methods.StringRequestEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.junit.Test;
 
 public class CustomFiltersTest extends BaseJettyTest {
 
     private static class MyTestFilter implements Filter {
         private String keyWord;
+
         @Override
-        public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {            
+        public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
             // set a marker attribute to show that this filter class was used
             ((HttpServletResponse)response).addHeader("MyTestFilter", "true");
             ((HttpServletResponse)response).setHeader("KeyWord", keyWord);
@@ -58,53 +62,53 @@ public class CustomFiltersTest extends BaseJettyTest {
         @Override
         public void destroy() {
             // do nothing here
-        }        
+        }
     }
-    
+
     private void sendRequestAndVerify(String url) throws Exception {
-        HttpClient httpclient = new HttpClient();
-        
-        PostMethod httppost = new PostMethod(url);
-        
-        StringRequestEntity reqEntity = new StringRequestEntity("This is a test", null, null);
-        httppost.setRequestEntity(reqEntity);
+        CloseableHttpClient client = HttpClients.createDefault();
 
-        int status = httpclient.executeMethod(httppost);
+        HttpPost httppost = new HttpPost(url);
+        httppost.setEntity(new StringEntity("This is a test"));
 
-        assertEquals("Get a wrong response status", 200, status);
+        HttpResponse response = client.execute(httppost);
 
-        String result = httppost.getResponseBodyAsString();
-        assertEquals("Get a wrong result", "This is a test response", result);
-        assertNotNull("Did not use custom multipart filter", httppost.getResponseHeader("MyTestFilter"));
+        assertEquals("Get a wrong response status", 200, response.getStatusLine().getStatusCode());
+        String responseString = EntityUtils.toString(response.getEntity(), "UTF-8");
+
+        assertEquals("Get a wrong result", "This is a test response", responseString);
+        assertEquals("Did not use custom multipart filter", "true", response.getFirstHeader("MyTestFilter").getValue());
 
         // just make sure the KeyWord header is set
-        assertEquals("Did not set the right KeyWord header", "KEY", httppost.getResponseHeader("KeyWord").getValue());
+        assertEquals("Did not set the right KeyWord header", "KEY", response.getFirstHeader("KeyWord").getValue());
+
+        client.close();
     }
-    
+
     @Test
     public void testFilters() throws Exception {
         sendRequestAndVerify("http://localhost:" + getPort() + "/testFilters");
     }
 
-    @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    @BindToRegistry("myFilters")
+    public List<Filter> loadFilter() throws Exception {
         List<Filter> filters = new ArrayList<>();
         filters.add(new MyTestFilter());
-        jndi.bind("myFilters", filters);
-        return jndi;
+        return filters;
     }
-    
+
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {
-                                
+
                 // Test the filter list options
-                from("jetty://http://localhost:{{port}}/testFilters?filtersRef=myFilters&filterInit.keyWord=KEY").process(new Processor() {
+                from("jetty://http://localhost:{{port}}/testFilters?filters=myFilters&filterInit.keyWord=KEY").process(new Processor() {
                     public void process(Exchange exchange) throws Exception {
                         Message in = exchange.getIn();
                         String request = in.getBody(String.class);
-                        // The other form date can be get from the message header
+                        // The other form date can be get from the message
+                        // header
                         exchange.getOut().setBody(request + " response");
                     }
                 });

@@ -18,8 +18,8 @@ package org.apache.camel.processor.aggregator;
 
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
 import org.apache.camel.processor.BodyInAggregatingStrategy;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class AggregateForceCompletionOnStopTest extends ContextTestSupport {
@@ -98,8 +98,8 @@ public class AggregateForceCompletionOnStopTest extends ContextTestSupport {
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myCompletionProcessor", new MyCompletionProcessor());
         return jndi;
     }
@@ -109,14 +109,10 @@ public class AggregateForceCompletionOnStopTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:forceCompletionTrue").routeId("foo")
-                    .aggregate(header("id"), new BodyInAggregatingStrategy()).forceCompletionOnStop().completionSize(10)
-                    .delay(100)
+                from("direct:forceCompletionTrue").routeId("foo").aggregate(header("id"), new BodyInAggregatingStrategy()).forceCompletionOnStop().completionSize(10).delay(100)
                     .process("myCompletionProcessor");
 
-                from("direct:forceCompletionFalse").routeId("bar")
-                    .aggregate(header("id"), new BodyInAggregatingStrategy()).completionSize(10)
-                    .delay(100)
+                from("direct:forceCompletionFalse").routeId("bar").aggregate(header("id"), new BodyInAggregatingStrategy()).completionSize(10).delay(100)
                     .process("myCompletionProcessor");
             }
         };

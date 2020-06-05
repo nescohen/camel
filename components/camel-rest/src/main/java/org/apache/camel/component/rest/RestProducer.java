@@ -24,21 +24,20 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.xml.bind.JAXBContext;
-
 import org.apache.camel.AsyncCallback;
 import org.apache.camel.AsyncProcessor;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.Message;
 import org.apache.camel.Producer;
 import org.apache.camel.spi.DataFormat;
+import org.apache.camel.spi.PropertyConfigurer;
 import org.apache.camel.spi.RestConfiguration;
 import org.apache.camel.support.AsyncProcessorConverterHelper;
 import org.apache.camel.support.DefaultAsyncProducer;
-import org.apache.camel.support.EndpointHelper;
-import org.apache.camel.support.IntrospectionSupport;
+import org.apache.camel.support.PropertyBindingSupport;
 import org.apache.camel.support.service.ServiceHelper;
 import org.apache.camel.util.CollectionStringBuffer;
 import org.apache.camel.util.FileUtil;
@@ -155,15 +154,15 @@ public class RestProducer extends DefaultAsyncProducer {
                 String[] arr = resolvedUriTemplate.split("\\/");
                 CollectionStringBuffer csb = new CollectionStringBuffer("/");
                 for (String a : arr) {
-                    if (a.startsWith("{") && a.endsWith("}")) {
-                        String key = a.substring(1, a.length() - 1);
-                        String value = inMessage.getHeader(key, String.class);
-                        if (value != null) {
-                            hasPath = true;
-                            csb.append(value);
-                        } else {
-                            csb.append(a);
-                        }
+                    String resolvedUriParam = resolveHeaderPlaceholders(a, inMessage);
+
+                    // Backward compatibility: if one of the path params is fully resolved,
+                    // then it is assumed that whole uri is resolved.
+                    if (!a.equals(resolvedUriParam)
+                            && !resolvedUriParam.contains("{")
+                            && !resolvedUriParam.contains("}")) {
+                        hasPath = true;
+                        csb.append(resolvedUriParam);
                     } else {
                         csb.append(a);
                     }
@@ -223,13 +222,41 @@ public class RestProducer extends DefaultAsyncProducer {
         }
     }
 
+    /**
+     * Replaces placeholders "{}" with message header values.
+     *
+     * @param str string with placeholders
+     * @param msg message with headers
+     * @return filled string
+     */
+    private String resolveHeaderPlaceholders(String str, Message msg) {
+        int startIndex = -1;
+        String res = str;
+        while ((startIndex = res.indexOf('{', startIndex + 1)) >= 0) {
+            int endIndex = res.indexOf('}', startIndex);
+            if (endIndex == -1) {
+                continue;
+            }
+            String key = res.substring(startIndex + 1, endIndex);
+            String headerValue = msg.getHeader(key, String.class);
+            if (headerValue != null) {
+                res = res.substring(0, startIndex) + headerValue + res.substring(endIndex + 1);
+            }
+        }
+
+        return res;
+    }
+
+    @Override
+    protected void doInit() throws Exception {
+        super.doInit();
+        // create binding processor (returns null if binding is not in use)
+        binding = createBindingProcessor();
+    }
+
     @Override
     protected void doStart() throws Exception {
         super.doStart();
-
-        // create binding processor (returns null if binding is not in use)
-        binding = createBindingProcessor();
-
         ServiceHelper.startService(binding, producer);
     }
 
@@ -240,7 +267,6 @@ public class RestProducer extends DefaultAsyncProducer {
     }
 
     protected AsyncProcessor createBindingProcessor() throws Exception {
-
         // these options can be overridden per endpoint
         String mode = configuration.getBindingMode().name();
         if (bindingMode != null) {
@@ -251,7 +277,7 @@ public class RestProducer extends DefaultAsyncProducer {
             skip = skipBindingOnErrorCode;
         }
 
-        if (mode == null || "off".equals(mode)) {
+        if ("off".equals(mode)) {
             // binding mode is off
             return null;
         }
@@ -273,31 +299,39 @@ public class RestProducer extends DefaultAsyncProducer {
 
         // is json binding required?
         if (mode.contains("json") && json == null) {
-            throw new IllegalArgumentException("JSon DataFormat " + name + " not found.");
+            throw new IllegalArgumentException("JSON DataFormat " + name + " not found.");
         }
 
         if (json != null) {
-            Class<?> clazz = null;
+            // lookup configurer
+            PropertyConfigurer configurer = camelContext.adapt(ExtendedCamelContext.class).getConfigurerResolver().resolvePropertyConfigurer(name + "-dataformat-configurer", camelContext);
+            if (configurer == null) {
+                throw new IllegalStateException("Cannot find configurer for dataformat: " + name);
+            }
+
+            PropertyBindingSupport.Builder builder = PropertyBindingSupport.build()
+                    .withCamelContext(camelContext)
+                    .withConfigurer(configurer)
+                    .withTarget(json);
             if (type != null) {
                 String typeName = type.endsWith("[]") ? type.substring(0, type.length() - 2) : type;
-                clazz = camelContext.getClassResolver().resolveMandatoryClass(typeName);
+                builder.withProperty("unmarshalTypeName", typeName);
+                builder.withProperty("useList", type.endsWith("[]"));
             }
-            if (clazz != null) {
-                IntrospectionSupport.setProperty(camelContext.getTypeConverter(), json, "unmarshalType", clazz);
-                IntrospectionSupport.setProperty(camelContext.getTypeConverter(), json, "useList", type.endsWith("[]"));
-            }
-            setAdditionalConfiguration(configuration, camelContext, json, "json.in.");
+            setAdditionalConfiguration(configuration, "json.in.", builder);
+            builder.bind();
 
-            Class<?> outClazz = null;
+            builder = PropertyBindingSupport.build()
+                    .withCamelContext(camelContext)
+                    .withConfigurer(configurer)
+                    .withTarget(outJson);
             if (outType != null) {
                 String typeName = outType.endsWith("[]") ? outType.substring(0, outType.length() - 2) : outType;
-                outClazz = camelContext.getClassResolver().resolveMandatoryClass(typeName);
+                builder.withProperty("unmarshalTypeName", typeName);
+                builder.withProperty("useList", outType.endsWith("[]"));
             }
-            if (outClazz != null) {
-                IntrospectionSupport.setProperty(camelContext.getTypeConverter(), outJson, "unmarshalType", outClazz);
-                IntrospectionSupport.setProperty(camelContext.getTypeConverter(), outJson, "useList", outType.endsWith("[]"));
-            }
-            setAdditionalConfiguration(configuration, camelContext, outJson, "json.out.");
+            setAdditionalConfiguration(configuration, "json.out.", builder);
+            builder.bind();
         }
 
         // setup xml data format
@@ -321,38 +355,15 @@ public class RestProducer extends DefaultAsyncProducer {
         }
 
         if (jaxb != null) {
-            Class<?> clazz = null;
-            if (type != null) {
-                String typeName = type.endsWith("[]") ? type.substring(0, type.length() - 2) : type;
-                clazz = camelContext.getClassResolver().resolveMandatoryClass(typeName);
-            }
-            if (clazz != null) {
-                JAXBContext jc = JAXBContext.newInstance(clazz);
-                IntrospectionSupport.setProperty(camelContext.getTypeConverter(), jaxb, "context", jc);
-            }
-            setAdditionalConfiguration(configuration, camelContext, jaxb, "xml.in.");
-
-            Class<?> outClazz = null;
-            if (outType != null) {
-                String typeName = outType.endsWith("[]") ? outType.substring(0, outType.length() - 2) : outType;
-                outClazz = camelContext.getClassResolver().resolveMandatoryClass(typeName);
-            }
-            if (outClazz != null) {
-                JAXBContext jc = JAXBContext.newInstance(outClazz);
-                IntrospectionSupport.setProperty(camelContext.getTypeConverter(), outJaxb, "context", jc);
-            } else if (clazz != null) {
-                // fallback and use the context from the input
-                JAXBContext jc = JAXBContext.newInstance(clazz);
-                IntrospectionSupport.setProperty(camelContext.getTypeConverter(), outJaxb, "context", jc);
-            }
-            setAdditionalConfiguration(configuration, camelContext, outJaxb, "xml.out.");
+            // to setup JAXB we need to use camel-jaxb
+            camelContext.adapt(ExtendedCamelContext.class).getRestBindingJaxbDataFormatFactory()
+                    .setupJaxb(camelContext, configuration, type, outType, jaxb, outJaxb);
         }
 
         return new RestProducerBindingProcessor(producer, camelContext, json, jaxb, outJson, outJaxb, mode, skip, outType);
     }
 
-    private void setAdditionalConfiguration(RestConfiguration config, CamelContext context,
-                                            DataFormat dataFormat, String prefix) throws Exception {
+    private void setAdditionalConfiguration(RestConfiguration config, String prefix, PropertyBindingSupport.Builder builder) throws Exception {
         if (config.getDataFormatProperties() != null && !config.getDataFormatProperties().isEmpty()) {
             // must use a copy as otherwise the options gets removed during introspection setProperties
             Map<String, Object> copy = new HashMap<>();
@@ -376,9 +387,7 @@ public class RestProducer extends DefaultAsyncProducer {
                 }
             }
 
-            // set reference properties first as they use # syntax that fools the regular properties setter
-            EndpointHelper.setReferenceProperties(context, dataFormat, copy);
-            EndpointHelper.setProperties(context, dataFormat, copy);
+            builder.withProperties(copy);
         }
     }
 
@@ -403,7 +412,7 @@ public class RestProducer extends DefaultAsyncProducer {
                             key = key.substring(0, key.length() - 1);
                             optional = true;
                         }
-                        String value = inMessage.getHeader(key, String.class);
+                        Object value = inMessage.getHeader(key);
                         if (value != null) {
                             params.put(entry.getKey(), value);
                         } else if (!optional) {
@@ -416,7 +425,12 @@ public class RestProducer extends DefaultAsyncProducer {
                 }
             }
             query = URISupport.createQueryString(params);
+            // remove any dangling & caused by the absence of optional parameters
+            while (query.endsWith("&")) {
+                query = query.substring(0, query.length() - 1);
+            }
         }
+
         return query;
     }
 }

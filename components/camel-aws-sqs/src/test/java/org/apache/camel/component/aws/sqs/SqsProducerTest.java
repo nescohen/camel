@@ -24,9 +24,7 @@ import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
-
 import org.apache.camel.Exchange;
-import org.apache.camel.ExchangePattern;
 import org.apache.camel.Message;
 import org.junit.Before;
 import org.junit.Test;
@@ -86,8 +84,8 @@ public class SqsProducerTest {
         when(sqsEndpoint.getConfiguration()).thenReturn(sqsConfiguration);
         when(sqsEndpoint.getQueueUrl()).thenReturn(QUEUE_URL);
         when(sqsEndpoint.getHeaderFilterStrategy()).thenReturn(new SqsHeaderFilterStrategy());
+        when(exchange.getMessage()).thenReturn(inMessage);
         when(exchange.getIn()).thenReturn(inMessage);
-        when(exchange.getPattern()).thenReturn(ExchangePattern.InOnly);
         when(exchange.getExchangeId()).thenReturn(SAMPLE_EXCHANGE_ID);
         when(inMessage.getBody(String.class)).thenReturn(SAMPLE_MESSAGE_BODY);
         underTest = new SqsProducer(sqsEndpoint);

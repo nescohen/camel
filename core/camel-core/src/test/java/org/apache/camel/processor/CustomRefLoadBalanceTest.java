@@ -17,23 +17,22 @@
 package org.apache.camel.processor;
 
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 
 public class CustomRefLoadBalanceTest extends CustomLoadBalanceTest {
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myBalancer", new MyLoadBalancer());
         return jndi;
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
-                from("direct:start")
-                    .loadBalance().custom("myBalancer")
-                    .to("mock:x", "mock:y", "mock:z");
+                from("direct:start").loadBalance().custom("myBalancer").to("mock:x", "mock:y", "mock:z");
             }
         };
     }

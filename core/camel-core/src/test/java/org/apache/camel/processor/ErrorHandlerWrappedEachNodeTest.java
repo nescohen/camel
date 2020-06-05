@@ -19,12 +19,12 @@ package org.apache.camel.processor;
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 /**
- * Unit test for verifying that error handler is wrapped each individual node in a pipeline.
- * Based on CAMEL-1548.
+ * Unit test for verifying that error handler is wrapped each individual node in
+ * a pipeline. Based on CAMEL-1548.
  */
 public class ErrorHandlerWrappedEachNodeTest extends ContextTestSupport {
 
@@ -59,15 +59,14 @@ public class ErrorHandlerWrappedEachNodeTest extends ContextTestSupport {
                 // use dead letter channel that supports redeliveries
                 errorHandler(deadLetterChannel("mock:error").maximumRedeliveries(3).redeliveryDelay(0).logStackTrace(false));
 
-                from("direct:start")
-                    .pipeline("bean:foo?method=hi", "bean:foo?method=kabom").to("mock:result");
+                from("direct:start").pipeline("bean:foo?method=hi", "bean:foo?method=kabom").to("mock:result");
             }
         };
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("foo", new MyFooBean());
         return jndi;
     }

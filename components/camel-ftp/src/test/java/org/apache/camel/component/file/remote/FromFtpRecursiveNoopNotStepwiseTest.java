@@ -18,9 +18,9 @@ package org.apache.camel.component.file.remote;
 
 public class FromFtpRecursiveNoopNotStepwiseTest extends FromFtpRecursiveNoopTest {
 
+    @Override
     protected String getFtpUrl() {
-        return "ftp://admin@localhost:" + getPort() + "/noop?password=admin&binary=false&initialDelay=3000"
-                + "&recursive=true&noop=true&stepwise=false";
+        return "ftp://admin@localhost:" + getPort() + "/noop?password=admin&binary=false&initialDelay=3000" + "&recursive=true&noop=true&stepwise=false";
     }
 
 }

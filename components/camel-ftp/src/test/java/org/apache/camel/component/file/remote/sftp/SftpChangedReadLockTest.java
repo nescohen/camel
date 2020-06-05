@@ -15,15 +15,20 @@
  * limitations under the License.
  */
 package org.apache.camel.component.file.remote.sftp;
+
 import java.io.File;
 import java.io.FileOutputStream;
 
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.camel.test.junit5.TestSupport.createDirectory;
+import static org.apache.camel.test.junit5.TestSupport.deleteDirectory;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  *
@@ -33,12 +38,11 @@ public class SftpChangedReadLockTest extends SftpServerTestSupport {
     private static final Logger LOG = LoggerFactory.getLogger(SftpChangedReadLockTest.class);
 
     protected String getFtpUrl() {
-        return "sftp://localhost:" + getPort() + "/" + FTP_ROOT_DIR
-            + "/changed?username=admin&password=admin&readLock=changed&readLockCheckInterval=1000&delete=true";
+        return "sftp://localhost:" + getPort() + "/" + FTP_ROOT_DIR + "/changed?username=admin&password=admin&readLock=changed&readLockCheckInterval=1000&delete=true";
     }
 
     @Override
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         deleteDirectory("target/changed");
         super.setUp();
@@ -62,7 +66,7 @@ public class SftpChangedReadLockTest extends SftpServerTestSupport {
 
         String content = context.getTypeConverter().convertTo(String.class, new File("target/changed/out/slowfile.dat"));
         String[] lines = content.split(LS);
-        assertEquals("There should be 20 lines in the file", 20, lines.length);
+        assertEquals(20, lines.length, "There should be 20 lines in the file");
         for (int i = 0; i < 20; i++) {
             assertEquals("Line " + i, lines[i]);
         }
@@ -89,9 +93,7 @@ public class SftpChangedReadLockTest extends SftpServerTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(getFtpUrl())
-                    .routeId("foo").noAutoStartup()
-                    .to("file:target/changed/out", "mock:result");
+                from(getFtpUrl()).routeId("foo").noAutoStartup().to("file:target/changed/out", "mock:result");
             }
         };
     }

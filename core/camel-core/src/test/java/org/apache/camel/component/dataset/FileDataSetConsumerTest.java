@@ -16,11 +16,10 @@
  */
 package org.apache.camel.component.dataset;
 
-import javax.naming.Context;
-
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
+import org.apache.camel.spi.Registry;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,16 +35,16 @@ public class FileDataSetConsumerTest extends ContextTestSupport {
     final String dataSetUri = "dataset://" + dataSetName;
 
     @Override
-    protected Context createJndiContext() throws Exception {
-        Context context = super.createJndiContext();
-        context.bind("foo", dataSet);
-        return context;
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
+        answer.bind("foo", dataSet);
+        return answer;
     }
 
     @Test
     public void testDefaultListDataSet() throws Exception {
         MockEndpoint result = getMockEndpoint(resultUri);
-        result.expectedMinimumMessageCount((int) dataSet.getSize());
+        result.expectedMinimumMessageCount((int)dataSet.getSize());
 
         result.assertIsSatisfied();
     }
@@ -54,7 +53,7 @@ public class FileDataSetConsumerTest extends ContextTestSupport {
     public void testDefaultListDataSetWithSizeGreaterThanListSize() throws Exception {
         MockEndpoint result = getMockEndpoint(resultUri);
         dataSet.setSize(20);
-        result.expectedMinimumMessageCount((int) dataSet.getSize());
+        result.expectedMinimumMessageCount((int)dataSet.getSize());
 
         result.assertIsSatisfied();
     }
@@ -71,8 +70,7 @@ public class FileDataSetConsumerTest extends ContextTestSupport {
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {
-                from(dataSetUri)
-                        .to("mock://result");
+                from(dataSetUri).to("mock://result");
             }
         };
     }

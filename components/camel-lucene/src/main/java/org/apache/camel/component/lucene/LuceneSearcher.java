@@ -32,7 +32,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.store.NIOFSDirectory;
-import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,14 +57,14 @@ public class LuceneSearcher {
         analyzer.close();
     }
     
-    public Hits search(String searchPhrase, int maxNumberOfHits) throws Exception {
-        return search(searchPhrase, maxNumberOfHits, LuceneConstants.LUCENE_VERSION, false);
+    public Hits search(String searchPhrase, int maxNumberOfHits, int totalHitsThreshold) throws Exception {
+        return search(searchPhrase, maxNumberOfHits, totalHitsThreshold, false);
     }
 
-    public Hits search(String searchPhrase, int maxNumberOfHits, Version luceneVersion, boolean returnLuceneDocs) throws Exception {
+    public Hits search(String searchPhrase, int maxNumberOfHits, int totalHitsThreshold, boolean returnLuceneDocs) throws Exception {
         Hits searchHits = new Hits();
 
-        int numberOfHits = doSearch(searchPhrase, maxNumberOfHits, luceneVersion);
+        int numberOfHits = doSearch(searchPhrase, maxNumberOfHits, totalHitsThreshold);
         searchHits.setNumberOfHits(numberOfHits);
 
         for (ScoreDoc hit : hits) {
@@ -83,12 +82,12 @@ public class LuceneSearcher {
         return searchHits;
     }
                 
-    private int doSearch(String searchPhrase, int maxNumberOfHits, Version luceneVersion) throws NullPointerException, ParseException, IOException {
+    private int doSearch(String searchPhrase, int maxNumberOfHits, int totalHitsThreshold) throws NullPointerException, ParseException, IOException {
         LOG.trace("*** Search Phrase: {} ***", searchPhrase);
 
         QueryParser parser = new QueryParser("contents", analyzer);
         Query query = parser.parse(searchPhrase);
-        TopScoreDocCollector collector = TopScoreDocCollector.create(maxNumberOfHits);
+        TopScoreDocCollector collector = TopScoreDocCollector.create(maxNumberOfHits, totalHitsThreshold);
         indexSearcher.search(query, collector);
         hits = collector.topDocs().scoreDocs;
         

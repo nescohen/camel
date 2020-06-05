@@ -19,17 +19,18 @@ package org.apache.camel.component.jetty;
 import java.io.File;
 
 import org.apache.camel.Exchange;
-import org.apache.camel.Message;
 import org.apache.camel.Processor;
+import org.apache.camel.attachment.AttachmentMessage;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.component.http4.HttpEndpoint;
+import org.apache.camel.component.http.HttpEndpoint;
 import org.apache.camel.support.DefaultHeaderFilterStrategy;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.methods.multipart.FilePart;
-import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
-import org.apache.commons.httpclient.methods.multipart.Part;
-import org.apache.commons.httpclient.methods.multipart.StringPart;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.junit.Test;
 
 public class HttpBridgeMultipartRouteTest extends BaseJettyTest {
@@ -45,30 +46,32 @@ public class HttpBridgeMultipartRouteTest extends BaseJettyTest {
         protected void initialize() {
             setLowerCase(true);
             getOutFilter().add("content-length");
-            setOutFilterPattern("(?i)(Camel|org\\.apache\\.camel)[\\.|a-z|A-z|0-9]*");
+            setOutFilterPattern(CAMEL_FILTER_PATTERN);
         }
     }
-    
+
     @Test
     public void testHttpClient() throws Exception {
         File jpg = new File("src/test/resources/java.jpg");
         String body = "TEST";
-        Part[] parts = new Part[] {new StringPart("body", body), new FilePart(jpg.getName(), jpg)};
-        
-        PostMethod method = new PostMethod("http://localhost:" + port2 + "/test/hello");
-        MultipartRequestEntity requestEntity = new MultipartRequestEntity(parts, method.getParams());
-        method.setRequestEntity(requestEntity);
-        
-        HttpClient client = new HttpClient();
-        client.executeMethod(method);
-        
-        String responseBody = method.getResponseBodyAsString();
-        assertEquals(body, responseBody);
-        
-        String numAttachments = method.getResponseHeader("numAttachments").getValue();
+
+        CloseableHttpClient client = HttpClients.createDefault();
+        HttpPost method = new HttpPost("http://localhost:" + port2 + "/test/hello");
+        HttpEntity entity = MultipartEntityBuilder.create().addTextBody("body", body).addBinaryBody(jpg.getName(), jpg).build();
+        method.setEntity(entity);
+
+        HttpResponse response = client.execute(method);
+
+        String responseString = EntityUtils.toString(response.getEntity(), "UTF-8");
+        assertEquals(body, responseString);
+
+        String numAttachments = response.getFirstHeader("numAttachments").getValue();
         assertEquals(numAttachments, "2");
+
+        client.close();
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() {
@@ -79,22 +82,21 @@ public class HttpBridgeMultipartRouteTest extends BaseJettyTest {
 
                 Processor serviceProc = new Processor() {
                     public void process(Exchange exchange) throws Exception {
-                        Message in = exchange.getIn();
+                        AttachmentMessage in = exchange.getIn(AttachmentMessage.class);
                         // put the number of attachments in a response header
                         exchange.getOut().setHeader("numAttachments", in.getAttachments().size());
                         exchange.getOut().setBody(in.getHeader("body"));
                     }
                 };
-                
+
                 HttpEndpoint epOut = getContext().getEndpoint("http://localhost:" + port1 + "?bridgeEndpoint=true&throwExceptionOnFailure=false", HttpEndpoint.class);
                 epOut.setHeaderFilterStrategy(new MultipartHeaderFilterStrategy());
-                
-                from("jetty:http://localhost:" + port2 + "/test/hello?enableMultipartFilter=false")
-                    .to(epOut);
-                
+
+                from("jetty:http://localhost:" + port2 + "/test/hello?enableMultipartFilter=false").to(epOut);
+
                 from("jetty://http://localhost:" + port1 + "?matchOnUriPrefix=true").process(serviceProc);
             }
         };
-    }    
+    }
 
 }

@@ -36,8 +36,13 @@ import org.apache.directory.api.ldap.model.ldif.LdifReader;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.name.Rdn;
 import org.apache.directory.ldap.client.api.LdapConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LdifProducer extends DefaultProducer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LdifProducer.class);
+
     // Constants
     private static final String LDIF_HEADER = "version: 1";
 
@@ -57,6 +62,7 @@ public class LdifProducer extends DefaultProducer {
      * <li>A String body that is a URL to ready the LDIF content from</li>
      * </ol>
      */
+    @Override
     public void process(Exchange exchange) throws Exception {
         String body = exchange.getIn().getBody(String.class);
         List<String> result = null;
@@ -68,17 +74,17 @@ public class LdifProducer extends DefaultProducer {
         if (ObjectHelper.isEmpty(body)) {
             exchange.getOut().setBody("");
         } else if (body.startsWith(LDIF_HEADER)) {
-            log.debug("Reading from LDIF body");
+            LOG.debug("Reading from LDIF body");
             result = processLdif(new StringReader(body));
         } else {
             URL loc;
             try {
                 loc = new URL(body);
-                log.debug("Reading from URL: {}", loc);
+                LOG.debug("Reading from URL: {}", loc);
                 result = processLdif(new InputStreamReader(loc.openStream()));
             } catch (MalformedURLException e) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Failed to parse body as URL and LDIF", e);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Failed to parse body as URL and LDIF", e);
                 }
                 throw new InvalidPayloadException(exchange, String.class);
             }
@@ -133,36 +139,36 @@ public class LdifProducer extends DefaultProducer {
     private String processLdifEntry(LdapConnection conn, LdifEntry ldifEntry) {
         try {
             if (ldifEntry.isChangeAdd() || ldifEntry.isLdifContent()) {
-                if (log.isDebugEnabled()) {
-                    log.debug("attempting add of {}", ldifEntry);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("attempting add of {}", ldifEntry);
                 }
                 conn.add(ldifEntry.getEntry());
             } else if (ldifEntry.isChangeModify()) {
-                if (log.isDebugEnabled()) {
-                    log.debug("attempting modify of {}", ldifEntry);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("attempting modify of {}", ldifEntry);
                 }
                 conn.modify(ldifEntry.getDn(), ldifEntry.getModificationArray());
             } else if (ldifEntry.isChangeDelete()) {
-                if (log.isDebugEnabled()) {
-                    log.debug("attempting delete of {}", ldifEntry);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("attempting delete of {}", ldifEntry);
                 }
                 conn.delete(ldifEntry.getDn());
             } else if (ldifEntry.isChangeModDn()) {
-                if (log.isDebugEnabled()) {
-                    log.debug("attempting DN move of {}", ldifEntry);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("attempting DN move of {}", ldifEntry);
                 }
                 conn.moveAndRename(ldifEntry.getDn(), new Dn(ldifEntry.getNewRdn(), ldifEntry.getNewSuperior()), ldifEntry.isDeleteOldRdn());
             } else if (ldifEntry.isChangeModRdn()) {
-                if (log.isDebugEnabled()) {
-                    log.debug("attempting RDN move of {}", ldifEntry);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("attempting RDN move of {}", ldifEntry);
                 }
                 conn.rename(ldifEntry.getDn(), new Rdn(ldifEntry.getNewRdn()), ldifEntry.isDeleteOldRdn());
             }
 
-            log.debug("ldif success");
+            LOG.debug("ldif success");
             return "success";
         } catch (LdapException e) {
-            log.debug("failed to apply ldif", e);
+            LOG.debug("failed to apply ldif", e);
             return getRootCause(e);
         }
     }

@@ -19,12 +19,16 @@ package org.apache.camel.component.jcache;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
 import javax.cache.configuration.Configuration;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.event.CacheEntryEventFilter;
+import javax.cache.event.EventType;
 import javax.cache.spi.CachingProvider;
 
 import org.apache.camel.CamelContext;
@@ -98,7 +102,16 @@ public class JCacheManager<K, V> implements Closeable {
             return new JCacheEntryEventFilters.Chained(configuration.getEventFilters());
         }
 
-        return new JCacheEntryEventFilters.Named(configuration.getFilteredEvents());
+        if (configuration.getFilteredEvents() != null) {
+            List<EventType> list = new ArrayList<>();
+            for (String s : configuration.getFilteredEvents().split(",")) {
+                EventType et = EventType.valueOf(s);
+                list.add(et);
+            }
+            return new JCacheEntryEventFilters.Named(list);
+        } else {
+            return cacheEntryEvent -> true;
+        }
     }
 
     protected Cache<K, V> doGetCache(JCacheProvider jcacheProvider) throws Exception {

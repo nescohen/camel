@@ -20,38 +20,23 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.camel.CamelContext;
-import org.apache.camel.TypeConverter;
 import org.apache.camel.support.jsse.KeyStoreParameters;
 import org.apache.camel.support.jsse.SSLContextParameters;
 import org.apache.camel.support.jsse.TrustManagersParameters;
+import org.apache.camel.test.junit4.CamelTestSupport;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.config.SslConfigs;
 import org.junit.Test;
-import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.mockito.AdditionalAnswers.returnsFirstArg;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
-
-public class KafkaComponentTest {
-
-    private CamelContext context = Mockito.mock(CamelContext.class);
-    private TypeConverter tc = Mockito.mock(TypeConverter.class);
+public class KafkaComponentTest extends CamelTestSupport {
 
     @Test
     public void testPropertiesSet() throws Exception {
-        when(context.resolvePropertyPlaceholders(anyString())).then(returnsFirstArg());
-        when(context.getTypeConverter()).thenReturn(tc);
-        when(tc.convertTo(boolean.class, Boolean.FALSE)).thenReturn(false);
-
         String uri = "kafka:mytopic?brokers=broker1:12345,broker2:12566&partitioner=com.class.Party";
 
-        KafkaEndpoint endpoint = (KafkaEndpoint) new KafkaComponent(context).createEndpoint(uri);
+        KafkaEndpoint endpoint = context.getEndpoint(uri, KafkaEndpoint.class);
         assertEquals("broker1:12345,broker2:12566", endpoint.getConfiguration().getBrokers());
         assertEquals("mytopic", endpoint.getConfiguration().getTopic());
         assertEquals("com.class.Party", endpoint.getConfiguration().getPartitioner());
@@ -59,35 +44,62 @@ public class KafkaComponentTest {
 
     @Test
     public void testBrokersOnComponent() throws Exception {
-        when(context.resolvePropertyPlaceholders(anyString())).then(returnsFirstArg());
-        when(context.getTypeConverter()).thenReturn(tc);
-        when(tc.convertTo(boolean.class, Boolean.FALSE)).thenReturn(false);
-
-        KafkaComponent kafka = new KafkaComponent(context);
-        kafka.setBrokers("broker1:12345,broker2:12566");
+        KafkaComponent kafka = context.getComponent("kafka", KafkaComponent.class);
+        kafka.getConfiguration().setBrokers("broker1:12345,broker2:12566");
 
         String uri = "kafka:mytopic?partitioner=com.class.Party";
 
-        KafkaEndpoint endpoint = (KafkaEndpoint) kafka.createEndpoint(uri);
+        KafkaEndpoint endpoint = context.getEndpoint(uri, KafkaEndpoint.class);
         assertEquals("broker1:12345,broker2:12566", endpoint.getConfiguration().getBrokers());
-        assertEquals("broker1:12345,broker2:12566", endpoint.getComponent().getBrokers());
+        assertEquals("broker1:12345,broker2:12566", endpoint.getComponent().getConfiguration().getBrokers());
         assertEquals("mytopic", endpoint.getConfiguration().getTopic());
         assertEquals("com.class.Party", endpoint.getConfiguration().getPartitioner());
     }
 
     @Test
-    public void testAllProducerConfigProperty() throws Exception {
-        when(context.resolvePropertyPlaceholders(anyString())).then(returnsFirstArg());
-        when(context.getTypeConverter()).thenReturn(tc);
-        when(tc.convertTo(boolean.class, Boolean.FALSE)).thenReturn(false);
+    public void testCreateAdditionalPropertiesOnEndpointAndComponent() {
+        final KafkaComponent kafkaComponent = context.getComponent("kafka", KafkaComponent.class);
 
+        // also we set the configs on the component level
+        final KafkaConfiguration kafkaConfiguration = new KafkaConfiguration();
+        final Map<String, Object> params = new HashMap<>();
+
+        params.put("extra.1", 789);
+        params.put("extra.3", "test.extra.3");
+        kafkaConfiguration.setAdditionalProperties(params);
+        kafkaComponent.setConfiguration(kafkaConfiguration);
+
+        final String uri = "kafka:mytopic?brokers=broker1:12345,broker2:12566&partitioner=com.class.Party&additionalProperties.extra.1=123&additionalProperties.extra.2=test";
+
+        KafkaEndpoint endpoint = context.getEndpoint(uri, KafkaEndpoint.class);
+        assertEquals("broker1:12345,broker2:12566", endpoint.getConfiguration().getBrokers());
+        assertEquals("mytopic", endpoint.getConfiguration().getTopic());
+        assertEquals("com.class.Party", endpoint.getConfiguration().getPartitioner());
+        assertEquals("123", endpoint.getConfiguration().getAdditionalProperties().get("extra.1"));
+        assertEquals("test", endpoint.getConfiguration().getAdditionalProperties().get("extra.2"));
+        assertEquals("test.extra.3", endpoint.getConfiguration().getAdditionalProperties().get("extra.3"));
+
+        // test properties on producer keys
+        final Properties producerProperties = endpoint.getConfiguration().createProducerProperties();
+        assertEquals("123", producerProperties.getProperty("extra.1"));
+        assertEquals("test", producerProperties.getProperty("extra.2"));
+        assertEquals("test.extra.3", producerProperties.getProperty("extra.3"));
+
+        // test properties on consumer keys
+        final Properties consumerProperties = endpoint.getConfiguration().createConsumerProperties();
+        assertEquals("123", consumerProperties.getProperty("extra.1"));
+        assertEquals("test", consumerProperties.getProperty("extra.2"));
+        assertEquals("test.extra.3", producerProperties.getProperty("extra.3"));
+    }
+
+    @Test
+    public void testAllProducerConfigProperty() throws Exception {
         Map<String, Object> params = new HashMap<>();
         setProducerProperty(params);
 
         String uri = "kafka:mytopic?brokers=dev1:12345,dev2:12566";
-        String remaining = "mytopic";
 
-        KafkaEndpoint endpoint = new KafkaComponent(context).createEndpoint(uri, remaining, params);
+        KafkaEndpoint endpoint = (KafkaEndpoint)context.getComponent("kafka").createEndpoint(uri, params);
 
         assertEquals("mytopic", endpoint.getConfiguration().getTopic());
         assertEquals("1", endpoint.getConfiguration().getRequestRequiredAcks());
@@ -141,9 +153,8 @@ public class KafkaComponentTest {
         Map<String, Object> params = new HashMap<>();
 
         String uri = "kafka:mytopic?brokers=dev1:12345,dev2:12566";
-        String remaining = "mytopic";
 
-        KafkaEndpoint endpoint = new KafkaComponent(context).createEndpoint(uri, remaining, params);
+        KafkaEndpoint endpoint = (KafkaEndpoint)context.getComponent("kafka").createEndpoint(uri, params);
         assertEquals(endpoint.getConfiguration().createProducerProperties().keySet(), getProducerKeys().keySet());
     }
 
@@ -202,10 +213,7 @@ public class KafkaComponentTest {
         params.put("receiveBufferBytes", 23);
         params.put("requestTimeoutMs", 100);
         params.put("sendBufferBytes", 765);
-        params.put("timeoutMs", 2045);
-        params.put("blockOnBufferFull", false);
         params.put("maxInFlightRequest", 1);
-        params.put("metadataFetchTimeoutMs", 9043);
         params.put("metadataMaxAgeMs", 1029);
         params.put("reconnectBackoffMs", 234);
         params.put("reconnectBackoffMaxMs", 234);
@@ -241,10 +249,10 @@ public class KafkaComponentTest {
     public void testCreateProducerConfigTruststorePassword() throws Exception {
         KeyStoreParameters keyStoreParameters = new KeyStoreParameters();
         keyStoreParameters.setPassword("my-password");
-    
+
         TrustManagersParameters trustManagersParameters = new TrustManagersParameters();
         trustManagersParameters.setKeyStore(keyStoreParameters);
-    
+
         SSLContextParameters sslContextParameters = new SSLContextParameters();
         sslContextParameters.setTrustManagers(trustManagersParameters);
 
@@ -252,7 +260,7 @@ public class KafkaComponentTest {
         kcfg.setSslContextParameters(sslContextParameters);
 
         Properties props = kcfg.createProducerProperties();
-    
+
         assertEquals("my-password", props.getProperty("ssl.truststore.password"));
         assertNull(props.getProperty("ssl.keystore.password"));
     }
@@ -261,10 +269,10 @@ public class KafkaComponentTest {
     public void testCreateConsumerConfigTruststorePassword() throws Exception {
         KeyStoreParameters keyStoreParameters = new KeyStoreParameters();
         keyStoreParameters.setPassword("my-password");
-    
+
         TrustManagersParameters trustManagersParameters = new TrustManagersParameters();
         trustManagersParameters.setKeyStore(keyStoreParameters);
-    
+
         SSLContextParameters sslContextParameters = new SSLContextParameters();
         sslContextParameters.setTrustManagers(trustManagersParameters);
 
@@ -272,7 +280,7 @@ public class KafkaComponentTest {
         kcfg.setSslContextParameters(sslContextParameters);
 
         Properties props = kcfg.createConsumerProperties();
-    
+
         assertEquals("my-password", props.getProperty("ssl.truststore.password"));
         assertNull(props.getProperty("ssl.keystore.password"));
     }

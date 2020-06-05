@@ -41,23 +41,23 @@ public class UserProducer extends AbstractKeystoneProducer {
     public void process(Exchange exchange) throws Exception {
         final String operation = getOperation(exchange);
         switch (operation) {
-        case OpenstackConstants.CREATE:
-            doCreate(exchange);
-            break;
-        case OpenstackConstants.GET:
-            doGet(exchange);
-            break;
-        case OpenstackConstants.GET_ALL:
-            doGetAll(exchange);
-            break;
-        case OpenstackConstants.UPDATE:
-            doUpdate(exchange);
-            break;
-        case OpenstackConstants.DELETE:
-            doDelete(exchange);
-            break;
-        default:
-            throw new IllegalArgumentException("Unsupported operation " + operation);
+            case OpenstackConstants.CREATE:
+                doCreate(exchange);
+                break;
+            case OpenstackConstants.GET:
+                doGet(exchange);
+                break;
+            case OpenstackConstants.GET_ALL:
+                doGetAll(exchange);
+                break;
+            case OpenstackConstants.UPDATE:
+                doUpdate(exchange);
+                break;
+            case OpenstackConstants.DELETE:
+                doDelete(exchange);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported operation " + operation);
         }
     }
 
@@ -92,7 +92,7 @@ public class UserProducer extends AbstractKeystoneProducer {
         final String id = msg.getHeader(OpenstackConstants.ID, msg.getHeader(KeystoneConstants.USER_ID, String.class), String.class);
         StringHelper.notEmpty(id, "User ID");
         final ActionResponse response = osV3Client.identity().users().delete(id);
-        checkFailure(response, msg, "Delete user with ID " + id);
+        checkFailure(response, exchange, "Delete user with ID " + id);
     }
 
     private User messageToUser(Message message) {

@@ -16,16 +16,24 @@
  */
 package org.apache.camel.impl;
 
+import junit.framework.TestCase;
+
 import org.apache.camel.CamelContext;
 import org.apache.camel.Message;
 import org.apache.camel.support.DefaultExchange;
 import org.apache.camel.support.DefaultMessage;
-import org.junit.Assert;
 import org.junit.Test;
 
-public class DefaultMessageHeaderTest extends Assert {
-    
-    private CamelContext camelContext = new DefaultCamelContext();
+public class DefaultMessageHeaderTest extends TestCase {
+
+    private CamelContext camelContext;
+
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+        camelContext = new DefaultCamelContext();
+        camelContext.start();
+    }
 
     @Test
     public void testLookupCaseAgnostic() {

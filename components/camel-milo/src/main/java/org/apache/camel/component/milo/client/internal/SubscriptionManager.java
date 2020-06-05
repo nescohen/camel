@@ -34,8 +34,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static java.util.concurrent.CompletableFuture.completedFuture;
-
 import com.google.common.base.Strings;
 import org.apache.camel.component.milo.client.MiloClientConfiguration;
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
@@ -47,7 +45,7 @@ import org.eclipse.milo.opcua.sdk.client.api.identity.UsernameProvider;
 import org.eclipse.milo.opcua.sdk.client.api.subscriptions.UaMonitoredItem;
 import org.eclipse.milo.opcua.sdk.client.api.subscriptions.UaSubscription;
 import org.eclipse.milo.opcua.sdk.client.api.subscriptions.UaSubscriptionManager.SubscriptionListener;
-import org.eclipse.milo.opcua.stack.client.UaTcpStackClient;
+import org.eclipse.milo.opcua.stack.client.DiscoveryClient;
 import org.eclipse.milo.opcua.stack.core.AttributeId;
 import org.eclipse.milo.opcua.stack.core.Identifiers;
 import org.eclipse.milo.opcua.stack.core.StatusCodes;
@@ -73,6 +71,7 @@ import org.eclipse.milo.opcua.stack.core.types.structured.ReadValueId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.apache.camel.component.milo.NodeIds.toNodeId;
 
 public class SubscriptionManager {
@@ -172,10 +171,6 @@ public class SubscriptionManager {
                 } else {
                     final ReadValueId itemId = new ReadValueId(node, AttributeId.Value.uid(), null, QualifiedName.NULL_VALUE);
                     Double samplingInterval = s.getSamplingInterval();
-                    if (samplingInterval == null) {
-                        // work around a bug (NPE) in Eclipse Milo 0.1.3
-                        samplingInterval = 0.0;
-                    }
                     final MonitoringParameters parameters = new MonitoringParameters(entry.getKey(), samplingInterval, null, null, null);
                     items.add(new MonitoredItemCreateRequest(itemId, MonitoringMode.Reporting, parameters));
                 }
@@ -338,7 +333,6 @@ public class SubscriptionManager {
 
             });
         }
-
     }
 
     private final MiloClientConfiguration configuration;
@@ -428,10 +422,18 @@ public class SubscriptionManager {
 
         // eval enpoint
 
-        final String discoveryUri = getEndpointDiscoveryUri();
+        String discoveryUri = getEndpointDiscoveryUri();
+
+        final URI uri = URI.create(getEndpointDiscoveryUri());
+
+        //milo library doesn't allow user info as a part of the uri, it has to be removed before sending to milo
+        final String user = uri.getUserInfo();
+        if (user != null && !user.isEmpty()) {
+            discoveryUri = discoveryUri.replaceFirst(user + "@", "");
+        }
         LOG.debug("Discovering endpoints from: {}", discoveryUri);
 
-        final EndpointDescription endpoint = UaTcpStackClient.getEndpoints(discoveryUri).thenApply(endpoints -> {
+        final EndpointDescription endpoint = DiscoveryClient.getEndpoints(discoveryUri).thenApply(endpoints -> {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Found enpoints:");
                 for (final EndpointDescription ep : endpoints) {
@@ -448,13 +450,9 @@ public class SubscriptionManager {
 
         LOG.debug("Selected endpoint: {}", endpoint);
 
-        final URI uri = URI.create(getEndpointDiscoveryUri());
-
         // set identity providers
-
         final List<IdentityProvider> providers = new LinkedList<>();
 
-        final String user = uri.getUserInfo();
         if (user != null && !user.isEmpty()) {
             final String[] creds = user.split(":", 2);
             if (creds != null && creds.length == 2) {
@@ -471,19 +469,17 @@ public class SubscriptionManager {
 
         // create client
 
-        final OpcUaClient client = new OpcUaClient(cfg.build());
+        final OpcUaClient client = OpcUaClient.create(cfg.build());
         client.connect().get();
 
         try {
-            final UaSubscription manager = client.getSubscriptionManager().createSubscription(1_000.0).get();
+            final UaSubscription manager = client.getSubscriptionManager().createSubscription(this.configuration.getRequestedPublishingInterval()).get();
             client.getSubscriptionManager().addSubscriptionListener(new SubscriptionListenerImpl());
 
             return new Connected(client, manager);
         } catch (final Throwable e) {
-            if (client != null) {
-                // clean up
-                client.disconnect();
-            }
+            // clean up
+            client.disconnect();
             throw e;
         }
     }
@@ -533,7 +529,7 @@ public class SubscriptionManager {
         }
     }
 
-    private EndpointDescription findEndpoint(final EndpointDescription[] endpoints) throws URISyntaxException {
+    private EndpointDescription findEndpoint(final List<EndpointDescription> endpoints) throws URISyntaxException {
 
         final Predicate<String> allowed;
         final Set<String> uris = this.configuration.getAllowedSecurityPolicies();

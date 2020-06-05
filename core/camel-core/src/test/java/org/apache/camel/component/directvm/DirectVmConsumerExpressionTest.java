@@ -21,7 +21,6 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.impl.DefaultCamelContext;
-import org.apache.camel.support.service.ServiceHelper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,31 +43,27 @@ public class DirectVmConsumerExpressionTest extends ContextTestSupport {
         context3 = new DefaultCamelContext();
         context4 = new DefaultCamelContext();
 
-        ServiceHelper.startService(context2);
-        ServiceHelper.startService(context3);
-        ServiceHelper.startService(context4);
+        context2.start();
+        context3.start();
+        context4.start();
 
         // add routes after CamelContext has been started
         RouteBuilder routeBuilder = createRouteBuilderCamelContext2();
-        if (routeBuilder != null) {
-            context2.addRoutes(routeBuilder);
-        }
+        context2.addRoutes(routeBuilder);
 
         routeBuilder = createRouteBuilderCamelContext3();
-        if (routeBuilder != null) {
-            context3.addRoutes(routeBuilder);
-        }
-        
+        context3.addRoutes(routeBuilder);
+
         routeBuilder = createRouteBuilderCamelContext4();
-        if (routeBuilder != null) {
-            context4.addRoutes(routeBuilder);
-        }
+        context4.addRoutes(routeBuilder);
     }
 
     @Override
     @After
     public void tearDown() throws Exception {
-        ServiceHelper.stopService(context2, context3, context4);
+        context2.stop();
+        context3.stop();
+        context4.stop();
         super.tearDown();
     }
 
@@ -79,7 +74,7 @@ public class DirectVmConsumerExpressionTest extends ContextTestSupport {
 
         MockEndpoint result3 = context3.getEndpoint("mock:result3", MockEndpoint.class);
         result3.expectedBodiesReceived("Hello World");
-        
+
         MockEndpoint result4 = context4.getEndpoint("mock:result4", MockEndpoint.class);
         result4.expectedMessageCount(0);
 
@@ -95,8 +90,7 @@ public class DirectVmConsumerExpressionTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start")
-                    .recipientList(new DirectVmConsumerExpression("direct-vm://parent/**/context*"));
+                from("direct:start").recipientList(new DirectVmConsumerExpression("direct-vm://parent/**/context*"));
             }
         };
     }
@@ -105,8 +99,7 @@ public class DirectVmConsumerExpressionTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct-vm:parent/child/context2")
-                    .to("mock:result2");
+                from("direct-vm:parent/child/context2").to("mock:result2");
             }
         };
     }
@@ -115,8 +108,7 @@ public class DirectVmConsumerExpressionTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct-vm:parent/child/grandchild/context3")
-                    .to("mock:result3");
+                from("direct-vm:parent/child/grandchild/context3").to("mock:result3");
             }
         };
     }
@@ -125,8 +117,7 @@ public class DirectVmConsumerExpressionTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct-vm:parent/child/ctx4")
-                    .to("mock:result4");
+                from("direct-vm:parent/child/ctx4").to("mock:result4");
             }
         };
     }

@@ -20,13 +20,11 @@ import java.util.Map;
 import java.util.Set;
 
 import com.amazonaws.services.ec2.AmazonEC2;
-
 import org.apache.camel.CamelContext;
 import org.apache.camel.Endpoint;
 import org.apache.camel.spi.Metadata;
 import org.apache.camel.spi.annotations.Component;
 import org.apache.camel.support.DefaultComponent;
-import org.apache.camel.util.ObjectHelper;
 
 /**
  * For working with Amazon's Elastic Compute Cloud (EC2).
@@ -35,13 +33,7 @@ import org.apache.camel.util.ObjectHelper;
 public class EC2Component extends DefaultComponent {
 
     @Metadata
-    private String accessKey;
-    @Metadata
-    private String secretKey;
-    @Metadata
-    private String region;
-    @Metadata(label = "advanced")    
-    private EC2Configuration configuration;
+    private EC2Configuration configuration = new EC2Configuration();
     
     public EC2Component() {
         this(null);
@@ -50,30 +42,20 @@ public class EC2Component extends DefaultComponent {
     public EC2Component(CamelContext context) {
         super(context);
         
-        this.configuration = new EC2Configuration();
         registerExtension(new EC2ComponentVerifierExtension());
     }
 
     @Override
     protected Endpoint createEndpoint(String uri, String remaining, Map<String, Object> parameters) throws Exception {
-        EC2Configuration configuration = this.configuration.copy();
-        setProperties(configuration, parameters);
 
-        if (ObjectHelper.isEmpty(configuration.getAccessKey())) {
-            setAccessKey(accessKey);
-        }
-        if (ObjectHelper.isEmpty(configuration.getSecretKey())) {
-            setSecretKey(secretKey);
-        }
-        if (ObjectHelper.isEmpty(configuration.getRegion())) {
-            setRegion(region);
-        }
+        EC2Configuration configuration = this.configuration != null ? this.configuration.copy() : new EC2Configuration();
+        EC2Endpoint endpoint = new EC2Endpoint(uri, this, configuration);
+        setProperties(endpoint, parameters);
         checkAndSetRegistryClient(configuration);
         if (configuration.getAmazonEc2Client() == null && (configuration.getAccessKey() == null || configuration.getSecretKey() == null)) {
             throw new IllegalArgumentException("amazonEC2Client or accessKey and secretKey must be specified");
         }
         
-        EC2Endpoint endpoint = new EC2Endpoint(uri, this, configuration);
         return endpoint;
     }
     
@@ -82,43 +64,10 @@ public class EC2Component extends DefaultComponent {
     }
 
     /**
-     * The AWS EC2 default configuration
+     * The component configuration
      */
     public void setConfiguration(EC2Configuration configuration) {
         this.configuration = configuration;
-    }
-
-    /**
-     * The region in which EC2 client needs to work
-     */
-    public String getRegion() {
-        return configuration.getRegion();
-    }
-
-    public void setRegion(String region) {
-        configuration.setRegion(region);
-    }
-    
-    public String getAccessKey() {
-        return configuration.getAccessKey();
-    }
-
-    /**
-     * Amazon AWS Access Key
-     */
-    public void setAccessKey(String accessKey) {
-        configuration.setAccessKey(accessKey);
-    }
-    
-    public String getSecretKey() {
-        return configuration.getSecretKey();
-    }
-
-    /**
-     * Amazon AWS Secret Key
-     */
-    public void setSecretKey(String secretKey) {
-        configuration.setSecretKey(secretKey);
     }
 
     private void checkAndSetRegistryClient(EC2Configuration configuration) {

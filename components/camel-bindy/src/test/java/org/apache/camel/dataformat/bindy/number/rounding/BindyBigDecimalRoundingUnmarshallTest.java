@@ -31,7 +31,6 @@ import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Assert;
 import org.junit.Test;
 
-
 public class BindyBigDecimalRoundingUnmarshallTest extends CamelTestSupport {
 
     private static final String URI_MOCK_RESULT = "mock:result";
@@ -67,10 +66,10 @@ public class BindyBigDecimalRoundingUnmarshallTest extends CamelTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                BindyDataFormat bindy = new BindyDataFormat();
-                bindy.setType(BindyType.Csv);
-                bindy.setClassType(NumberModel.class);
-                bindy.setLocale("en");
+                BindyDataFormat bindy = new BindyDataFormat()
+                        .type(BindyType.Csv)
+                        .classType(NumberModel.class)
+                        .locale("en");
 
                 from(URI_DIRECT_START)
                     .unmarshal(bindy)

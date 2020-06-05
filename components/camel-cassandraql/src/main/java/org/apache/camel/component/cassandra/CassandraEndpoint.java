@@ -21,6 +21,7 @@ import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
+import org.apache.camel.Category;
 import org.apache.camel.Component;
 import org.apache.camel.Consumer;
 import org.apache.camel.Message;
@@ -35,11 +36,10 @@ import org.apache.camel.utils.cassandra.CassandraLoadBalancingPolicies;
 import org.apache.camel.utils.cassandra.CassandraSessionHolder;
 
 /**
- * The cql component aims at integrating Cassandra 2.0+ using the CQL3 API (not the Thrift API).
- *
- * It's based on Cassandra Java Driver provided by DataStax.
+ * Integrate with Cassandra 2.0+ using the CQL3 API (not the Thrift API).
+ * Based on Cassandra Java Driver provided by DataStax.
  */
-@UriEndpoint(firstVersion = "2.15.0", scheme = "cql", title = "Cassandra CQL", syntax = "cql:beanRef:hosts:port/keyspace", label = "database,nosql")
+@UriEndpoint(firstVersion = "2.15.0", scheme = "cql", title = "Cassandra CQL", syntax = "cql:beanRef:hosts:port/keyspace", category = {Category.DATABASE, Category.NOSQL})
 public class CassandraEndpoint extends ScheduledPollEndpoint {
 
     private volatile CassandraSessionHolder sessionHolder;
@@ -70,7 +70,7 @@ public class CassandraEndpoint extends ScheduledPollEndpoint {
     private ConsistencyLevel consistencyLevel;
     @UriParam
     private String loadBalancingPolicy;
-    @UriParam(javaType = "java.lang.String")
+    @UriParam
     private ResultSetConversionStrategy resultSetConversionStrategy = ResultSetConversionStrategies.all();
 
     public CassandraEndpoint(String endpointUri, Component component) {
@@ -84,10 +84,12 @@ public class CassandraEndpoint extends ScheduledPollEndpoint {
         this.keyspace = keyspace;
     }
 
+    @Override
     public Producer createProducer() throws Exception {
         return new CassandraProducer(this);
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         CassandraConsumer consumer = new CassandraConsumer(this, processor);
         configureConsumer(consumer);
@@ -103,11 +105,11 @@ public class CassandraEndpoint extends ScheduledPollEndpoint {
         if (cluster == null && beanRef != null) {
             Object bean = CamelContextHelper.mandatoryLookup(getCamelContext(), beanRef);
             if (bean instanceof Session) {
-                session = (Session) bean;
+                session = (Session)bean;
                 cluster = session.getCluster();
                 keyspace = session.getLoggedKeyspace();
             } else if (bean instanceof Cluster) {
-                cluster = (Cluster) bean;
+                cluster = (Cluster)bean;
                 session = null;
             } else {
                 throw new IllegalArgumentException("CQL Bean type should be of type Session or Cluster but was " + bean);
@@ -189,7 +191,8 @@ public class CassandraEndpoint extends ScheduledPollEndpoint {
     }
 
     /**
-     * Instead of using a hostname:port, refer to an existing configured Session or Cluster from the Camel registry to be used.
+     * Instead of using a hostname:port, refer to an existing configured Session
+     * or Cluster from the Camel registry to be used.
      */
     public void setBean(String beanRef) {
         this.beanRef = beanRef;
@@ -210,7 +213,8 @@ public class CassandraEndpoint extends ScheduledPollEndpoint {
     }
 
     /**
-     * Hostname(s) cassansdra server(s). Multiple hosts can be separated by comma.
+     * Hostname(s) cassansdra server(s). Multiple hosts can be separated by
+     * comma.
      */
     public void setHosts(String hosts) {
         this.hosts = hosts;
@@ -243,7 +247,8 @@ public class CassandraEndpoint extends ScheduledPollEndpoint {
     }
 
     /**
-     * CQL query to perform. Can be overridden with the message header with key CamelCqlQuery.
+     * CQL query to perform. Can be overridden with the message header with key
+     * CamelCqlQuery.
      */
     public void setCql(String cql) {
         this.cql = cql;
@@ -324,7 +329,8 @@ public class CassandraEndpoint extends ScheduledPollEndpoint {
     }
 
     /**
-     * To use a custom class that implements logic for converting ResultSet into message body ALL, ONE, LIMIT_10, LIMIT_100...
+     * To use a custom class that implements logic for converting ResultSet into
+     * message body ALL, ONE, LIMIT_10, LIMIT_100...
      */
     public void setResultSetConversionStrategy(ResultSetConversionStrategy resultSetConversionStrategy) {
         this.resultSetConversionStrategy = resultSetConversionStrategy;
@@ -351,6 +357,5 @@ public class CassandraEndpoint extends ScheduledPollEndpoint {
     public void setLoadBalancingPolicy(String loadBalancingPolicy) {
         this.loadBalancingPolicy = loadBalancingPolicy;
     }
-    
-    
+
 }

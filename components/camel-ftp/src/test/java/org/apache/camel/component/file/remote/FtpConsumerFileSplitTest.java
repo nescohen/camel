@@ -21,7 +21,7 @@ import java.io.File;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class FtpConsumerFileSplitTest extends FtpServerTestSupport {
 
@@ -39,14 +39,11 @@ public class FtpConsumerFileSplitTest extends FtpServerTestSupport {
         resultEndpoint.assertIsSatisfied();
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {
-                from(getFtpUrl())
-                    .to("log:file")
-                    .split(body().tokenize(LS))
-                        .to("log:line")
-                        .to("mock:result");
+                from(getFtpUrl()).to("log:file").split(body().tokenize(LS)).to("log:line").to("mock:result");
             }
         };
     }

@@ -46,12 +46,13 @@ public class JmsRequestReplyExclusiveReplyToComponentTest extends CamelTestSuppo
         assertTrue("Should be faster than about 4 seconds, was: " + delta, delta < 4200);
     }
 
+    @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext camelContext = super.createCamelContext();
         ConnectionFactory connectionFactory = CamelJmsTestHelper.createConnectionFactory();
         // mark the reply to type as exclusive on the component
         JmsComponent jms = jmsComponentAutoAcknowledge(connectionFactory);
-        jms.setReplyToType(ReplyToType.Exclusive);
+        jms.getConfiguration().setReplyToType(ReplyToType.Exclusive);
         camelContext.addComponent("activemq", jms);
         return camelContext;
     }

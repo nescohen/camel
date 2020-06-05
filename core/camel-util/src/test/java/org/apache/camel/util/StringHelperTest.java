@@ -17,6 +17,7 @@
 package org.apache.camel.util;
 
 import junit.framework.TestCase;
+
 import org.junit.Test;
 
 import static org.apache.camel.util.StringHelper.camelCaseToDash;
@@ -42,5 +43,6 @@ public class StringHelperTest extends TestCase {
         assertEquals("my-big-url-again", camelCaseToDash("MyBigURLAgain"));
 
         assertEquals("use-mdc-logging", camelCaseToDash("UseMDCLogging"));
+        assertEquals("mdc-logging-keys-pattern", camelCaseToDash("MDCLoggingKeysPattern"));
     }
 }

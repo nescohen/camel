@@ -30,28 +30,27 @@ public class CassandraLoadBalancingPolicies {
     public final String dcAwareRoundRobinPolicy = "DcAwareRoundRobinPolicy";
     public final String latencyAwarePolicy = "LatencyAwarePolicy";
     public final String errorAwarePolicy = "ErrorAwarePolicy";
-    
+
     public LoadBalancingPolicy getLoadBalancingPolicy(String policy) {
         LoadBalancingPolicy loadBalancingPolicy = new RoundRobinPolicy();
         switch (policy) {
-        case roundRobinPolicy:
-            loadBalancingPolicy = new RoundRobinPolicy();
-            break;
-        case tokenAwarePolicy:
-            loadBalancingPolicy = new TokenAwarePolicy(new RoundRobinPolicy());
-            break;
-        case dcAwareRoundRobinPolicy:
-            loadBalancingPolicy = DCAwareRoundRobinPolicy.builder().build();
-            break;
-        case latencyAwarePolicy:
-            loadBalancingPolicy = LatencyAwarePolicy.builder(new RoundRobinPolicy()).build();
-            break;
-        case errorAwarePolicy:
-            loadBalancingPolicy = ErrorAwarePolicy.builder(new RoundRobinPolicy()).build();
-            break;
-        default:
-            throw new IllegalArgumentException("Cassandra load balancing policy can be " + roundRobinPolicy + " ," + tokenAwarePolicy 
-                   + " ," + dcAwareRoundRobinPolicy);
+            case roundRobinPolicy:
+                loadBalancingPolicy = new RoundRobinPolicy();
+                break;
+            case tokenAwarePolicy:
+                loadBalancingPolicy = new TokenAwarePolicy(new RoundRobinPolicy());
+                break;
+            case dcAwareRoundRobinPolicy:
+                loadBalancingPolicy = DCAwareRoundRobinPolicy.builder().build();
+                break;
+            case latencyAwarePolicy:
+                loadBalancingPolicy = LatencyAwarePolicy.builder(new RoundRobinPolicy()).build();
+                break;
+            case errorAwarePolicy:
+                loadBalancingPolicy = ErrorAwarePolicy.builder(new RoundRobinPolicy()).build();
+                break;
+            default:
+                throw new IllegalArgumentException("Cassandra load balancing policy can be " + roundRobinPolicy + " ," + tokenAwarePolicy + " ," + dcAwareRoundRobinPolicy);
         }
         return loadBalancingPolicy;
     }

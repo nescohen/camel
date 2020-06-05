@@ -22,9 +22,7 @@ import org.apache.camel.Message;
 import org.apache.camel.Processor;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.test.spring.CamelSpringTestSupport;
-
 import org.junit.Test;
-
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 public class FreemarkerSetHeaderTest extends CamelSpringTestSupport {
@@ -38,7 +36,7 @@ public class FreemarkerSetHeaderTest extends CamelSpringTestSupport {
         assertRespondsWith("orange", "I am an orange");
     }
 
-    protected void assertRespondsWith(final String value, String expectedBody) throws InvalidPayloadException, InterruptedException {
+    protected void assertRespondsWith(final String value, String expectedBody) throws Exception {
         MockEndpoint mock = getMockEndpoint("mock:result");
         mock.expectedMessageCount(1);
         //mock.expectedHeaderReceived("fruit", value);

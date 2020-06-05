@@ -27,8 +27,8 @@ import org.apache.camel.LanguageTestSupport;
 import org.apache.camel.component.file.FileConsumer;
 import org.apache.camel.component.file.FileEndpoint;
 import org.apache.camel.component.file.GenericFile;
-import org.apache.camel.impl.JndiRegistry;
 import org.apache.camel.language.simple.SimpleLanguage;
+import org.apache.camel.spi.Registry;
 import org.apache.camel.util.FileUtil;
 import org.junit.Test;
 
@@ -40,12 +40,13 @@ public class FileLanguageTest extends LanguageTestSupport {
     private File file;
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("generator", new MyFileNameGenerator());
         return jndi;
     }
 
+    @Override
     protected String getLanguageName() {
         return "file";
     }
@@ -124,7 +125,7 @@ public class FileLanguageTest extends LanguageTestSupport {
         assertExpression("backup-${date:file:yyyyMMdd}", "backup-" + expected);
 
         assertExpression("backup-${date:header.birthday:yyyyMMdd}", "backup-19740420");
-        assertExpression("hello-${date:out.header.special:yyyyMMdd}", "hello-20080808");
+        assertExpression("hello-${date:header.special:yyyyMMdd}", "hello-20080808");
 
         try {
             this.assertExpression("nodate-${date:header.xxx:yyyyMMdd}", null);
@@ -143,7 +144,7 @@ public class FileLanguageTest extends LanguageTestSupport {
         assertExpression("backup-$simple{date:file:yyyyMMdd}", "backup-" + expected);
 
         assertExpression("backup-$simple{date:header.birthday:yyyyMMdd}", "backup-19740420");
-        assertExpression("hello-$simple{date:out.header.special:yyyyMMdd}", "hello-20080808");
+        assertExpression("hello-$simple{date:header.special:yyyyMMdd}", "hello-20080808");
 
         try {
             this.assertExpression("nodate-$simple{date:header.xxx:yyyyMMdd}", null);
@@ -194,6 +195,7 @@ public class FileLanguageTest extends LanguageTestSupport {
         assertExpression(answer, "${file:ext}", "tar.gz");
     }
 
+    @Override
     public Exchange createExchange() {
         // create the file
         String uri = "file://target/data/filelanguage?fileExist=Override";
@@ -210,10 +212,10 @@ public class FileLanguageTest extends LanguageTestSupport {
 
         Calendar cal = Calendar.getInstance();
         cal.set(1974, Calendar.APRIL, 20);
-        answer.getIn().setHeader("birthday", cal.getTime());
+        answer.getMessage().setHeader("birthday", cal.getTime());
 
         cal.set(2008, Calendar.AUGUST, 8);
-        answer.getOut().setHeader("special", cal.getTime());
+        answer.getMessage().setHeader("special", cal.getTime());
         return answer;
     }
 

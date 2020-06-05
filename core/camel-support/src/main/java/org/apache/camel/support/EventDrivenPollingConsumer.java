@@ -31,6 +31,8 @@ import org.apache.camel.PollingConsumerPollingStrategy;
 import org.apache.camel.Processor;
 import org.apache.camel.spi.ExceptionHandler;
 import org.apache.camel.support.service.ServiceHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A default implementation of the {@link org.apache.camel.PollingConsumer} which uses the normal
@@ -38,6 +40,8 @@ import org.apache.camel.support.service.ServiceHelper;
  * the caller to pull messages on demand.
  */
 public class EventDrivenPollingConsumer extends PollingConsumerSupport implements Processor, IsSingleton {
+
+    private static final Logger LOG = LoggerFactory.getLogger(EventDrivenPollingConsumer.class);
 
     private final BlockingQueue<Exchange> queue;
     private ExceptionHandler interruptedExceptionHandler;
@@ -103,10 +107,12 @@ public class EventDrivenPollingConsumer extends PollingConsumerSupport implement
         return queue.size();
     }
 
+    @Override
     public Exchange receiveNoWait() {
         return receive(0);
     }
 
+    @Override
     public Exchange receive() {
         // must be started
         if (!isRunAllowed() || !isStarted()) {
@@ -127,10 +133,11 @@ public class EventDrivenPollingConsumer extends PollingConsumerSupport implement
                 }
             }
         }
-        log.trace("Consumer is not running, so returning null");
+        LOG.trace("Consumer is not running, so returning null");
         return null;
     }
 
+    @Override
     public Exchange receive(long timeout) {
         // must be started
         if (!isRunAllowed() || !isStarted()) {
@@ -152,6 +159,7 @@ public class EventDrivenPollingConsumer extends PollingConsumerSupport implement
         }
     }
 
+    @Override
     public void process(Exchange exchange) throws Exception {
         if (isBlockWhenFull()) {
             try {
@@ -165,7 +173,7 @@ public class EventDrivenPollingConsumer extends PollingConsumerSupport implement
                 }
             } catch (InterruptedException e) {
                 // ignore
-                log.debug("Put interrupted, are we stopping? {}", isStopping() || isStopped());
+                LOG.debug("Put interrupted, are we stopping? {}", isStopping() || isStopped());
             }
         } else {
             queue.add(exchange);
@@ -194,7 +202,7 @@ public class EventDrivenPollingConsumer extends PollingConsumerSupport implement
             try {
                 timeout = strategy.beforePoll(timeout);
             } catch (Exception e) {
-                log.debug("Error occurred before polling " + consumer + ". This exception will be ignored.", e);
+                LOG.debug("Error occurred before polling " + consumer + ". This exception will be ignored.", e);
             }
         }
         return timeout;
@@ -206,7 +214,7 @@ public class EventDrivenPollingConsumer extends PollingConsumerSupport implement
             try {
                 strategy.afterPoll();
             } catch (Exception e) {
-                log.debug("Error occurred after polling " + consumer + ". This exception will be ignored.", e);
+                LOG.debug("Error occurred after polling " + consumer + ". This exception will be ignored.", e);
             }
         }
     }
@@ -219,6 +227,7 @@ public class EventDrivenPollingConsumer extends PollingConsumerSupport implement
         return getEndpoint().createConsumer(this);
     }
 
+    @Override
     protected void doStart() throws Exception {
         // lets add ourselves as a consumer
         consumer = createConsumer();
@@ -232,10 +241,12 @@ public class EventDrivenPollingConsumer extends PollingConsumerSupport implement
         }
     }
 
+    @Override
     protected void doStop() throws Exception {
         ServiceHelper.stopService(consumer);
     }
 
+    @Override
     protected void doShutdown() throws Exception {
         ServiceHelper.stopAndShutdownService(consumer);
         queue.clear();

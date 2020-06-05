@@ -41,6 +41,8 @@ import org.apache.camel.component.facebook.data.FacebookMethodsTypeHelper.MatchT
 import org.apache.camel.component.facebook.data.FacebookPropertiesHelper;
 import org.apache.camel.component.facebook.data.ReadingBuilder;
 import org.apache.camel.support.ScheduledPollConsumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.camel.component.facebook.FacebookConstants.FACEBOOK_DATE_FORMAT;
 import static org.apache.camel.component.facebook.FacebookConstants.READING_PREFIX;
@@ -54,6 +56,8 @@ import static org.apache.camel.component.facebook.data.FacebookMethodsTypeHelper
  * The Facebook consumer.
  */
 public class FacebookConsumer extends ScheduledPollConsumer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FacebookConsumer.class);
 
     private static final String SINCE_PREFIX = "since=";
 
@@ -73,7 +77,7 @@ public class FacebookConsumer extends ScheduledPollConsumer {
 
         // get endpoint properties in a map
         final HashMap<String, Object> properties = new HashMap<>();
-        FacebookPropertiesHelper.getEndpointProperties(endpoint.getConfiguration(), properties);
+        FacebookPropertiesHelper.getEndpointProperties(endpoint.getCamelContext(), endpoint.getConfiguration(), properties);
 
         // skip since and until fields?
         final Reading reading = (Reading) properties.get(READING_PROPERTY);
@@ -93,10 +97,10 @@ public class FacebookConsumer extends ScheduledPollConsumer {
                 } catch (UnsupportedEncodingException e) {
                     throw new RuntimeCamelException(String.format("Error decoding %s.since with value %s due to: %s", READING_PREFIX, strSince, e.getMessage()), e);
                 }
-                log.debug("Using supplied property {}since value {}", READING_PREFIX, this.sinceTime);
+                LOG.debug("Using supplied property {}since value {}", READING_PREFIX, this.sinceTime);
             }
             if (queryString.contains("until=")) {
-                log.debug("Overriding configured property {}until", READING_PREFIX);
+                LOG.debug("Overriding configured property {}until", READING_PREFIX);
             }
         }
         this.endpointProperties = Collections.unmodifiableMap(properties);
@@ -113,7 +117,7 @@ public class FacebookConsumer extends ScheduledPollConsumer {
         FacebookMethodsType result;
         // find one that takes the largest subset of endpoint parameters
         final Set<String> argNames = new HashSet<>();
-        argNames.addAll(FacebookPropertiesHelper.getEndpointPropertyNames(endpoint.getConfiguration()));
+        argNames.addAll(FacebookPropertiesHelper.getEndpointPropertyNames(endpoint.getCamelContext(), endpoint.getConfiguration()));
 
         // add reading property for polling, if it doesn't already exist!
         argNames.add(READING_PROPERTY);
@@ -132,7 +136,7 @@ public class FacebookConsumer extends ScheduledPollConsumer {
             result = filteredMethods.get(0);
         } else {
             result = getHighestPriorityMethod(filteredMethods);
-            log.warn("Using highest priority method {} from methods {}", method, filteredMethods);
+            LOG.warn("Using highest priority method {} from methods {}", method, filteredMethods);
         }
         return result;
     }
@@ -215,10 +219,7 @@ public class FacebookConsumer extends ScheduledPollConsumer {
         } else {
             try {
                 reading = ReadingBuilder.copy(reading, true);
-            } catch (NoSuchFieldException e) {
-                throw new IllegalArgumentException(String.format("Error creating property [%s]: %s",
-                        READING_PROPERTY, e.getMessage()), e);
-            } catch (IllegalAccessException e) {
+            } catch (NoSuchFieldException | IllegalAccessException e) {
                 throw new IllegalArgumentException(String.format("Error creating property [%s]: %s",
                         READING_PROPERTY, e.getMessage()), e);
             }

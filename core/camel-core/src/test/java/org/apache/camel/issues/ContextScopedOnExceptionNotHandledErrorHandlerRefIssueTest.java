@@ -21,7 +21,7 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.DeadLetterChannelBuilder;
 import org.apache.camel.builder.ErrorHandlerBuilderRef;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 /**
@@ -47,10 +47,10 @@ public class ContextScopedOnExceptionNotHandledErrorHandlerRefIssueTest extends 
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myDLC", new DeadLetterChannelBuilder("mock:dead"));
-        return  jndi;
+        return jndi;
     }
 
     @Override
@@ -58,16 +58,11 @@ public class ContextScopedOnExceptionNotHandledErrorHandlerRefIssueTest extends 
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                onException(IllegalArgumentException.class)
-                    .handled(false)
-                    .to("mock:handled")
-                    .end();
+                onException(IllegalArgumentException.class).handled(false).to("mock:handled").end();
 
                 errorHandler(new ErrorHandlerBuilderRef("myDLC"));
 
-                from("direct:start")
-                    .to("mock:a")
-                    .throwException(new IllegalArgumentException("Damn"));
+                from("direct:start").to("mock:a").throwException(new IllegalArgumentException("Damn"));
             }
         };
     }

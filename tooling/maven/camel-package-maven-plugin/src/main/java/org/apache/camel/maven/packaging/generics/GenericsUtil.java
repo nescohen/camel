@@ -37,13 +37,13 @@ import java.util.Set;
  * Utility classes for generic type operations.
  */
 public final class GenericsUtil {
-    
+
     /*
      * Private constructor
      */
     private GenericsUtil() {
     }
-    
+
     public static boolean satisfiesDependency(boolean isDelegateOrEvent, boolean isProducer, Type injectionPointType, Type beanType) {
         if (beanType instanceof TypeVariable || beanType instanceof WildcardType || beanType instanceof GenericArrayType) {
             return isAssignableFrom(isDelegateOrEvent, isProducer, injectionPointType, beanType);
@@ -412,7 +412,7 @@ public final class GenericsUtil {
         }
 
         for (Type typeArgument : getParameterizedType(type).getActualTypeArguments()) {
-            if (ClassUtil.isParametrizedType(typeArgument)) {
+            if (ClassUtil.isParameterizedType(typeArgument)) {
                 if (containsWildcardType(typeArgument)) {
                     return true;
                 }
@@ -509,7 +509,7 @@ public final class GenericsUtil {
         for (int i = 0; i < types.length; i++) {
             final Type type = resolveType(types[i], actualType, seen);
             if (type != null) { // means a stackoverflow was avoided, just keep
-                              // what we have 
+                                // what we have
                 resolvedTypeArguments[i] = type;
             }
         }
@@ -589,7 +589,7 @@ public final class GenericsUtil {
     }
 
     public static Set<Type> getDirectTypeClosure(final Type type, final Type actualType) {
-        Set<Type> typeClosure = new HashSet<Type>();
+        Set<Type> typeClosure = new HashSet<>();
         typeClosure.add(Object.class);
         fillTypeHierarchy(typeClosure, type, actualType);
         return typeClosure;
@@ -611,7 +611,7 @@ public final class GenericsUtil {
     }
 
     private static Collection<TypeVariable<?>> newSeenList() {
-        return new ArrayList<TypeVariable<?>>();
+        return new ArrayList<>();
     }
 
     public static boolean hasTypeParameters(Type type) {
@@ -684,7 +684,7 @@ public final class GenericsUtil {
     }
 
     private static Class<?>[] getClassTypes(Class<?>[] rawTypes) {
-        List<Class<?>> classTypes = new ArrayList<Class<?>>();
+        List<Class<?>> classTypes = new ArrayList<>();
         for (Class<?> rawType : rawTypes) {
             if (!rawType.isInterface()) {
                 classTypes.add(rawType);

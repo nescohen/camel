@@ -27,15 +27,21 @@ import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.spi.CamelLogger;
 import org.apache.camel.spi.IdAware;
+import org.apache.camel.spi.RouteIdAware;
 import org.apache.camel.support.AsyncProcessorSupport;
 import org.apache.camel.util.ObjectHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A logger for logging message throughput.
  */
-public class ThroughputLogger extends AsyncProcessorSupport implements AsyncProcessor, IdAware {
+public class ThroughputLogger extends AsyncProcessorSupport implements AsyncProcessor, IdAware, RouteIdAware {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ThroughputLogger.class);
 
     private String id;
+    private String routeId;
     private final AtomicInteger receivedCounter = new AtomicInteger();
     private NumberFormat numberFormat = NumberFormat.getNumberInstance();
     private long groupReceivedCount;
@@ -72,14 +78,27 @@ public class ThroughputLogger extends AsyncProcessorSupport implements AsyncProc
         }
     }
 
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public void setId(String id) {
         this.id = id;
     }
 
+    @Override
+    public String getRouteId() {
+        return routeId;
+    }
+
+    @Override
+    public void setRouteId(String routeId) {
+        this.routeId = routeId;
+    }
+
+    @Override
     public void process(Exchange exchange) throws Exception {
         if (startTime == 0) {
             startTime = System.currentTimeMillis();
@@ -95,6 +114,7 @@ public class ThroughputLogger extends AsyncProcessorSupport implements AsyncProc
         }
     }
 
+    @Override
     public boolean process(Exchange exchange, AsyncCallback callback) {
         try {
             process(exchange);
@@ -193,7 +213,7 @@ public class ThroughputLogger extends AsyncProcessorSupport implements AsyncProc
 
             logSchedulerService = camelContext.getExecutorServiceManager().newSingleThreadScheduledExecutor(this, "ThroughputLogger");
             Runnable scheduledLogTask = new ScheduledLogTask();
-            log.info("Scheduling throughput logger to run every {} millis.", groupInterval);
+            LOG.info("Scheduling throughput logger to run every {} millis.", groupInterval);
             // must use fixed rate to have it trigger at every X interval
             logSchedulerService.scheduleAtFixedRate(scheduledLogTask, groupDelay, groupInterval, TimeUnit.MILLISECONDS);
         }
@@ -229,10 +249,11 @@ public class ThroughputLogger extends AsyncProcessorSupport implements AsyncProc
      */
     private final class ScheduledLogTask implements Runnable {
 
+        @Override
         public void run() {
             // only run if CamelContext has been fully started
             if (!camelContext.getStatus().isStarted()) {
-                log.trace("ThroughputLogger cannot start because CamelContext({}) has not been started yet", camelContext.getName());
+                LOG.trace("ThroughputLogger cannot start because CamelContext({}) has not been started yet", camelContext.getName());
                 return;
             }
 

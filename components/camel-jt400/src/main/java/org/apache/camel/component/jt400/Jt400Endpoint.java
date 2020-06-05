@@ -24,6 +24,7 @@ import javax.naming.OperationNotSupportedException;
 import com.ibm.as400.access.AS400;
 import com.ibm.as400.access.AS400ConnectionPool;
 import org.apache.camel.CamelException;
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.MultipleConsumersSupport;
 import org.apache.camel.Processor;
@@ -35,9 +36,9 @@ import org.apache.camel.util.ObjectHelper;
 import org.apache.camel.util.URISupport;
 
 /**
- * The jt400 component allows you to exchanges messages with an AS/400 system using data queues or program call.
+ * Exchanges messages with an AS/400 system using data queues or program call.
  */
-@UriEndpoint(firstVersion = "1.5.0", scheme = "jt400", title = "JT400", syntax = "jt400:userID:password/systemName/objectPath.type", label = "messaging")
+@UriEndpoint(firstVersion = "1.5.0", scheme = "jt400", title = "JT400", syntax = "jt400:userID:password/systemName/objectPath.type", category = {Category.MESSAGING})
 public class Jt400Endpoint extends ScheduledPollEndpoint implements MultipleConsumersSupport {
 
     public static final String KEY = "KEY";
@@ -49,7 +50,7 @@ public class Jt400Endpoint extends ScheduledPollEndpoint implements MultipleCons
     /**
      * Creates a new AS/400 data queue endpoint using a default connection pool
      * provided by the component.
-     * 
+     *
      * @throws NullPointerException if {@code component} is null
      */
     protected Jt400Endpoint(String endpointUri, Jt400Component component) throws CamelException {
@@ -68,6 +69,10 @@ public class Jt400Endpoint extends ScheduledPollEndpoint implements MultipleCons
         } catch (URISyntaxException e) {
             throw new CamelException("Unable to parse URI for " + URISupport.sanitizeUri(endpointUri), e);
         }
+    }
+
+    public Jt400Configuration getConfiguration() {
+        return configuration;
     }
 
     @Override
@@ -90,25 +95,20 @@ public class Jt400Endpoint extends ScheduledPollEndpoint implements MultipleCons
         }
     }
 
-    public boolean isSingleton() {
-        // cannot be singleton as we store an AS400 instance on the configuration
-        return false;
-    }
-
     /**
      * Obtains an {@code AS400} object that connects to this endpoint. Since
      * these objects represent limited resources, clients have the
      * responsibility of {@link #releaseSystem(AS400) releasing them} when done.
-     * 
+     *
      * @return an {@code AS400} object that connects to this endpoint
      */
     protected AS400 getSystem() {
         return configuration.getConnection();
     }
-    
+
     /**
      * Releases a previously obtained {@code AS400} object from use.
-     * 
+     *
      * @param system a previously obtained {@code AS400} object
      */
     protected void releaseSystem(AS400 system) {
@@ -118,7 +118,7 @@ public class Jt400Endpoint extends ScheduledPollEndpoint implements MultipleCons
     /**
      * Returns the fully qualified integrated file system path name of the data
      * queue of this endpoint.
-     * 
+     *
      * @return the fully qualified integrated file system path name of the data
      *         queue of this endpoint
      */

@@ -26,14 +26,16 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Expression;
 import org.apache.camel.Traceable;
 import org.apache.camel.spi.IdAware;
+import org.apache.camel.spi.RouteIdAware;
 import org.apache.camel.support.AsyncProcessorSupport;
 import org.apache.camel.util.ObjectHelper;
 
 /**
  * The processor which sets an {@link Exception} on the {@link Exchange}
  */
-public class ThrowExceptionProcessor extends AsyncProcessorSupport implements Traceable, IdAware, CamelContextAware {
+public class ThrowExceptionProcessor extends AsyncProcessorSupport implements Traceable, IdAware, RouteIdAware, CamelContextAware {
     private String id;
+    private String routeId;
     private CamelContext camelContext;
     private Expression simple;
     private final Exception exception;
@@ -50,6 +52,7 @@ public class ThrowExceptionProcessor extends AsyncProcessorSupport implements Tr
         this.message = message;
     }
 
+    @Override
     public boolean process(Exchange exchange, AsyncCallback callback) {
         Exception cause = exception;
 
@@ -77,17 +80,30 @@ public class ThrowExceptionProcessor extends AsyncProcessorSupport implements Tr
         return true;
     }
 
+    @Override
     public String getTraceLabel() {
         String className = this.exception == null ? this.type.getSimpleName() : this.exception.getClass().getSimpleName();
         return "throwException[" + className + "]";
     }
 
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public void setId(String id) {
         this.id = id;
+    }
+
+    @Override
+    public String getRouteId() {
+        return routeId;
+    }
+
+    @Override
+    public void setRouteId(String routeId) {
+        this.routeId = routeId;
     }
 
     public Exception getException() {
@@ -102,16 +118,19 @@ public class ThrowExceptionProcessor extends AsyncProcessorSupport implements Tr
         return message;
     }
 
+    @Override
     public CamelContext getCamelContext() {
         return camelContext;
     }
 
+    @Override
     public void setCamelContext(CamelContext camelContext) {
         this.camelContext = camelContext;
     }
 
+    @Override
     public String toString() {
-        return "ThrowException";
+        return id;
     }
 
     @Override

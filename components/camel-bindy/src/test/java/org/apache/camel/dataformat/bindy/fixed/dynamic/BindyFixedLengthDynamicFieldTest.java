@@ -32,7 +32,6 @@ import org.apache.camel.model.dataformat.BindyType;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Test;
 
-
 /**
  * This test validates the marshalling / unmarshalling of a fixed-length data field for which the length of the
  * field is defined by the value of another field in the record.
@@ -125,10 +124,10 @@ public class BindyFixedLengthDynamicFieldTest extends CamelTestSupport {
 
             @Override
             public void configure() throws Exception {
-                BindyDataFormat bindy = new BindyDataFormat();
-                bindy.setLocale("en");
-                bindy.setClassType(BindyFixedLengthDynamicFieldTest.Order.class);
-                bindy.setType(BindyType.Fixed);
+                BindyDataFormat bindy = new BindyDataFormat()
+                        .locale("en")
+                        .classType(BindyFixedLengthDynamicFieldTest.Order.class)
+                        .fixed();
 
                 from(URI_DIRECT_MARSHALL)
                     .marshal(bindy)

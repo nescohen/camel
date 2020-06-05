@@ -16,13 +16,11 @@
  */
 package org.apache.camel.component.ironmq;
 
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 import io.iron.ironmq.Ids;
-
 import org.apache.camel.CamelContext;
 import org.apache.camel.CamelExecutionException;
 import org.apache.camel.builder.RouteBuilder;
@@ -58,6 +56,7 @@ public class IronMQBatchProducerTest extends CamelTestSupport {
     protected CamelContext createCamelContext() throws Exception {
         CamelContext context = super.createCamelContext();
         IronMQComponent component = new IronMQComponent(context);
+        component.init();
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("projectId", "dummy");
         parameters.put("token", "dummy");

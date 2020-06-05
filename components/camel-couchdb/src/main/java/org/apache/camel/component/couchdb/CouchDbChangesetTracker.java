@@ -46,14 +46,14 @@ public class CouchDbChangesetTracker implements Runnable {
     private void initChanges(final String sequence) {
         String since = sequence;
         if (null == since) {
-            CouchDbInfo dbInfo = couchClient.context().info();
-            since = dbInfo.getUpdateSeq(); // get latest update seq
+            since = couchClient.getLatestUpdateSequence();
         }
         LOG.debug("Last sequence [{}]", since);
         changes = couchClient.changes().style(endpoint.getStyle()).includeDocs(true)
                 .since(since).heartBeat(endpoint.getHeartbeat()).continuousChanges();
     }
 
+    @Override
     public void run() {
 
         String lastSequence = null;

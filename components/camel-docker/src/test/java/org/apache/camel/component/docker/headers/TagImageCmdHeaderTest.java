@@ -19,10 +19,9 @@ package org.apache.camel.component.docker.headers;
 import java.util.Map;
 
 import com.github.dockerjava.api.command.TagImageCmd;
-
 import org.apache.camel.component.docker.DockerConstants;
 import org.apache.camel.component.docker.DockerOperation;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -37,7 +36,7 @@ public class TagImageCmdHeaderTest extends BaseDockerHeaderTest<TagImageCmd> {
     private TagImageCmd mockObject;
 
     @Test
-    public void tagImageHeaderTest() {
+    void tagImageHeaderTest() {
 
         String imageId = "be29975e0098";
         String repository = "docker/empty";

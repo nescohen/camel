@@ -27,7 +27,7 @@ import facebook4j.Reading;
  * Builds {@link facebook4j.Reading} instances.
  */
 public final class ReadingBuilder {
-    
+
     private ReadingBuilder() {
         // Helper class
     }
@@ -37,10 +37,10 @@ public final class ReadingBuilder {
         // use private field access to make a copy
         Field field = Reading.class.getDeclaredField("parameterMap");
         field.setAccessible(true);
-        final LinkedHashMap<String, String> source = (LinkedHashMap<String, String>) field.get(reading);
+        final Map<String, String> source = (Map<String, String>) field.get(reading);
         // create another reading, and add all fields from source
         Reading copy = new Reading();
-        final LinkedHashMap<String, String> copyMap = new LinkedHashMap<>();
+        final Map<String, String> copyMap = new LinkedHashMap<>();
         copyMap.putAll(source);
         if (skipSinceUtil) {
             copyMap.remove("since");
@@ -88,18 +88,18 @@ public final class ReadingBuilder {
         if (locale != null) {
             String[] args = locale.toString().split(",");
             switch (args.length) {
-            case  1:
-                reading.locale(new Locale(args[0]));
-                break;
-            case  2:
-                reading.locale(new Locale(args[0], args[1]));
-                break;
-            case  3:
-                reading.locale(new Locale(args[0], args[1], args[2]));
-                break;
-            default:
-                throw new IllegalArgumentException(String.format("Invalid value for property 'locale' %s, "
-                    + "must be of the form [language][,country][,variant]", locale.toString()));
+                case  1:
+                    reading.locale(new Locale(args[0]));
+                    break;
+                case  2:
+                    reading.locale(new Locale(args[0], args[1]));
+                    break;
+                case  3:
+                    reading.locale(new Locale(args[0], args[1], args[2]));
+                    break;
+                default:
+                    throw new IllegalArgumentException(String.format("Invalid value for property 'locale' %s, "
+                            + "must be of the form [language][,country][,variant]", locale.toString()));
             }
         }
         final Object with = readingProperties.remove("with");
@@ -117,8 +117,8 @@ public final class ReadingBuilder {
 
         Field field = Reading.class.getDeclaredField("parameterMap");
         field.setAccessible(true);
-        final LinkedHashMap<String, Object> readingParameters = (LinkedHashMap<String, Object>) field.get(reading);
-        readingParameters.putAll((LinkedHashMap<String, Object>) field.get(readingUpdate));
+        final Map<String, Object> readingParameters = (Map<String, Object>) field.get(reading);
+        readingParameters.putAll((Map<String, Object>) field.get(readingUpdate));
         field.setAccessible(false);
 
         setProperties(mergedReading, readingParameters);

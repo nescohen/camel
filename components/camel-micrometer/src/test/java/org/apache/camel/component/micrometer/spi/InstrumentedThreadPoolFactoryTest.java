@@ -20,6 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.internal.TimedExecutorService;
@@ -34,6 +35,7 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -89,7 +91,6 @@ public class InstrumentedThreadPoolFactoryTest {
 
         Tags tags = Tags.of("name", "instrumented-delegate-1");
         inOrder.verify(registry, times(1)).timer("executor", tags);
-        inOrder.verifyNoMoreInteractions();
     }
 
     @Test
@@ -99,7 +100,6 @@ public class InstrumentedThreadPoolFactoryTest {
         assertThat(executorService, is(instanceOf(TimedExecutorService.class)));
         Tags tags = Tags.of("name", METRICS_NAME + "1");
         inOrder.verify(registry, times(1)).timer("executor", tags);
-        inOrder.verifyNoMoreInteractions();
     }
 
     @Test
@@ -111,7 +111,6 @@ public class InstrumentedThreadPoolFactoryTest {
 
         Tags tags = Tags.of("name", METRICS_NAME + "1");
         inOrder.verify(registry, times(1)).timer("executor", tags);
-        inOrder.verifyNoMoreInteractions();
     }
 
 }

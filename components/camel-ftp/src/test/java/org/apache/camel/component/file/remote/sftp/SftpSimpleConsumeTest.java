@@ -19,7 +19,7 @@ package org.apache.camel.component.file.remote.sftp;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SftpSimpleConsumeTest extends SftpServerTestSupport {
 
@@ -38,7 +38,7 @@ public class SftpSimpleConsumeTest extends SftpServerTestSupport {
         mock.expectedMessageCount(1);
         mock.expectedHeaderReceived(Exchange.FILE_NAME, "hello.txt");
         mock.expectedBodiesReceived(expected);
-        
+
         context.getRouteController().startRoute("foo");
 
         assertMockEndpointsSatisfied();
@@ -49,8 +49,7 @@ public class SftpSimpleConsumeTest extends SftpServerTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("sftp://localhost:" + getPort() + "/" + FTP_ROOT_DIR + "?username=admin&password=admin&delay=10s&disconnect=true")
-                    .routeId("foo").noAutoStartup()
+                from("sftp://localhost:" + getPort() + "/" + FTP_ROOT_DIR + "?username=admin&password=admin&delay=10000&disconnect=true").routeId("foo").noAutoStartup()
                     .to("mock:result");
             }
         };

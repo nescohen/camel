@@ -23,6 +23,7 @@ import org.apache.camel.AsyncProcessor;
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.camel.spi.IdAware;
+import org.apache.camel.spi.RouteIdAware;
 import org.apache.camel.support.AsyncCallbackToCompletableFutureAdapter;
 import org.apache.camel.support.DefaultMessage;
 import org.apache.camel.support.ExchangeHelper;
@@ -35,8 +36,9 @@ import org.apache.camel.util.ObjectHelper;
  * <p/>
  * If the conversion fails an {@link org.apache.camel.InvalidPayloadException} is thrown.
  */
-public class ConvertBodyProcessor extends ServiceSupport implements AsyncProcessor, IdAware {
+public class ConvertBodyProcessor extends ServiceSupport implements AsyncProcessor, IdAware, RouteIdAware {
     private String id;
+    private String routeId;
     private final Class<?> type;
     private final String charset;
 
@@ -54,20 +56,32 @@ public class ConvertBodyProcessor extends ServiceSupport implements AsyncProcess
 
     @Override
     public String toString() {
-        return "convertBodyTo[" + type.getCanonicalName() + "]";
+        return id;
     }
 
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public void setId(String id) {
         this.id = id;
     }
 
+    @Override
+    public String getRouteId() {
+        return routeId;
+    }
+
+    @Override
+    public void setRouteId(String routeId) {
+        this.routeId = routeId;
+    }
+
+    @Override
     public void process(Exchange exchange) throws Exception {
-        boolean out = exchange.hasOut();
-        Message old = out ? exchange.getOut() : exchange.getIn();
+        Message old = exchange.getMessage();
 
         if (old.getBody() == null) {
             // only convert if there is a body

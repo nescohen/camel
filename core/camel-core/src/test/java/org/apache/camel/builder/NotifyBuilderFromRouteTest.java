@@ -23,7 +23,7 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.apache.camel.support.DefaultComponent;
 import org.apache.camel.support.DefaultEndpoint;
 import org.junit.Test;
@@ -33,8 +33,7 @@ public class NotifyBuilderFromRouteTest extends ContextTestSupport {
     @Test
     public void testDoneFromRoute() throws Exception {
         // notify when exchange is done
-        NotifyBuilder builder =
-                new NotifyBuilder(context).fromRoute("foo").whenDone(1);
+        NotifyBuilder builder = new NotifyBuilder(context).fromRoute("foo").whenDone(1);
         builder.create();
 
         template.sendBody("seda:foo", "Hello world!");
@@ -45,8 +44,7 @@ public class NotifyBuilderFromRouteTest extends ContextTestSupport {
     @Test
     public void testDoneFromCurrentRoute() throws Exception {
         // notify when exchange is done
-        NotifyBuilder builder =
-                new NotifyBuilder(context).fromCurrentRoute("bar").whenDone(1);
+        NotifyBuilder builder = new NotifyBuilder(context).fromCurrentRoute("bar").whenDone(1);
         builder.create();
 
         template.sendBody("seda:foo", "Hello world!");
@@ -57,8 +55,7 @@ public class NotifyBuilderFromRouteTest extends ContextTestSupport {
     @Test
     public void testDoneFromCurrentRouteStartRoute() throws Exception {
         // notify when exchange is done
-        NotifyBuilder builder =
-                new NotifyBuilder(context).fromCurrentRoute("foo").whenDone(1);
+        NotifyBuilder builder = new NotifyBuilder(context).fromCurrentRoute("foo").whenDone(1);
         builder.create();
 
         template.sendBody("seda:foo", "Hello world!");
@@ -67,8 +64,8 @@ public class NotifyBuilderFromRouteTest extends ContextTestSupport {
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        final JndiRegistry registry = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        final Registry registry = super.createRegistry();
         registry.bind("proxy", new ProxyComponent());
         return registry;
     }
@@ -78,14 +75,9 @@ public class NotifyBuilderFromRouteTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("proxy:seda:foo")
-                    .routeId("foo")
-                    .to("direct:bar")
-                    .to("mock:foo");
+                from("proxy:seda:foo").routeId("foo").to("direct:bar").to("mock:foo");
 
-                from("direct:bar")
-                    .routeId("bar")
-                    .to("mock:bar");
+                from("direct:bar").routeId("bar").to("mock:bar");
             }
         };
     }

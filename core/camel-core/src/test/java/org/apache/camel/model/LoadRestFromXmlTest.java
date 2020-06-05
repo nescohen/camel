@@ -19,18 +19,20 @@ package org.apache.camel.model;
 import java.io.InputStream;
 
 import org.apache.camel.ContextTestSupport;
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.component.rest.DummyRestConsumerFactory;
 import org.apache.camel.component.rest.DummyRestProcessorFactory;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.model.rest.RestsDefinition;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class LoadRestFromXmlTest extends ContextTestSupport {
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("dummy-rest", new DummyRestConsumerFactory());
         jndi.bind("dummy-rest-api", new DummyRestProcessorFactory());
         return jndi;
@@ -50,7 +52,9 @@ public class LoadRestFromXmlTest extends ContextTestSupport {
 
         // load rest from XML and add them to the existing camel context
         InputStream is = getClass().getResourceAsStream("barRest.xml");
-        context.addRestDefinitions(is, true);
+        ExtendedCamelContext ecc = context.adapt(ExtendedCamelContext.class);
+        RestsDefinition rests = (RestsDefinition) ecc.getXMLRoutesDefinitionLoader().loadRestsDefinition(ecc, is);
+        context.addRestDefinitions(rests.getRests(), true);
 
         assertNotNull("Loaded rest route should be there", context.getRoute("route1"));
         assertEquals(3, context.getRoutes().size());
@@ -69,8 +73,7 @@ public class LoadRestFromXmlTest extends ContextTestSupport {
             public void configure() throws Exception {
                 restConfiguration().host("localhost").component("dummy-rest").apiContextPath("/api-docs");
 
-                from("direct:foo").routeId("foo")
-                        .to("mock:foo");
+                from("direct:foo").routeId("foo").to("mock:foo");
             }
         };
     }

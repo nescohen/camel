@@ -16,11 +16,15 @@
  */
 package org.apache.camel.impl;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Endpoint;
 import org.apache.camel.PollingConsumer;
 import org.apache.camel.impl.engine.DefaultConsumerCache;
 import org.junit.Test;
+
+import static org.awaitility.Awaitility.await;
 
 public class DefaultConsumerCacheTest extends ContextTestSupport {
 
@@ -38,10 +42,12 @@ public class DefaultConsumerCacheTest extends ContextTestSupport {
             assertNotNull("the polling consumer should not be null", p);
         }
 
-        // the eviction is async so force cleanup
-        cache.cleanUp();
+        await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> {
+            // the eviction is async so force cleanup
+            cache.cleanUp();
+            assertEquals("Size should be 1000", 1000, cache.size());
+        });
 
-        assertEquals("Size should be 1000", 1000, cache.size());
         cache.stop();
     }
 

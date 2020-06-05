@@ -16,13 +16,11 @@
  */
 package org.apache.camel.component.dataset;
 
-import javax.naming.Context;
-
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
-import org.apache.camel.NoSuchHeaderException;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
+import org.apache.camel.spi.Registry;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -39,10 +37,10 @@ public class DataSetProducerTest extends ContextTestSupport {
     final String resultUri = "mock://result";
 
     @Override
-    protected Context createJndiContext() throws Exception {
-        Context context = super.createJndiContext();
-        context.bind("foo", dataSet);
-        return context;
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
+        answer.bind("foo", dataSet);
+        return answer;
     }
 
     @Test
@@ -104,7 +102,8 @@ public class DataSetProducerTest extends ContextTestSupport {
     }
 
     /**
-     * Verify that the CamelDataSetIndex header is optional when the dataSetIndex parameter is unset
+     * Verify that the CamelDataSetIndex header is optional when the
+     * dataSetIndex parameter is unset
      */
     @Test
     public void testNotSettingDataSetIndexHeaderWhenDataSetIndexUriParameterIsUnset() throws Exception {
@@ -121,7 +120,8 @@ public class DataSetProducerTest extends ContextTestSupport {
     }
 
     /**
-     * Verify that the CamelDataSetIndex header is ignored when the dataSetIndex URI paramter is set to off
+     * Verify that the CamelDataSetIndex header is ignored when the dataSetIndex
+     * URI paramter is set to off
      */
     @Test
     public void testNotSettingDataSetIndexHeaderWhenDataSetIndexUriParameterSetToOff() throws Exception {
@@ -138,7 +138,8 @@ public class DataSetProducerTest extends ContextTestSupport {
     }
 
     /**
-     * Verify that the CamelDataSetIndex header is optional when the dataSetIndex URI parameter is set to lenient
+     * Verify that the CamelDataSetIndex header is optional when the
+     * dataSetIndex URI parameter is set to lenient
      */
     @Test
     public void testNotSettingDataSetIndexHeaderWhenDataSetIndexUriParameterSetToLenient() throws Exception {
@@ -155,7 +156,8 @@ public class DataSetProducerTest extends ContextTestSupport {
     }
 
     /**
-     * Verify that the CamelDataSetIndex header is required when the dataSetIndex URI parameter is set to strict
+     * Verify that the CamelDataSetIndex header is required when the
+     * dataSetIndex URI parameter is set to strict
      */
     @Test
     public void testNotSettingDataSetIndexHeaderWhenDataSetIndexUriParameterSetToStrict() throws Exception {
@@ -167,12 +169,10 @@ public class DataSetProducerTest extends ContextTestSupport {
         try {
             assertMockEndpointsSatisfied();
         } catch (AssertionError assertionError) {
-            // Check as much of the string as possible - but the ExchangeID at the end will be unique
-            String expectedErrorString = dataSetUriWithDataSetIndexSetToStrict
-                    + " Failed due to caught exception: "
-                    + NoSuchHeaderException.class.getName()
-                    + ": No '" + Exchange.DATASET_INDEX
-                    + "' header available of type: java.lang.Long. Exchange";
+            // Check as much of the string as possible - but the ExchangeID at
+            // the end will be unique
+            String expectedErrorString = "Caught exception on " + dataSetUriWithDataSetIndexSetToStrict + " due to:" + " No '" + Exchange.DATASET_INDEX
+                                         + "' header available of type: java.lang.Long";
             String actualErrorString = assertionError.getMessage();
             if (actualErrorString.startsWith(expectedErrorString)) {
                 // This is what we expect
@@ -190,9 +190,7 @@ public class DataSetProducerTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(sourceUri)
-                        .to(dataSetUri)
-                        .to(resultUri);
+                from(sourceUri).to(dataSetUri).to(resultUri);
             }
         });
         context.start();
@@ -200,7 +198,7 @@ public class DataSetProducerTest extends ContextTestSupport {
         long size = dataSet.getSize();
 
         MockEndpoint result = getMockEndpoint(resultUri);
-        result.expectedMessageCount((int) size);
+        result.expectedMessageCount((int)size);
         result.allMessages().header(Exchange.DATASET_INDEX).isNotNull();
         result.expectsAscending(header(Exchange.DATASET_INDEX).convertTo(Number.class));
 
@@ -218,9 +216,7 @@ public class DataSetProducerTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(sourceUri)
-                        .to(dataSetUriWithDataSetIndexSetToOff)
-                        .to(resultUri);
+                from(sourceUri).to(dataSetUriWithDataSetIndexSetToOff).to(resultUri);
             }
         });
         context.start();
@@ -228,7 +224,7 @@ public class DataSetProducerTest extends ContextTestSupport {
         long size = dataSet.getSize();
 
         MockEndpoint result = getMockEndpoint(resultUri);
-        result.expectedMessageCount((int) size);
+        result.expectedMessageCount((int)size);
         result.expectsAscending(header(Exchange.DATASET_INDEX).convertTo(Number.class));
         result.allMessages().header(Exchange.DATASET_INDEX).isNotNull();
 
@@ -238,16 +234,13 @@ public class DataSetProducerTest extends ContextTestSupport {
 
         assertMockEndpointsSatisfied();
     }
-
 
     @Test
     public void testDataSetIndexUriParameterSetToLenient() throws Exception {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(sourceUri)
-                        .to(dataSetUriWithDataSetIndexSetToLenient)
-                        .to(resultUri);
+                from(sourceUri).to(dataSetUriWithDataSetIndexSetToLenient).to(resultUri);
             }
         });
         context.start();
@@ -255,7 +248,7 @@ public class DataSetProducerTest extends ContextTestSupport {
         long size = dataSet.getSize();
 
         MockEndpoint result = getMockEndpoint(resultUri);
-        result.expectedMessageCount((int) size);
+        result.expectedMessageCount((int)size);
         result.expectsAscending(header(Exchange.DATASET_INDEX).convertTo(Number.class));
         result.allMessages().header(Exchange.DATASET_INDEX).isNotNull();
 
@@ -266,15 +259,12 @@ public class DataSetProducerTest extends ContextTestSupport {
         assertMockEndpointsSatisfied();
     }
 
-
     @Test
     public void testDataSetIndexUriParameterSetToStrict() throws Exception {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(sourceUri)
-                        .to(dataSetUriWithDataSetIndexSetToStrict)
-                        .to(resultUri);
+                from(sourceUri).to(dataSetUriWithDataSetIndexSetToStrict).to(resultUri);
             }
         });
         context.start();
@@ -282,7 +272,7 @@ public class DataSetProducerTest extends ContextTestSupport {
         long size = dataSet.getSize();
 
         MockEndpoint result = getMockEndpoint(resultUri);
-        result.expectedMessageCount((int) size);
+        result.expectedMessageCount((int)size);
         result.expectsAscending(header(Exchange.DATASET_INDEX).convertTo(Number.class));
         result.allMessages().header(Exchange.DATASET_INDEX).isNotNull();
 
@@ -298,9 +288,7 @@ public class DataSetProducerTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(sourceUri)
-                        .to(dataSetUri)
-                        .to(resultUri);
+                from(sourceUri).to(dataSetUri).to(resultUri);
             }
         });
         context.start();
@@ -308,7 +296,7 @@ public class DataSetProducerTest extends ContextTestSupport {
         long size = dataSet.getSize();
 
         MockEndpoint result = getMockEndpoint(resultUri);
-        result.expectedMessageCount((int) size);
+        result.expectedMessageCount((int)size);
         result.allMessages().header(Exchange.DATASET_INDEX).isNotNull();
 
         for (long i = 0; i < size; i++) {
@@ -322,11 +310,10 @@ public class DataSetProducerTest extends ContextTestSupport {
         try {
             assertMockEndpointsSatisfied();
         } catch (AssertionError assertionError) {
-            // Check as much of the string as possible - but the ExchangeID at the end will be unique
-            String expectedErrorString = dataSetUri + " Failed due to caught exception: "
-                    + AssertionError.class.getName()
-                    + ": Header: " + Exchange.DATASET_INDEX + " does not match. Expected: "
-                    + size / 2 + " but was: " + (size / 2 + 10) + " on Exchange";
+            // Check as much of the string as possible - but the ExchangeID at
+            // the end will be unique
+            String expectedErrorString = "Caught exception on " + dataSetUri + " due to: " + "Header: " + Exchange.DATASET_INDEX + " does not match. Expected: " + size / 2
+                                         + " but was: " + (size / 2 + 10);
             String actualErrorString = assertionError.getMessage();
             if (actualErrorString.startsWith(expectedErrorString)) {
                 // This is what we expect
@@ -344,9 +331,7 @@ public class DataSetProducerTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(sourceUri)
-                        .to(dataSetUriWithDataSetIndexSetToOff)
-                        .to(resultUri);
+                from(sourceUri).to(dataSetUriWithDataSetIndexSetToOff).to(resultUri);
             }
         });
         context.start();
@@ -354,7 +339,7 @@ public class DataSetProducerTest extends ContextTestSupport {
         long size = dataSet.getSize();
 
         MockEndpoint result = getMockEndpoint(resultUri);
-        result.expectedMessageCount((int) size);
+        result.expectedMessageCount((int)size);
 
         for (long i = 0; i < size; i++) {
             if (i == (size / 2)) {
@@ -372,9 +357,7 @@ public class DataSetProducerTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(sourceUri)
-                        .to(dataSetUriWithDataSetIndexSetToLenient)
-                        .to(resultUri);
+                from(sourceUri).to(dataSetUriWithDataSetIndexSetToLenient).to(resultUri);
             }
         });
         context.start();
@@ -382,7 +365,7 @@ public class DataSetProducerTest extends ContextTestSupport {
         long size = dataSet.getSize();
 
         MockEndpoint result = getMockEndpoint(resultUri);
-        result.expectedMessageCount((int) size);
+        result.expectedMessageCount((int)size);
         result.allMessages().header(Exchange.DATASET_INDEX).isNotNull();
 
         for (long i = 0; i < size; i++) {
@@ -396,11 +379,10 @@ public class DataSetProducerTest extends ContextTestSupport {
         try {
             assertMockEndpointsSatisfied();
         } catch (AssertionError assertionError) {
-            // Check as much of the string as possible - but the ExchangeID at the end will be unique
-            String expectedErrorString = dataSetUriWithDataSetIndexSetToLenient + " Failed due to caught exception: "
-                    + AssertionError.class.getName()
-                    + ": Header: " + Exchange.DATASET_INDEX + " does not match. Expected: "
-                    + size / 2 + " but was: " + (size / 2 + 10) + " on Exchange";
+            // Check as much of the string as possible - but the ExchangeID at
+            // the end will be unique
+            String expectedErrorString = "Caught exception on " + dataSetUriWithDataSetIndexSetToLenient + " due to: " + "Header: " + Exchange.DATASET_INDEX
+                                         + " does not match. Expected: " + size / 2 + " but was: " + (size / 2 + 10);
             String actualErrorString = assertionError.getMessage();
             if (actualErrorString.startsWith(expectedErrorString)) {
                 // This is what we expect
@@ -418,9 +400,7 @@ public class DataSetProducerTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from(sourceUri)
-                        .to(dataSetUriWithDataSetIndexSetToStrict)
-                        .to(resultUri);
+                from(sourceUri).to(dataSetUriWithDataSetIndexSetToStrict).to(resultUri);
             }
         });
         context.start();
@@ -428,7 +408,7 @@ public class DataSetProducerTest extends ContextTestSupport {
         long size = dataSet.getSize();
 
         MockEndpoint result = getMockEndpoint(resultUri);
-        result.expectedMessageCount((int) size);
+        result.expectedMessageCount((int)size);
         result.allMessages().header(Exchange.DATASET_INDEX).isNotNull();
 
         for (long i = 0; i < size; i++) {
@@ -442,10 +422,10 @@ public class DataSetProducerTest extends ContextTestSupport {
         try {
             assertMockEndpointsSatisfied();
         } catch (AssertionError assertionError) {
-            // Check as much of the string as possible - but the ExchangeID at the end will be unique
-            String expectedErrorString = dataSetUriWithDataSetIndexSetToStrict + " Failed due to caught exception: "
-                    + AssertionError.class.getName() + ": Header: " + Exchange.DATASET_INDEX
-                    + " does not match. Expected: " + size / 2 + " but was: " + (size / 2 + 10) + " on Exchange";
+            // Check as much of the string as possible - but the ExchangeID at
+            // the end will be unique
+            String expectedErrorString = "Caught exception on " + dataSetUriWithDataSetIndexSetToStrict + " due to: " + "Header: " + Exchange.DATASET_INDEX
+                                         + " does not match. Expected: " + size / 2 + " but was: " + (size / 2 + 10);
             String actualErrorString = assertionError.getMessage();
             if (actualErrorString.startsWith(expectedErrorString)) {
                 // This is what we expect

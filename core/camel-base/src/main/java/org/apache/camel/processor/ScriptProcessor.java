@@ -21,14 +21,16 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Expression;
 import org.apache.camel.Traceable;
 import org.apache.camel.spi.IdAware;
+import org.apache.camel.spi.RouteIdAware;
 import org.apache.camel.support.AsyncProcessorSupport;
 import org.apache.camel.util.ObjectHelper;
 
 /**
  * A processor which executes the script as an expression and does not change the message body.
  */
-public class ScriptProcessor extends AsyncProcessorSupport implements Traceable, IdAware {
+public class ScriptProcessor extends AsyncProcessorSupport implements Traceable, IdAware, RouteIdAware {
     private String id;
+    private String routeId;
     private final Expression expression;
 
     public ScriptProcessor(Expression expression) {
@@ -36,6 +38,7 @@ public class ScriptProcessor extends AsyncProcessorSupport implements Traceable,
         this.expression = expression;
     }
 
+    @Override
     public boolean process(Exchange exchange, AsyncCallback callback) {
         try {
             expression.evaluate(exchange, Object.class);
@@ -49,19 +52,32 @@ public class ScriptProcessor extends AsyncProcessorSupport implements Traceable,
 
     @Override
     public String toString() {
-        return "Script(" + expression + ")";
+        return id;
     }
 
+    @Override
     public String getTraceLabel() {
         return "script[" + expression + "]";
     }
 
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public void setId(String id) {
         this.id = id;
+    }
+
+    @Override
+    public String getRouteId() {
+        return routeId;
+    }
+
+    @Override
+    public void setRouteId(String routeId) {
+        this.routeId = routeId;
     }
 
     public Expression getExpression() {

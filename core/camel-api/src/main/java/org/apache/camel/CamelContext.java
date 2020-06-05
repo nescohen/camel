@@ -17,6 +17,7 @@
 package org.apache.camel;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,7 +29,6 @@ import org.apache.camel.spi.DataType;
 import org.apache.camel.spi.Debugger;
 import org.apache.camel.spi.EndpointRegistry;
 import org.apache.camel.spi.ExecutorServiceManager;
-import org.apache.camel.spi.HeadersMapFactory;
 import org.apache.camel.spi.InflightRepository;
 import org.apache.camel.spi.Injector;
 import org.apache.camel.spi.Language;
@@ -37,7 +37,6 @@ import org.apache.camel.spi.ManagementNameStrategy;
 import org.apache.camel.spi.ManagementStrategy;
 import org.apache.camel.spi.MessageHistoryFactory;
 import org.apache.camel.spi.PropertiesComponent;
-import org.apache.camel.spi.ReactiveExecutor;
 import org.apache.camel.spi.Registry;
 import org.apache.camel.spi.RestConfiguration;
 import org.apache.camel.spi.RestRegistry;
@@ -46,6 +45,7 @@ import org.apache.camel.spi.RoutePolicyFactory;
 import org.apache.camel.spi.RuntimeEndpointRegistry;
 import org.apache.camel.spi.ShutdownStrategy;
 import org.apache.camel.spi.StreamCachingStrategy;
+import org.apache.camel.spi.Tracer;
 import org.apache.camel.spi.Transformer;
 import org.apache.camel.spi.TransformerRegistry;
 import org.apache.camel.spi.TypeConverterRegistry;
@@ -58,7 +58,7 @@ import org.apache.camel.support.jsse.SSLContextParameters;
  * Interface used to represent the CamelContext used to configure routes and the
  * policies to use during message exchanges between endpoints.
  * <p/>
- * The CamelContext offers the following methods to control the lifecycle:
+ * The CamelContext offers the following methods {@link CamelContextLifecycle} to control the lifecycle:
  * <ul>
  *   <li>{@link #start()}  - to start (<b>important:</b> the start method is not blocked, see more details
  *     <a href="http://camel.apache.org/running-camel-standalone-and-have-it-keep-running.html">here</a>)</li>
@@ -79,12 +79,12 @@ import org.apache.camel.support.jsse.SSLContextParameters;
  * <p/>
  * For more advanced APIs with {@link CamelContext} see {@link ExtendedCamelContext}, which you can obtain via the adapt method.
  */
-public interface CamelContext extends StatefulService, RuntimeConfiguration {
+public interface CamelContext extends CamelContextLifecycle, RuntimeConfiguration {
 
     /**
      * Adapts this {@link org.apache.camel.CamelContext} to the specialized type.
      * <p/>
-     * For example to adapt to <tt>ModelCamelContext</tt>,
+     * For example to adapt to <tt>ExtendedCamelContext</tt>, <tt>ModelCamelContext</tt>,
      * or <tt>SpringCamelContext</tt>, or <tt>CdiCamelContext</tt>, etc.
      *
      * @param type the type to adapt to
@@ -112,25 +112,6 @@ public interface CamelContext extends StatefulService, RuntimeConfiguration {
      * If CamelContext during the start procedure was vetoed, and therefore causing Camel to not start.
      */
     boolean isVetoStarted();
-
-    /**
-     * Starts the {@link CamelContext} (<b>important:</b> the start method is not blocked, see more details
-     *     <a href="http://camel.apache.org/running-camel-standalone-and-have-it-keep-running.html">here</a>)</li>.
-     * <p/>
-     * See more details at the class-level javadoc of this class.
-     *
-     * @throws RuntimeCamelException is thrown if starting failed
-     */
-    void start();
-
-    /**
-     * Stop and shutdown the {@link CamelContext} (will stop all routes/components/endpoints etc and clear internal state/cache).
-     * <p/>
-     * See more details at the class-level javadoc of this class.
-     *
-     * @throws RuntimeCamelException is thrown if stopping failed
-     */
-    void stop();
 
     /**
      * Gets the name (id) of the this CamelContext.
@@ -191,13 +172,6 @@ public interface CamelContext extends StatefulService, RuntimeConfiguration {
     String getVersion();
 
     /**
-     * Get the status of this CamelContext
-     *
-     * @return the status
-     */
-    ServiceStatus getStatus();
-
-    /**
      * Gets the uptime in a human readable format
      *
      * @return the uptime in days/hours/minutes
@@ -210,6 +184,11 @@ public interface CamelContext extends StatefulService, RuntimeConfiguration {
      * @return the uptime in millis seconds
      */
     long getUptimeMillis();
+
+    /**
+     * Gets the date and time Camel was started up.
+     */
+    Date getStartDate();
 
     // Service Methods
     //-----------------------------------------------------------------------
@@ -262,6 +241,17 @@ public interface CamelContext extends StatefulService, RuntimeConfiguration {
      * @throws Exception can be thrown when starting the service
      */
     void addService(Object object, boolean stopOnShutdown, boolean forceStart) throws Exception;
+
+    /**
+     * Adds a service to this CamelContext (prototype scope).
+     * <p/>
+     * The service will also have {@link CamelContext} injected if its {@link CamelContextAware}.
+     * The service will be started, if its not already started.
+     *
+     * @param object the service
+     * @throws Exception can be thrown when starting the service
+     */
+    void addPrototypeService(Object object) throws Exception;
 
     /**
      * Removes a service from this CamelContext.
@@ -500,6 +490,11 @@ public interface CamelContext extends StatefulService, RuntimeConfiguration {
      */
     Collection<Endpoint> removeEndpoints(String pattern) throws Exception;
 
+    /**
+     * Gets the global endpoint configuration, where you can configure common endpoint options.
+     */
+    GlobalEndpointConfiguration getGlobalEndpointConfiguration();
+
     // Route Management Methods
     //-----------------------------------------------------------------------
 
@@ -523,6 +518,11 @@ public interface CamelContext extends StatefulService, RuntimeConfiguration {
      * @return the current routes
      */
     List<Route> getRoutes();
+
+    /**
+     * Returns the total number of routes in this CamelContext
+     */
+    int getRoutesSize();
 
     /**
      * Gets the route with the given id
@@ -622,28 +622,6 @@ public interface CamelContext extends StatefulService, RuntimeConfiguration {
     RestConfiguration getRestConfiguration();
 
     /**
-     * Sets a custom {@link org.apache.camel.spi.RestConfiguration}
-     *
-     * @param restConfiguration the REST configuration
-     */
-    void addRestConfiguration(RestConfiguration restConfiguration);
-
-    /**
-     * Gets the REST configuration for the given component
-     *
-     * @param component the component name to get the configuration
-     * @param defaultIfNotFound determine if the default configuration is returned if there isn't a
-     *        specific configuration for the given component
-     * @return the configuration, or <tt>null</tt> if none has been configured.
-     */
-    RestConfiguration getRestConfiguration(String component, boolean defaultIfNotFound);
-
-    /**
-     * Gets all the RestConfiguration's
-     */
-    Collection<RestConfiguration> getRestConfigurations();
-
-    /**
      * Gets the {@link org.apache.camel.spi.RestRegistry} to use
      */
     RestRegistry getRestRegistry();
@@ -657,7 +635,9 @@ public interface CamelContext extends StatefulService, RuntimeConfiguration {
     //-----------------------------------------------------------------------
 
     /**
-     * Returns the type converter used to coerce types from one type to another
+     * Returns the type converter used to coerce types from one type to another.
+     * <p/>
+     * Notice that this {@link CamelContext} should be at least initialized before you can get the type converter.
      *
      * @return the converter
      */
@@ -736,22 +716,6 @@ public interface CamelContext extends StatefulService, RuntimeConfiguration {
      * @throws IllegalArgumentException is thrown if property placeholders was used and there was an error resolving them
      */
     String resolvePropertyPlaceholders(String text);
-    
-    /**
-     * Returns the configured property placeholder prefix token if and only if the CamelContext has
-     * property placeholder abilities, otherwise returns {@code null}.
-     * 
-     * @return the prefix token or {@code null}
-     */
-    String getPropertyPrefixToken();
-    
-    /**
-     * Returns the configured property placeholder suffix token if and only if the CamelContext has
-     * property placeholder abilities, otherwise returns {@code null}.
-     * 
-     * @return the suffix token or {@code null}
-     */
-    String getPropertySuffixToken();
 
     /**
      * Returns the configured properties component or create one if none has been configured.
@@ -761,12 +725,9 @@ public interface CamelContext extends StatefulService, RuntimeConfiguration {
     PropertiesComponent getPropertiesComponent();
 
     /**
-     * Returns the configured properties component or create one if none has been configured.
-     *
-     * @param autoCreate whether the component should be created if none is configured
-     * @return the properties component
+     * Sets a custom properties component to be used.
      */
-    PropertiesComponent getPropertiesComponent(boolean autoCreate);
+    void setPropertiesComponent(PropertiesComponent propertiesComponent);
 
     /**
      * Gets a readonly list with the names of the languages currently registered.
@@ -916,7 +877,7 @@ public interface CamelContext extends StatefulService, RuntimeConfiguration {
      * Gets the {@link org.apache.camel.spi.TransformerRegistry}
      * @return the TransformerRegistry
      */
-    TransformerRegistry<? extends ValueHolder<String>> getTransformerRegistry();
+    TransformerRegistry getTransformerRegistry();
 
     /**
      * Resolve a validator given from/to data type.
@@ -930,7 +891,7 @@ public interface CamelContext extends StatefulService, RuntimeConfiguration {
      * Gets the {@link org.apache.camel.spi.ValidatorRegistry}
      * @return the ValidatorRegistry
      */
-    ValidatorRegistry<? extends ValueHolder<String>> getValidatorRegistry();
+    ValidatorRegistry getValidatorRegistry();
 
     /**
      * Sets global options that can be referenced in the camel context
@@ -1090,14 +1051,26 @@ public interface CamelContext extends StatefulService, RuntimeConfiguration {
     void setDebugger(Debugger debugger);
 
     /**
+     * Gets the current {@link Tracer}
+     *
+     * @return the tracer
+     */
+    Tracer getTracer();
+
+    /**
+     * Sets a custom {@link Tracer}
+     */
+    void setTracer(Tracer tracer);
+
+    /**
      * Gets the current {@link UuidGenerator}
      *
      * @return the uuidGenerator
      */
     UuidGenerator getUuidGenerator();
-    
+
     /**
-     * Sets a custom {@link UuidGenerator} (should only be set once) 
+     * Sets a custom {@link UuidGenerator} (should only be set once)
      *
      * @param uuidGenerator the UUID Generator
      */
@@ -1162,6 +1135,42 @@ public interface CamelContext extends StatefulService, RuntimeConfiguration {
     void setUseMDCLogging(Boolean useMDCLogging);
 
     /**
+     * Gets the pattern used for determine which custom MDC keys to propagate during message routing when
+     * the routing engine continues routing asynchronously for the given message. Setting this pattern to <tt>*</tt> will
+     * propagate all custom keys. Or setting the pattern to <tt>foo*,bar*</tt> will propagate any keys starting with
+     * either foo or bar.
+     * Notice that a set of standard Camel MDC keys are always propagated which starts with <tt>camel.</tt> as key name.
+     * <p/>
+     * The match rules are applied in this order (case insensitive):
+     * <ul>
+     *   <li>exact match, returns true</li>
+     *   <li>wildcard match (pattern ends with a * and the name starts with the pattern), returns true</li>
+     *   <li>regular expression match, returns true</li>
+     *   <li>otherwise returns false</li>
+     * </ul>
+     */
+    String getMDCLoggingKeysPattern();
+
+    /**
+     * Sets the pattern used for determine which custom MDC keys to propagate during message routing when
+     * the routing engine continues routing asynchronously for the given message. Setting this pattern to <tt>*</tt> will
+     * propagate all custom keys. Or setting the pattern to <tt>foo*,bar*</tt> will propagate any keys starting with
+     * either foo or bar.
+     * Notice that a set of standard Camel MDC keys are always propagated which starts with <tt>camel.</tt> as key name.
+     * <p/>
+     * The match rules are applied in this order (case insensitive):
+     * <ul>
+     *   <li>exact match, returns true</li>
+     *   <li>wildcard match (pattern ends with a * and the name starts with the pattern), returns true</li>
+     *   <li>regular expression match, returns true</li>
+     *   <li>otherwise returns false</li>
+     * </ul>
+     *
+     * @param pattern  the pattern
+     */
+    void setMDCLoggingKeysPattern(String pattern);
+
+    /**
      * Whether to enable using data type on Camel messages.
      * <p/>
      * Data type are automatic turned on if one ore more routes has been explicit configured with input and output types.
@@ -1224,22 +1233,5 @@ public interface CamelContext extends StatefulService, RuntimeConfiguration {
      * Gets the global SSL context parameters if configured.
      */
     SSLContextParameters getSSLContextParameters();
-
-    /**
-     * Gets the {@link HeadersMapFactory} to use.
-     */
-    HeadersMapFactory getHeadersMapFactory();
-
-    /**
-     * Sets a custom {@link HeadersMapFactory} to be used.
-     */
-    void setHeadersMapFactory(HeadersMapFactory factory);
-
-    ReactiveExecutor getReactiveExecutor();
-
-    /**
-     * Sets a custom {@link ReactiveExecutor} to be used.
-     */
-    void setReactiveExecutor(ReactiveExecutor reactiveExecutor);
 
 }

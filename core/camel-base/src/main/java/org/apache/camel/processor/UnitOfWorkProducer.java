@@ -41,11 +41,12 @@ public final class UnitOfWorkProducer extends DefaultAsyncProducer {
         super(producer.getEndpoint());
         this.producer = producer;
         // wrap in unit of work
-        CamelInternalProcessor internal = new CamelInternalProcessor(producer);
-        internal.addAdvice(new CamelInternalProcessor.UnitOfWorkProcessorAdvice(null));
+        CamelInternalProcessor internal = new CamelInternalProcessor(producer.getEndpoint().getCamelContext(), producer);
+        internal.addAdvice(new CamelInternalProcessor.UnitOfWorkProcessorAdvice(null, producer.getEndpoint().getCamelContext()));
         this.processor = internal;
     }
 
+    @Override
     public Endpoint getEndpoint() {
         return producer.getEndpoint();
     }
@@ -67,6 +68,7 @@ public final class UnitOfWorkProducer extends DefaultAsyncProducer {
         ServiceHelper.stopService(processor);
     }
 
+    @Override
     public boolean isSingleton() {
         return producer.isSingleton();
     }

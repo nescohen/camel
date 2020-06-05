@@ -18,7 +18,7 @@ package org.apache.camel.component.bean;
 
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 /**
@@ -63,8 +63,8 @@ public class BeanMethodValueWithCommaTest extends ContextTestSupport {
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("foo", new MyBean());
         return jndi;
     }
@@ -74,21 +74,13 @@ public class BeanMethodValueWithCommaTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:single")
-                        .to("bean:foo?method=bar(${body}, 'a,b')")
-                        .to("mock:result");
+                from("direct:single").to("bean:foo?method=bar(${body}, 'a,b')").to("mock:result");
 
-                from("direct:double")
-                        .to("bean:foo?method=bar(${body}, \"c,d\")")
-                        .to("mock:result");
+                from("direct:double").to("bean:foo?method=bar(${body}, \"c,d\")").to("mock:result");
 
-                from("direct:header")
-                        .to("bean:foo?method=bar(${body}, ${header.myHeader})")
-                        .to("mock:result");
+                from("direct:header").to("bean:foo?method=bar(${body}, ${header.myHeader})").to("mock:result");
 
-                from("direct:cron")
-                        .to("bean:foo?method=bar(${body.id}, ${body.cron})")
-                        .to("mock:result");
+                from("direct:cron").to("bean:foo?method=bar(${body.id}, ${body.cron})").to("mock:result");
             }
         };
     }

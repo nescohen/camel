@@ -26,6 +26,7 @@ import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClient;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClientBuilder;
 import com.amazonaws.services.simpleworkflow.flow.StartWorkflowOptions;
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Exchange;
 import org.apache.camel.ExchangePattern;
@@ -34,15 +35,14 @@ import org.apache.camel.Producer;
 import org.apache.camel.spi.UriEndpoint;
 import org.apache.camel.spi.UriParam;
 import org.apache.camel.support.DefaultEndpoint;
-import org.apache.camel.support.EndpointHelper;
-import org.apache.camel.support.ExchangeHelper;
+import org.apache.camel.support.PropertyBindingSupport;
 import org.apache.camel.util.ObjectHelper;
 
 /**
- * The aws-swf component is used for managing workflows from Amazon Simple Workflow.
+ * Manage workflows in the AWS Simple Workflow service.
  */
-@UriEndpoint(firstVersion = "2.13.0", scheme = "aws-swf", title = "AWS Simple Workflow", syntax = "aws-swf:type",
-    label = "cloud,workflow")
+@UriEndpoint(firstVersion = "2.13.0", scheme = "aws-swf", title = "AWS Simple Workflow (SWF)", syntax = "aws-swf:type",
+category = {Category.CLOUD, Category.WORKFLOW})
 public class SWFEndpoint extends DefaultEndpoint {
 
     private AmazonSimpleWorkflowClient amazonSWClient;
@@ -58,11 +58,13 @@ public class SWFEndpoint extends DefaultEndpoint {
         this.configuration = configuration;
     }
 
+    @Override
     public Producer createProducer() throws Exception {
         return isWorkflow()
                 ? new SWFWorkflowProducer(this, new CamelSWFWorkflowClient(this, configuration)) : new SWFActivityProducer(this, new CamelSWFActivityClient(configuration));
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         Consumer consumer = isWorkflow()
                 ? new SWFWorkflowConsumer(this, processor, configuration) : new SWFActivityConsumer(this, processor, configuration);
@@ -116,8 +118,8 @@ public class SWFEndpoint extends DefaultEndpoint {
     public StartWorkflowOptions getStartWorkflowOptions() {
         StartWorkflowOptions startWorkflowOptions = new StartWorkflowOptions();
         try {
-            EndpointHelper.setReferenceProperties(getCamelContext(), startWorkflowOptions, configuration.getStartWorkflowOptionsParameters());
-            EndpointHelper.setProperties(getCamelContext(), startWorkflowOptions, configuration.getStartWorkflowOptionsParameters());
+            PropertyBindingSupport.bindProperties(getCamelContext(), startWorkflowOptions, configuration.getStartWorkflowOptionsParameters());
+            PropertyBindingSupport.bindProperties(getCamelContext(), startWorkflowOptions, configuration.getStartWorkflowOptionsParameters());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -136,15 +138,11 @@ public class SWFEndpoint extends DefaultEndpoint {
     }
 
     public Object getResult(Exchange exchange) {
-        return ExchangeHelper.isOutCapable(exchange) ? exchange.getOut().getBody() : exchange.getIn().getBody();
+        return exchange.getMessage();
     }
 
     public void setResult(Exchange exchange, Object result) {
-        if (ExchangeHelper.isOutCapable(exchange)) {
-            exchange.getOut().setBody(result);
-        } else {
-            exchange.getIn().setBody(result);
-        }
+        exchange.getMessage().setBody(result);
     }
 
     public void setConfiguration(SWFConfiguration configuration) {

@@ -34,7 +34,6 @@ import brave.propagation.TraceContext.Extractor;
 import brave.propagation.TraceContext.Injector;
 import brave.propagation.TraceContextOrSamplingFlags;
 import brave.sampler.Sampler;
-
 import org.apache.camel.CamelContext;
 import org.apache.camel.CamelContextAware;
 import org.apache.camel.Endpoint;
@@ -47,17 +46,14 @@ import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.StaticService;
 import org.apache.camel.api.management.ManagedAttribute;
 import org.apache.camel.api.management.ManagedResource;
-import org.apache.camel.component.properties.ServiceHostPropertiesFunction;
-import org.apache.camel.component.properties.ServicePortPropertiesFunction;
 import org.apache.camel.spi.CamelEvent;
 import org.apache.camel.spi.CamelEvent.ExchangeSendingEvent;
 import org.apache.camel.spi.CamelEvent.ExchangeSentEvent;
-import org.apache.camel.spi.RouteContext;
 import org.apache.camel.spi.RoutePolicy;
 import org.apache.camel.spi.RoutePolicyFactory;
-import org.apache.camel.spi.UnitOfWork;
 import org.apache.camel.support.EndpointHelper;
 import org.apache.camel.support.EventNotifierSupport;
+import org.apache.camel.support.ExchangeHelper;
 import org.apache.camel.support.PatternHelper;
 import org.apache.camel.support.RoutePolicySupport;
 import org.apache.camel.support.service.ServiceHelper;
@@ -68,7 +64,6 @@ import org.apache.camel.util.URISupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.Reporter;
 import zipkin2.reporter.libthrift.LibthriftSender;
@@ -131,18 +126,8 @@ public class ZipkinTracer extends ServiceSupport implements RoutePolicyFactory, 
     private static final Logger LOG = LoggerFactory.getLogger(ZipkinTracer.class);
     private static final String ZIPKIN_COLLECTOR_HTTP_SERVICE = "zipkin-collector-http";
     private static final String ZIPKIN_COLLECTOR_THRIFT_SERVICE = "zipkin-collector-thrift";
-    private static final Getter<Message, String> GETTER = new Getter<Message, String>() {
-        @Override
-        public String get(Message message, String key) {
-            return message.getHeader(key, String.class);
-        }
-    };
-    private static final Setter<Message, String> SETTER = new Setter<Message, String>() {
-        @Override
-        public void put(Message message, String key, String value) {
-            message.setHeader(key, value);
-        }
-    };
+    private static final Getter<Message, String> GETTER = (message, key) -> message.getHeader(key, String.class);
+    private static final Setter<Message, String> SETTER = (message, key, value) -> message.setHeader(key, value);
     private static final Extractor<Message> EXTRACTOR = B3Propagation.B3_STRING.extractor(GETTER);
     private static final Injector<Message> INJECTOR = B3Propagation.B3_STRING.injector(SETTER);
 
@@ -188,10 +173,12 @@ public class ZipkinTracer extends ServiceSupport implements RoutePolicyFactory, 
         }
     }
 
+    @Override
     public CamelContext getCamelContext() {
         return camelContext;
     }
 
+    @Override
     public void setCamelContext(CamelContext camelContext) {
         this.camelContext = camelContext;
     }
@@ -379,7 +366,7 @@ public class ZipkinTracer extends ServiceSupport implements RoutePolicyFactory, 
     }
 
     @Override
-    protected void doStart() throws Exception {
+    protected void doInit() throws Exception {
         ObjectHelper.notNull(camelContext, "CamelContext", this);
 
         camelContext.getManagementStrategy().addEventNotifier(eventNotifier);
@@ -398,16 +385,16 @@ public class ZipkinTracer extends ServiceSupport implements RoutePolicyFactory, 
             } else {
                 // is there a zipkin service setup as ENV variable to auto
                 // register a span reporter
-                String host = new ServiceHostPropertiesFunction().apply(ZIPKIN_COLLECTOR_HTTP_SERVICE);
-                String port = new ServicePortPropertiesFunction().apply(ZIPKIN_COLLECTOR_HTTP_SERVICE);
+                String host = ServiceHostFunction.apply(ZIPKIN_COLLECTOR_HTTP_SERVICE);
+                String port = ServicePortFunction.apply(ZIPKIN_COLLECTOR_HTTP_SERVICE);
                 if (ObjectHelper.isNotEmpty(host) && ObjectHelper.isNotEmpty(port)) {
                     LOG.info("Auto-configuring Zipkin URLConnectionSender using host: {} and port: {}", host, port);
                     int num = camelContext.getTypeConverter().mandatoryConvertTo(Integer.class, port);
                     String implicitEndpoint = "http://" + host + ":" + num + "/api/v2/spans";
                     spanReporter = AsyncReporter.create(URLConnectionSender.create(implicitEndpoint));
                 } else {
-                    host = new ServiceHostPropertiesFunction().apply(ZIPKIN_COLLECTOR_THRIFT_SERVICE);
-                    port = new ServicePortPropertiesFunction().apply(ZIPKIN_COLLECTOR_THRIFT_SERVICE);
+                    host = ServiceHostFunction.apply(ZIPKIN_COLLECTOR_THRIFT_SERVICE);
+                    port = ServicePortFunction.apply(ZIPKIN_COLLECTOR_THRIFT_SERVICE);
                     if (ObjectHelper.isNotEmpty(host) && ObjectHelper.isNotEmpty(port)) {
                         LOG.info("Auto-configuring Zipkin ScribeSpanCollector using host: {} and port: {}", host, port);
                         int num = camelContext.getTypeConverter().mandatoryConvertTo(Integer.class, port);
@@ -450,7 +437,7 @@ public class ZipkinTracer extends ServiceSupport implements RoutePolicyFactory, 
     }
 
     @Override
-    protected void doStop() throws Exception {
+    protected void doShutdown() throws Exception {
         // stop event notifier
         camelContext.getManagementStrategy().removeEventNotifier(eventNotifier);
         ServiceHelper.stopService(eventNotifier);
@@ -576,7 +563,7 @@ public class ZipkinTracer extends ServiceSupport implements RoutePolicyFactory, 
         Tracing brave = null;
         if (camelContext.isUseMDCLogging()) {
             brave = Tracing.newBuilder().currentTraceContext(ThreadLocalCurrentTraceContext.newBuilder().addScopeDecorator(MDCScopeDecorator.create()).build())
-                .localServiceName(serviceName).sampler(Sampler.create(rate)).spanReporter(spanReporter).build();
+                    .localServiceName(serviceName).sampler(Sampler.create(rate)).spanReporter(spanReporter).build();
         } else {
             brave = Tracing.newBuilder().localServiceName(serviceName).sampler(Sampler.create(rate)).spanReporter(spanReporter).build();
         }
@@ -772,14 +759,14 @@ public class ZipkinTracer extends ServiceSupport implements RoutePolicyFactory, 
         @Override
         public boolean isEnabled(CamelEvent event) {
             switch (event.getType()) {
-            case ExchangeSending:
-            case ExchangeSent:
-            case ExchangeCreated:
-            case ExchangeCompleted:
-            case ExchangeFailed:
-                return true;
-            default:
-                return false;
+                case ExchangeSending:
+                case ExchangeSent:
+                case ExchangeCreated:
+                case ExchangeCompleted:
+                case ExchangeFailed:
+                    return true;
+                default:
+                    return false;
             }
         }
 
@@ -821,16 +808,7 @@ public class ZipkinTracer extends ServiceSupport implements RoutePolicyFactory, 
         return new Expression() {
             @Override
             public <T> T evaluate(Exchange exchange, Class<T> type) {
-                String answer = null;
-                UnitOfWork uow = exchange.getUnitOfWork();
-                RouteContext rc = uow != null ? uow.getRouteContext() : null;
-                if (rc != null) {
-                    answer = rc.getRouteId();
-                }
-                if (answer == null) {
-                    // fallback and get from route id on the exchange
-                    answer = exchange.getFromRouteId();
-                }
+                String answer = ExchangeHelper.getRouteId(exchange);
                 return type.cast(answer);
             }
         };

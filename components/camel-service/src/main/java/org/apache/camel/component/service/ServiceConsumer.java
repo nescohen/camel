@@ -16,7 +16,6 @@
  */
 package org.apache.camel.component.service;
 
-
 import org.apache.camel.Consumer;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Processor;
@@ -32,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 @ManagedResource(description = "Managed Service Consumer")
 public class ServiceConsumer extends DefaultConsumer {
-    private static final transient Logger LOGGER = LoggerFactory.getLogger(ServiceConsumer.class);
+    private static final transient Logger LOG = LoggerFactory.getLogger(ServiceConsumer.class);
 
     private final ServiceRegistry serviceRegistry;
     private final Endpoint delegatedEndpoint;
@@ -54,7 +53,7 @@ public class ServiceConsumer extends DefaultConsumer {
         final ServiceEndpoint endpoint = (ServiceEndpoint)getEndpoint();
         final ServiceDefinition definition = endpoint.getServiceDefinition();
 
-        LOGGER.debug("Using ServiceRegistry instance {} (id={}, type={}) to register: {}",
+        LOG.debug("Using ServiceRegistry instance {} (id={}, type={}) to register: {}",
             serviceRegistry,
             serviceRegistry.getId(),
             serviceRegistry.getClass().getName(),

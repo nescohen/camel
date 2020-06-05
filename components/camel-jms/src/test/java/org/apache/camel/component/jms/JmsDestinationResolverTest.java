@@ -41,6 +41,7 @@ public class JmsDestinationResolverTest extends CamelTestSupport {
         assertMockEndpointsSatisfied();
     }
 
+    @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext camelContext = super.createCamelContext();
 
@@ -48,11 +49,12 @@ public class JmsDestinationResolverTest extends CamelTestSupport {
         camelContext.addComponent(componentName, jmsComponentAutoAcknowledge(connectionFactory));
 
         JmsComponent jms = camelContext.getComponent(componentName, JmsComponent.class);
-        jms.setDestinationResolver(new MyDestinationResolver());
+        jms.getConfiguration().setDestinationResolver(new MyDestinationResolver());
 
         return camelContext;
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {

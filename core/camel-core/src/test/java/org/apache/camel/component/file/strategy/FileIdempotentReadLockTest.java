@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.component.file.strategy;
+
 import java.util.concurrent.TimeUnit;
 
 import org.apache.camel.ContextTestSupport;
@@ -23,7 +24,7 @@ import org.apache.camel.Processor;
 import org.apache.camel.builder.NotifyBuilder;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.apache.camel.support.processor.idempotent.MemoryIdempotentRepository;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,8 +42,8 @@ public class FileIdempotentReadLockTest extends ContextTestSupport {
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myRepo", myRepo);
         return jndi;
     }
@@ -64,7 +65,8 @@ public class FileIdempotentReadLockTest extends ContextTestSupport {
         assertTrue(notify.matches(5, TimeUnit.SECONDS));
 
         // the files are kept on commit
-        // if you want to remove them then the idempotent repo need some way to evict idle keys
+        // if you want to remove them then the idempotent repo need some way to
+        // evict idle keys
         assertEquals(2, myRepo.getCacheSize());
     }
 
@@ -73,16 +75,14 @@ public class FileIdempotentReadLockTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("file:target/data/changed/in?initialDelay=0&delay=10&readLock=idempotent&idempotentRepository=#myRepo")
-                    .process(new Processor() {
-                        @Override
-                        public void process(Exchange exchange) throws Exception {
-                            // we are in progress
-                            int size = myRepo.getCacheSize();
-                            assertTrue(size == 1 || size == 2);
-                        }
-                    })
-                    .to("mock:result");
+                from("file:target/data/changed/in?initialDelay=0&delay=10&readLock=idempotent&idempotentRepository=#myRepo").process(new Processor() {
+                    @Override
+                    public void process(Exchange exchange) throws Exception {
+                        // we are in progress
+                        int size = myRepo.getCacheSize();
+                        assertTrue(size == 1 || size == 2);
+                    }
+                }).to("mock:result");
             }
         };
     }

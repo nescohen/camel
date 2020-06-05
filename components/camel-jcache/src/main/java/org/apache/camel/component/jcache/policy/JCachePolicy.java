@@ -17,6 +17,7 @@
 package org.apache.camel.component.jcache.policy;
 
 import java.util.Set;
+
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
@@ -26,8 +27,8 @@ import javax.cache.configuration.MutableConfiguration;
 import org.apache.camel.Expression;
 import org.apache.camel.NamedNode;
 import org.apache.camel.Processor;
+import org.apache.camel.Route;
 import org.apache.camel.spi.Policy;
-import org.apache.camel.spi.RouteContext;
 import org.apache.camel.util.ObjectHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,12 +57,12 @@ public class JCachePolicy implements Policy {
     private boolean enabled = true;
 
     @Override
-    public void beforeWrap(RouteContext routeContext, NamedNode namedNode) {
+    public void beforeWrap(Route route, NamedNode namedNode) {
 
     }
 
     @Override
-    public Processor wrap(RouteContext routeContext, Processor processor) {
+    public Processor wrap(Route route, Processor processor) {
         //Don't add JCachePolicyProcessor if JCachePolicy is disabled. This means enable/disable has impact only during startup
         if (!isEnabled()) {
             return processor;
@@ -76,7 +77,7 @@ public class JCachePolicy implements Policy {
 
             //Lookup CacheManager from CamelContext if it's not set
             if (cacheManager == null) {
-                Set<CacheManager> lookupResult = routeContext.getCamelContext().getRegistry().findByType(CacheManager.class);
+                Set<CacheManager> lookupResult = route.getCamelContext().getRegistry().findByType(CacheManager.class);
                 if (ObjectHelper.isNotEmpty(lookupResult)) {
 
                     //Use the first cache manager found
@@ -92,7 +93,7 @@ public class JCachePolicy implements Policy {
             }
 
             //Use routeId as cacheName if it's not set
-            String cacheName = ObjectHelper.isNotEmpty(this.cacheName) ? this.cacheName : routeContext.getRouteId();
+            String cacheName = ObjectHelper.isNotEmpty(this.cacheName) ? this.cacheName : route.getRouteId();
             LOG.debug("Getting cache:{}", cacheName);
 
             //Get cache or create a new one using the cacheConfiguration

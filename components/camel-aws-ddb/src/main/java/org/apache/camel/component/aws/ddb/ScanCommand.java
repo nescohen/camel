@@ -23,7 +23,6 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.model.Condition;
 import com.amazonaws.services.dynamodbv2.model.ScanRequest;
 import com.amazonaws.services.dynamodbv2.model.ScanResult;
-
 import org.apache.camel.Exchange;
 
 public class ScanCommand extends AbstractDdbCommand {
@@ -36,6 +35,8 @@ public class ScanCommand extends AbstractDdbCommand {
     public void execute() {
         ScanResult result = ddbClient.scan(new ScanRequest()
                 .withTableName(determineTableName())
+                .withLimit(determineLimit())
+                .withExclusiveStartKey(determineExclusiveStartKey())
                 .withScanFilter(determineScanFilter()));
 
         Map tmp = new HashMap<>();

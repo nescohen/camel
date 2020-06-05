@@ -29,6 +29,7 @@ import org.apache.camel.DelegateEndpoint;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.ExchangePattern;
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.PollingConsumer;
 import org.apache.camel.Processor;
 import org.apache.camel.ResolveEndpointFailedException;
@@ -51,6 +52,23 @@ public final class EndpointHelper {
 
     private EndpointHelper() {
         //Utility Class
+    }
+
+    /**
+     * Normalize uri so we can do endpoint hits with minor mistakes and
+     * parameters is not in the same order.
+     *
+     * @param uri the uri
+     * @return normalized uri
+     * @throws ResolveEndpointFailedException if uri cannot be normalized
+     */
+    public static String normalizeEndpointUri(String uri) {
+        try {
+            uri = URISupport.normalizeUri(uri);
+        } catch (Exception e) {
+            throw new ResolveEndpointFailedException(uri, e);
+        }
+        return uri;
     }
 
     /**
@@ -100,6 +118,7 @@ public final class EndpointHelper {
      * <li>exact match, returns true</li>
      * <li>wildcard match (pattern ends with a * and the uri starts with the pattern), returns true</li>
      * <li>regular expression match, returns true</li>
+     * <li>exact match with uri normalization of the pattern if possible, returns true</li>
      * <li>otherwise returns false</li>
      * </ul>
      *
@@ -118,31 +137,43 @@ public final class EndpointHelper {
         }
 
         // normalize uri so we can do endpoint hits with minor mistakes and parameters is not in the same order
-        try {
-            uri = URISupport.normalizeUri(uri);
-        } catch (Exception e) {
-            throw new ResolveEndpointFailedException(uri, e);
-        }
+        uri = normalizeEndpointUri(uri);
 
         // we need to test with and without scheme separators (//)
-        if (uri.contains("://")) {
-            // try without :// also
-            String scheme = StringHelper.before(uri, "://");
-            String path = after(uri, "://");
-            if (PatternHelper.matchPattern(scheme + ":" + path, pattern)) {
-                return true;
-            }
-        } else {
-            // try with :// also
-            String scheme = StringHelper.before(uri, ":");
-            String path = after(uri, ":");
-            if (PatternHelper.matchPattern(scheme + "://" + path, pattern)) {
-                return true;
+        boolean match = PatternHelper.matchPattern(toggleUriSchemeSeparators(uri), pattern);
+        match |= PatternHelper.matchPattern(uri, pattern);
+        if (!match && pattern != null && pattern.contains("?")) {
+            // try normalizing the pattern as a uri for exact matching, so parameters are ordered the same as in the endpoint uri
+            try {
+                pattern = URISupport.normalizeUri(pattern);
+                // try both with and without scheme separators (//)
+                match = toggleUriSchemeSeparators(uri).equalsIgnoreCase(pattern);
+                return match || uri.equalsIgnoreCase(pattern);
+            } catch (URISyntaxException e) {
+                //Can't normalize and original match failed
+                return false;
+            } catch (Exception e) {
+                throw new ResolveEndpointFailedException(uri, e);
             }
         }
+        return match;
+    }
 
-        // and fallback to test with the uri as is
-        return PatternHelper.matchPattern(uri, pattern);
+    /**
+     * Toggles // separators in the given uri. If the uri does not contain ://, the slashes are added, otherwise they are removed.
+     * @param normalizedUri The uri to add/remove separators in
+     * @return The uri with separators added or removed
+     */
+    private static String toggleUriSchemeSeparators(String normalizedUri) {
+        if (normalizedUri.contains("://")) {
+            String scheme = StringHelper.before(normalizedUri, "://");
+            String path = after(normalizedUri, "://");
+            return scheme + ":" + path;
+        } else {
+            String scheme = StringHelper.before(normalizedUri, ":");
+            String path = after(normalizedUri, ":");
+            return scheme + "://" + path;
+        }
     }
 
     /**
@@ -157,7 +188,7 @@ public final class EndpointHelper {
     @Deprecated
     public static void setProperties(CamelContext context, Object bean, Map<String, Object> parameters) throws Exception {
         // use the property binding which can do more advanced configuration
-        PropertyBindingSupport.bindProperties(context, bean, parameters);
+        PropertyBindingSupport.build().bind(context, bean, parameters);
     }
 
     /**
@@ -181,7 +212,7 @@ public final class EndpointHelper {
             Object v = entry.getValue();
             String value = v != null ? v.toString() : null;
             if (isReferenceParameter(value)) {
-                boolean hit = IntrospectionSupport.setProperty(context, context.getTypeConverter(), bean, name, null, value, true);
+                boolean hit = context.adapt(ExtendedCamelContext.class).getBeanIntrospection().setProperty(context, context.getTypeConverter(), bean, name, null, value, true, false, false);
                 if (hit) {
                     // must remove as its a valid option and we could configure it
                     it.remove();
@@ -227,7 +258,8 @@ public final class EndpointHelper {
      *                                  <code>mandatory</code> is <code>true</code>.
      */
     public static <T> T resolveReferenceParameter(CamelContext context, String value, Class<T> type, boolean mandatory) {
-        String valueNoHash = StringHelper.replaceAll(value, "#", "");
+        String valueNoHash = StringHelper.replaceAll(value, "#bean:", "");
+        valueNoHash = StringHelper.replaceAll(valueNoHash, "#", "");
         if (mandatory) {
             return CamelContextHelper.mandatoryLookupAndConvert(context, valueNoHash, type);
         } else {
@@ -359,17 +391,15 @@ public final class EndpointHelper {
      *
      * @param url the url
      * @return the exchange pattern, or <tt>null</tt> if the url has no <tt>exchangePattern</tt> configured.
-     * @throws URISyntaxException is thrown if uri is invalid
      */
-    public static ExchangePattern resolveExchangePatternFromUrl(String url) throws URISyntaxException {
-        int idx = url.indexOf("?");
-        if (idx > 0) {
-            url = url.substring(idx + 1);
-        }
-        Map<String, Object> parameters = URISupport.parseQuery(url, true);
-        String pattern = (String) parameters.get("exchangePattern");
-        if (pattern != null) {
-            return ExchangePattern.asEnum(pattern);
+    public static ExchangePattern resolveExchangePatternFromUrl(String url) {
+        // optimize to use simple string contains check
+        if (url.contains("exchangePattern=InOnly")) {
+            return ExchangePattern.InOnly;
+        } else if (url.contains("exchangePattern=InOut")) {
+            return ExchangePattern.InOut;
+        } else if (url.contains("exchangePattern=InOptionalOut")) {
+            return ExchangePattern.InOptionalOut;
         }
         return null;
     }

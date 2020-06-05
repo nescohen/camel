@@ -21,21 +21,22 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Producer;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
- * Unit test to poll a fixed file from the FTP server without using the list command.
+ * Unit test to poll a fixed file from the FTP server without using the list
+ * command.
  */
 public class FromFtpUseListFalseTest extends FtpServerTestSupport {
 
     private String getFtpUrl() {
         return "ftp://admin@localhost:" + getPort() + "/nolist/?password=admin"
-                + "&stepwise=false&useList=false&ignoreFileNotFoundOrPermissionError=true&fileName=report.txt&delete=true";
+               + "&stepwise=false&useList=false&ignoreFileNotFoundOrPermissionError=true&fileName=report.txt&delete=true";
     }
 
     @Override
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         prepareFtpServer();
@@ -46,14 +47,16 @@ public class FromFtpUseListFalseTest extends FtpServerTestSupport {
         MockEndpoint mock = getMockEndpoint("mock:result");
         mock.expectedBodiesReceived("Hello World from FTPServer");
 
-        // just allow to poll a few more times, but we should only get the file once
+        // just allow to poll a few more times, but we should only get the file
+        // once
         Thread.sleep(1000);
 
         mock.assertIsSatisfied();
     }
-    
+
     private void prepareFtpServer() throws Exception {
-        // prepares the FTP Server by creating a file on the server that we want to unit
+        // prepares the FTP Server by creating a file on the server that we want
+        // to unit
         // test that we can pool and store as a local file
         Endpoint endpoint = context.getEndpoint("ftp://admin@localhost:" + getPort() + "/nolist/?password=admin&binary=false");
         Exchange exchange = endpoint.createExchange();
@@ -65,6 +68,7 @@ public class FromFtpUseListFalseTest extends FtpServerTestSupport {
         producer.stop();
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {

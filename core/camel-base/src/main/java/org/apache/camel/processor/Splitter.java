@@ -31,13 +31,14 @@ import org.apache.camel.AsyncProcessor;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.Expression;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.Message;
 import org.apache.camel.Processor;
+import org.apache.camel.Route;
 import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.Traceable;
 import org.apache.camel.processor.aggregate.ShareUnitOfWorkAggregationStrategy;
 import org.apache.camel.processor.aggregate.UseOriginalAggregationStrategy;
-import org.apache.camel.spi.RouteContext;
 import org.apache.camel.support.ExchangeHelper;
 import org.apache.camel.support.ObjectHelper;
 import org.apache.camel.util.IOHelper;
@@ -54,26 +55,21 @@ public class Splitter extends MulticastProcessor implements AsyncProcessor, Trac
 
     private final Expression expression;
 
-    public Splitter(CamelContext camelContext, Expression expression, Processor destination, AggregationStrategy aggregationStrategy, boolean parallelProcessing,
+    public Splitter(CamelContext camelContext, Route route, Expression expression, Processor destination, AggregationStrategy aggregationStrategy, boolean parallelProcessing,
                     ExecutorService executorService, boolean shutdownExecutorService, boolean streaming, boolean stopOnException, long timeout, Processor onPrepare,
                     boolean useSubUnitOfWork, boolean parallelAggregate) {
-        this(camelContext, expression, destination, aggregationStrategy, parallelProcessing, executorService, shutdownExecutorService, streaming, stopOnException, timeout,
-             onPrepare, useSubUnitOfWork, false, false);
+        this(camelContext, route, expression, destination, aggregationStrategy, parallelProcessing, executorService, shutdownExecutorService, streaming, stopOnException, timeout,
+             onPrepare, useSubUnitOfWork, parallelAggregate, false);
     }
 
-    public Splitter(CamelContext camelContext, Expression expression, Processor destination, AggregationStrategy aggregationStrategy, boolean parallelProcessing,
+    public Splitter(CamelContext camelContext, Route route, Expression expression, Processor destination, AggregationStrategy aggregationStrategy, boolean parallelProcessing,
                     ExecutorService executorService, boolean shutdownExecutorService, boolean streaming, boolean stopOnException, long timeout, Processor onPrepare,
                     boolean useSubUnitOfWork, boolean parallelAggregate, boolean stopOnAggregateException) {
-        super(camelContext, Collections.singleton(destination), aggregationStrategy, parallelProcessing, executorService, shutdownExecutorService, streaming, stopOnException,
+        super(camelContext, route, Collections.singleton(destination), aggregationStrategy, parallelProcessing, executorService, shutdownExecutorService, streaming, stopOnException,
               timeout, onPrepare, useSubUnitOfWork, parallelAggregate, stopOnAggregateException);
         this.expression = expression;
         notNull(expression, "expression");
         notNull(destination, "destination");
-    }
-
-    @Override
-    public String toString() {
-        return "Splitter[on: " + expression + " to: " + getProcessors().iterator().next() + " aggregate: " + getAggregationStrategy() + "]";
     }
 
     @Override
@@ -82,9 +78,14 @@ public class Splitter extends MulticastProcessor implements AsyncProcessor, Trac
     }
 
     @Override
+    protected void doInit() throws Exception {
+        super.doInit();
+        expression.init(getCamelContext());
+    }
+
+    @Override
     public boolean process(Exchange exchange, final AsyncCallback callback) {
         AggregationStrategy strategy = getAggregationStrategy();
-
 
         // set original exchange if not already pre-configured
         if (strategy instanceof UseOriginalAggregationStrategy) {
@@ -142,15 +143,15 @@ public class Splitter extends MulticastProcessor implements AsyncProcessor, Trac
         final Object value;
         final Iterator<?> iterator;
         private final Exchange copy;
-        private final RouteContext routeContext;
+        private final Route route;
         private final Exchange original;
 
         private SplitterIterable(Exchange exchange, Object value) {
             this.original = exchange;
             this.value = value;
             this.iterator = ObjectHelper.createIterator(value);
-            this.copy = copyExchangeNoAttachments(exchange, true);
-            this.routeContext = exchange.getUnitOfWork() != null ? exchange.getUnitOfWork().getRouteContext() : null;
+            this.copy = copyAndPrepareSubExchange(exchange, true);
+            this.route = ExchangeHelper.getRoute(exchange);
         }
 
         @Override
@@ -202,7 +203,7 @@ public class Splitter extends MulticastProcessor implements AsyncProcessor, Trac
                             Message in = newExchange.getIn();
                             in.setBody(part);
                         }
-                        return createProcessorExchangePair(index++, getProcessors().iterator().next(), newExchange, routeContext);
+                        return createProcessorExchangePair(index++, getProcessors().iterator().next(), newExchange, route);
                     } else {
                         return null;
                     }
@@ -244,7 +245,7 @@ public class Splitter extends MulticastProcessor implements AsyncProcessor, Trac
     @Override
     protected void updateNewExchange(Exchange exchange, int index, Iterable<ProcessorExchangePair> allPairs, boolean hasNext) {
         // do not share unit of work
-        exchange.setUnitOfWork(null);
+        exchange.adapt(ExtendedExchange.class).setUnitOfWork(null);
 
         exchange.setProperty(Exchange.SPLIT_INDEX, index);
         if (allPairs instanceof Collection) {
@@ -269,10 +270,8 @@ public class Splitter extends MulticastProcessor implements AsyncProcessor, Trac
         return expression;
     }
     
-    private static Exchange copyExchangeNoAttachments(Exchange exchange, boolean preserveExchangeId) {
+    private static Exchange copyAndPrepareSubExchange(Exchange exchange, boolean preserveExchangeId) {
         Exchange answer = ExchangeHelper.createCopy(exchange, preserveExchangeId);
-        // we do not want attachments for the splitted sub-messages
-        answer.getIn().setAttachmentObjects(null);
         // we do not want to copy the message history for splitted sub-messages
         answer.getProperties().remove(Exchange.MESSAGE_HISTORY);
         return answer;

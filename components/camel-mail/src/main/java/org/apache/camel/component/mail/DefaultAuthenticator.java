@@ -22,7 +22,7 @@ import javax.mail.PasswordAuthentication;
 /**
  * Mail {@link Authenticator} that supplies username and password
  */
-public class DefaultAuthenticator extends Authenticator {
+public class DefaultAuthenticator extends MailAuthenticator {
 
     private final String username;
     private final String password;
@@ -35,6 +35,7 @@ public class DefaultAuthenticator extends Authenticator {
     /**
      * Returns an authenticator object for use in sessions
      */
+    @Override
     public PasswordAuthentication getPasswordAuthentication() {
         return new PasswordAuthentication(username, password);
     }

@@ -25,7 +25,6 @@ import java.util.Set;
 import org.apache.camel.Channel;
 import org.apache.camel.Navigate;
 import org.apache.camel.Processor;
-import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.Service;
 import org.apache.camel.ShutdownableService;
 import org.apache.camel.StatefulService;
@@ -56,6 +55,20 @@ public final class ServiceHelper {
             ((Service) value).init();
         } else if (value instanceof Iterable) {
             for (Object o : (Iterable) value) {
+                initService(o);
+            }
+        }
+    }
+
+    /**
+     * Initializes each element of the given {@code services} if {@code services} itself is
+     * not {@code null}, otherwise this method would return immediately.
+     *
+     * @see #initService(Object)
+     */
+    public static void initService(Object... services) {
+        if (services != null) {
+            for (Object o : services) {
                 initService(o);
             }
         }

@@ -21,14 +21,17 @@ import java.lang.reflect.Method;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.camel.BeanConfigInject;
 import org.apache.camel.BeanInject;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Consume;
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.EndpointInject;
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.FluentProducerTemplate;
 import org.apache.camel.NoSuchBeanException;
+import org.apache.camel.NoSuchEndpointException;
 import org.apache.camel.PollingConsumer;
 import org.apache.camel.Produce;
 import org.apache.camel.Producer;
@@ -37,10 +40,11 @@ import org.apache.camel.PropertyInject;
 import org.apache.camel.ResolveEndpointFailedException;
 import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.component.properties.PropertiesComponent;
 import org.apache.camel.impl.FooBar;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.impl.FooBarConfig;
+import org.apache.camel.spi.Registry;
 import org.apache.camel.support.DefaultExchange;
+import org.apache.camel.support.DefaultRegistry;
 import org.apache.camel.support.ObjectHelper;
 import org.apache.camel.support.SynchronizationAdapter;
 import org.junit.Test;
@@ -53,8 +57,8 @@ public class CamelPostProcessorHelperTest extends ContextTestSupport {
     private Properties myProp = new Properties();
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = new DefaultRegistry();
         jndi.bind("myProp", myProp);
         jndi.bind("foo", new FooBar());
         return jndi;
@@ -63,10 +67,7 @@ public class CamelPostProcessorHelperTest extends ContextTestSupport {
     @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext context = super.createCamelContext();
-
-        PropertiesComponent pc = context.getComponent("properties", PropertiesComponent.class);
-        pc.setLocation("ref:myProp");
-
+        context.getPropertiesComponent().setLocation("ref:myProp");
         return context;
     }
 
@@ -83,13 +84,6 @@ public class CamelPostProcessorHelperTest extends ContextTestSupport {
     public void testConstructorCamelContext() {
         CamelPostProcessorHelper helper = new CamelPostProcessorHelper(context);
         assertNotNull(helper.getCamelContext());
-    }
-
-    @Test
-    public void testMatchContext() {
-        CamelPostProcessorHelper helper = new CamelPostProcessorHelper(context);
-        assertTrue(helper.matchContext(context.getName()));
-        assertFalse(helper.matchContext("foo"));
     }
 
     @Test
@@ -352,8 +346,8 @@ public class CamelPostProcessorHelperTest extends ContextTestSupport {
         try {
             helper.getInjectionValue(type, endpointInject.value(), endpointInject.property(), propertyName, bean, "foo");
             fail("Should throw exception");
-        } catch (ResolveEndpointFailedException e) {
-            assertEquals("Failed to resolve endpoint: xxx://foo due to: No component found with scheme: xxx", e.getMessage());
+        } catch (NoSuchEndpointException e) {
+            // expected
         }
     }
 
@@ -472,6 +466,48 @@ public class CamelPostProcessorHelperTest extends ContextTestSupport {
     }
 
     @Test
+    public void testBeanConfigInjectByType() throws Exception {
+        Properties initial = new Properties();
+        initial.put("foobar.name", "Donald");
+        initial.put("foobar.age", "33");
+        context.getPropertiesComponent().setInitialProperties(initial);
+
+        CamelPostProcessorHelper helper = new CamelPostProcessorHelper(context);
+
+        MyBeanConfigInjectByTypeBean bean = new MyBeanConfigInjectByTypeBean();
+        Field field = bean.getClass().getField("config");
+
+        BeanConfigInject beanInject = field.getAnnotation(BeanConfigInject.class);
+        Class<?> type = field.getType();
+        Object value = helper.getInjectionBeanConfigValue(type, beanInject.value());
+        field.set(bean, value);
+
+        String out = bean.doSomething("Camel");
+        assertEquals("Donald (age: 33) likes Camel", out);
+    }
+
+    @Test
+    public void testBeanConfigInjectByMethod() throws Exception {
+        Properties initial = new Properties();
+        initial.put("foobar.name", "Goofy");
+        initial.put("foobar.age", "34");
+        context.getPropertiesComponent().setInitialProperties(initial);
+
+        CamelPostProcessorHelper helper = new CamelPostProcessorHelper(context);
+
+        MyBeanConfigInjectByMethod bean = new MyBeanConfigInjectByMethod();
+        Method method = bean.getClass().getMethod("initFooBar", FooBarConfig.class);
+
+        BeanConfigInject beanInject = method.getAnnotation(BeanConfigInject.class);
+        Class<?> type = method.getParameterTypes()[0];
+        Object value = helper.getInjectionBeanConfigValue(type, beanInject.value());
+        method.invoke(bean, value);
+
+        String out = bean.doSomething("Camel");
+        assertEquals("Goofy (age: 34) likes Camel", out);
+    }
+
+    @Test
     public void testFluentProducerTemplateWithNoInjection() throws Exception {
         CamelPostProcessorHelper helper = new CamelPostProcessorHelper(context);
         NoBeanInjectionTestClass myBean = new NoBeanInjectionTestClass();
@@ -517,7 +553,7 @@ public class CamelPostProcessorHelperTest extends ContextTestSupport {
 
         @Consume("seda:foo")
         public void consumeSomething(String body, Exchange exchange) {
-            exchange.addOnCompletion(mySynchronization);
+            exchange.adapt(ExtendedExchange.class).addOnCompletion(mySynchronization);
             assertEquals("Hello World", body);
             template.sendBody("mock:result", body);
         }
@@ -532,7 +568,7 @@ public class CamelPostProcessorHelperTest extends ContextTestSupport {
             assertEquals("Hello World", body);
 
             Exchange exchange = producer.getEndpoint().createExchange();
-            exchange.addOnCompletion(mySynchronization);
+            exchange.adapt(ExtendedExchange.class).addOnCompletion(mySynchronization);
             exchange.getIn().setBody(body);
             producer.process(exchange);
         }
@@ -747,6 +783,33 @@ public class CamelPostProcessorHelperTest extends ContextTestSupport {
 
         public String doSomething(String body) {
             return foo.hello(body);
+        }
+    }
+
+    public class MyBeanConfigInjectByTypeBean {
+
+        @BeanConfigInject("foobar")
+        public FooBarConfig config;
+
+        public String doSomething(String body) {
+            FooBar bean = new FooBar();
+            bean.setGreeting(config.getName() + " (age: " + config.getAge() + ") likes");
+            return bean.hello(body);
+        }
+    }
+
+    public class MyBeanConfigInjectByMethod {
+
+        public FooBar fooBar;
+
+        @BeanConfigInject("foobar")
+        public void initFooBar(FooBarConfig config) {
+            fooBar = new FooBar();
+            fooBar.setGreeting(config.getName() + " (age: " + config.getAge() + ") likes");
+        }
+
+        public String doSomething(String body) {
+            return fooBar.hello(body);
         }
     }
 

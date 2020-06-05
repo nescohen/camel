@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.util;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -119,13 +120,32 @@ public class ExchangeHelperTest extends ContextTestSupport {
     }
 
     @Test
+    public void testPopulateVariableMapBodyAndHeaderOnly() throws Exception {
+        exchange.setPattern(ExchangePattern.InOut);
+        exchange.getOut().setBody("bar");
+        exchange.getOut().setHeader("quote", "Camel rocks");
+
+        Map<String, Object> map = new HashMap<>();
+        ExchangeHelper.populateVariableMap(exchange, map, false);
+
+        assertEquals(2, map.size());
+        assertNull(map.get("exchange"));
+        assertNull(map.get("in"));
+        assertNull(map.get("request"));
+        assertNull(map.get("out"));
+        assertNull(map.get("response"));
+        assertSame(exchange.getIn().getHeaders(), map.get("headers"));
+        assertSame(exchange.getIn().getBody(), map.get("body"));
+        assertNull(map.get("camelContext"));
+    }
+    @Test
     public void testPopulateVariableMap() throws Exception {
         exchange.setPattern(ExchangePattern.InOut);
         exchange.getOut().setBody("bar");
         exchange.getOut().setHeader("quote", "Camel rocks");
 
         Map<String, Object> map = new HashMap<>();
-        ExchangeHelper.populateVariableMap(exchange, map);
+        ExchangeHelper.populateVariableMap(exchange, map, true);
 
         assertEquals(8, map.size());
         assertSame(exchange, map.get("exchange"));
@@ -144,7 +164,7 @@ public class ExchangeHelperTest extends ContextTestSupport {
         exchange.getOut().setBody("bar");
         exchange.getOut().setHeader("quote", "Camel rocks");
 
-        Map<?, ?> map = ExchangeHelper.createVariableMap(exchange);
+        Map<?, ?> map = ExchangeHelper.createVariableMap(exchange, true);
 
         assertEquals(8, map.size());
         assertSame(exchange, map.get("exchange"));
@@ -164,7 +184,7 @@ public class ExchangeHelperTest extends ContextTestSupport {
         exchange.getIn().setHeader("quote", "Camel rocks");
         assertFalse(exchange.hasOut());
 
-        Map<?, ?> map = ExchangeHelper.createVariableMap(exchange);
+        Map<?, ?> map = ExchangeHelper.createVariableMap(exchange, true);
 
         // there should still be 8 in the map
         assertEquals(8, map.size());

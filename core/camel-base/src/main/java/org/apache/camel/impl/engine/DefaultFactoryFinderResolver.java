@@ -25,10 +25,7 @@ import org.apache.camel.spi.FactoryFinderResolver;
  */
 public class DefaultFactoryFinderResolver implements FactoryFinderResolver {
 
-    public FactoryFinder resolveDefaultFactoryFinder(ClassResolver classResolver) {
-        return resolveFactoryFinder(classResolver, "META-INF/services/org/apache/camel/");
-    }
-
+    @Override
     public FactoryFinder resolveFactoryFinder(ClassResolver classResolver, String resourcePath) {
         return new DefaultFactoryFinder(classResolver, resourcePath);
     }

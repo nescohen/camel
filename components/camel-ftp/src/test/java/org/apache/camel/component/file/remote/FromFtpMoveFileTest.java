@@ -23,21 +23,23 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Producer;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Unit test to test both consumer.moveNamePrefix and consumer.moveNamePostfix options.
+ * Unit test to test both consumer.moveNamePrefix and consumer.moveNamePostfix
+ * options.
  */
 public class FromFtpMoveFileTest extends FtpServerTestSupport {
 
     protected String getFtpUrl() {
-        return "ftp://admin@localhost:" + getPort() + "/movefile?password=admin&binary=false"
-                + "&move=done/sub2/${file:name}.old&consumer.delay=5000";
+        return "ftp://admin@localhost:" + getPort() + "/movefile?password=admin&binary=false" + "&move=done/sub2/${file:name}.old&delay=5000";
     }
 
     @Override
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         prepareFtpServer();
@@ -52,9 +54,10 @@ public class FromFtpMoveFileTest extends FtpServerTestSupport {
 
         mock.assertIsSatisfied();
     }
-    
+
     private void prepareFtpServer() throws Exception {
-        // prepares the FTP Server by creating a file on the server that we want to unit
+        // prepares the FTP Server by creating a file on the server that we want
+        // to unit
         // test that we can pool and store as a local file
         Endpoint endpoint = context.getEndpoint(getFtpUrl());
         Exchange exchange = endpoint.createExchange();
@@ -67,9 +70,10 @@ public class FromFtpMoveFileTest extends FtpServerTestSupport {
 
         // assert file is created
         File file = new File(FTP_ROOT_DIR + "/movefile/hello.txt");
-        assertTrue("The file should exists", file.exists());
+        assertTrue(file.exists(), "The file should exists");
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {

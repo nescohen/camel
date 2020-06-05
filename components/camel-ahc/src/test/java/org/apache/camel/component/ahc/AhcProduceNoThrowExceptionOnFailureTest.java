@@ -19,7 +19,7 @@ package org.apache.camel.component.ahc;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AhcProduceNoThrowExceptionOnFailureTest extends BaseAhcTest {
 
@@ -51,8 +51,8 @@ public class AhcProduceNoThrowExceptionOnFailureTest extends BaseAhcTest {
                 from(getTestServerEndpointUri())
                         .process(new Processor() {
                             public void process(Exchange exchange) throws Exception {
-                                exchange.getOut().setHeader(Exchange.HTTP_RESPONSE_CODE, 500);
-                                exchange.getOut().setBody("Does not work");
+                                exchange.getMessage().setHeader(Exchange.HTTP_RESPONSE_CODE, 500);
+                                exchange.getMessage().setBody("Does not work");
                             }
                         });
 

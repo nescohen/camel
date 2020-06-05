@@ -55,7 +55,6 @@ public class Jt400Component extends DefaultComponent {
     private AS400ConnectionPool connectionPool;
 
     public Jt400Component() {
-        super();
     }
 
     @Override
@@ -74,7 +73,7 @@ public class Jt400Component extends DefaultComponent {
             connectionPool = getConnectionPool();
         }
 
-        String type = remaining.substring(remaining.lastIndexOf(".") + 1).toUpperCase();
+        String type = remaining.substring(remaining.lastIndexOf('.') + 1).toUpperCase();
         Jt400Endpoint endpoint = new Jt400Endpoint(uri, this, connectionPool);
         setProperties(endpoint, properties);
         endpoint.setType(Jt400Type.valueOf(type));

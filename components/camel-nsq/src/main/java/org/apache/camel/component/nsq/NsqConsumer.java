@@ -26,6 +26,7 @@ import com.github.brainlag.nsq.lookup.DefaultNSQLookup;
 import com.github.brainlag.nsq.lookup.NSQLookup;
 import org.apache.camel.Exchange;
 import org.apache.camel.ExchangePattern;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.Processor;
 import org.apache.camel.support.DefaultConsumer;
 import org.slf4j.Logger;
@@ -48,7 +49,7 @@ public class NsqConsumer extends DefaultConsumer {
     public NsqConsumer(NsqEndpoint endpoint, Processor processor) {
         super(endpoint, processor);
         this.processor = processor;
-        this.configuration = getEndpoint().getNsqConfiguration();
+        this.configuration = getEndpoint().getConfiguration();
     }
 
     @Override
@@ -109,7 +110,7 @@ public class NsqConsumer extends DefaultConsumer {
                 if (configuration.getAutoFinish()) {
                     msg.finished();
                 } else {
-                    exchange.addOnCompletion(new NsqSynchronization(msg, (int)configuration.getRequeueInterval()));
+                    exchange.adapt(ExtendedExchange.class).addOnCompletion(new NsqSynchronization(msg, (int)configuration.getRequeueInterval()));
                 }
                 processor.process(exchange);
             } catch (Exception e) {

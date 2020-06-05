@@ -20,13 +20,13 @@ import java.util.Map;
 import java.util.concurrent.Future;
 
 import com.couchbase.client.CouchbaseClientIF;
-
 import net.spy.memcached.PersistTo;
 import net.spy.memcached.ReplicateTo;
 import net.spy.memcached.internal.OperationFuture;
-
 import org.apache.camel.Exchange;
 import org.apache.camel.support.DefaultProducer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.camel.component.couchbase.CouchbaseConstants.COUCHBASE_DELETE;
 import static org.apache.camel.component.couchbase.CouchbaseConstants.COUCHBASE_GET;
@@ -39,8 +39,9 @@ import static org.apache.camel.component.couchbase.CouchbaseConstants.HEADER_TTL
  * Couchbase producer generates various type of operations. PUT, GET, and DELETE
  * are currently supported
  */
-
 public class CouchbaseProducer extends DefaultProducer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CouchbaseProducer.class);
 
     private CouchbaseEndpoint endpoint;
     private CouchbaseClientIF client;
@@ -61,40 +62,40 @@ public class CouchbaseProducer extends DefaultProducer {
         this.producerRetryPause = endpoint.getProducerRetryPause();
 
         switch (persistTo) {
-        case 0:
-            this.persistTo = PersistTo.ZERO;
-            break;
-        case 1:
-            this.persistTo = PersistTo.MASTER;
-            break;
-        case 2:
-            this.persistTo = PersistTo.TWO;
-            break;
-        case 3:
-            this.persistTo = PersistTo.THREE;
-            break;
-        case 4:
-            this.persistTo = PersistTo.FOUR;
-            break;
-        default:
-            throw new IllegalArgumentException("Unsupported persistTo parameter. Supported values are 0 to 4. Currently provided: " + persistTo);
+            case 0:
+                this.persistTo = PersistTo.ZERO;
+                break;
+            case 1:
+                this.persistTo = PersistTo.MASTER;
+                break;
+            case 2:
+                this.persistTo = PersistTo.TWO;
+                break;
+            case 3:
+                this.persistTo = PersistTo.THREE;
+                break;
+            case 4:
+                this.persistTo = PersistTo.FOUR;
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported persistTo parameter. Supported values are 0 to 4. Currently provided: " + persistTo);
         }
 
         switch (replicateTo) {
-        case 0:
-            this.replicateTo = ReplicateTo.ZERO;
-            break;
-        case 1:
-            this.replicateTo = ReplicateTo.ONE;
-            break;
-        case 2:
-            this.replicateTo = ReplicateTo.TWO;
-            break;
-        case 3:
-            this.replicateTo = ReplicateTo.THREE;
-            break;
-        default:
-            throw new IllegalArgumentException("Unsupported replicateTo parameter. Supported values are 0 to 3. Currently provided: " + replicateTo);
+            case 0:
+                this.replicateTo = ReplicateTo.ZERO;
+                break;
+            case 1:
+                this.replicateTo = ReplicateTo.ONE;
+                break;
+            case 2:
+                this.replicateTo = ReplicateTo.TWO;
+                break;
+            case 3:
+                this.replicateTo = ReplicateTo.THREE;
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported replicateTo parameter. Supported values are 0 to 3. Currently provided: " + replicateTo);
         }
 
     }
@@ -116,15 +117,15 @@ public class CouchbaseProducer extends DefaultProducer {
         }
 
         if (endpoint.getOperation().equals(COUCHBASE_PUT)) {
-            log.info("Type of operation: PUT");
+            LOG.debug("Type of operation: PUT");
             Object obj = exchange.getIn().getBody();
             exchange.getOut().setBody(setDocument(id, ttl, obj, persistTo, replicateTo));
         } else if (endpoint.getOperation().equals(COUCHBASE_GET)) {
-            log.info("Type of operation: GET");
+            LOG.debug("Type of operation: GET");
             Object result = client.get(id);
             exchange.getOut().setBody(result);
         } else if (endpoint.getOperation().equals(COUCHBASE_DELETE)) {
-            log.info("Type of operation: DELETE");
+            LOG.debug("Type of operation: DELETE");
             Future<Boolean> result = client.delete(id);
             exchange.getOut().setBody(result.get());
         }
@@ -133,7 +134,7 @@ public class CouchbaseProducer extends DefaultProducer {
         exchange.getIn().removeHeader(HEADER_ID);
 
     }
-    
+
     @Override
     protected void doStop() throws Exception {
         super.doStop();
@@ -158,7 +159,7 @@ public class CouchbaseProducer extends DefaultProducer {
             if (retryAttempts <= 0) {
                 throw e;
             } else {
-                log.info("Unable to save Document, retrying in " + producerRetryPause + "ms (" + retryAttempts + ")");
+                LOG.info("Unable to save Document, retrying in " + producerRetryPause + "ms (" + retryAttempts + ")");
                 Thread.sleep(producerRetryPause);
                 return setDocument(id, expiry, obj, retryAttempts - 1, persistTo, replicateTo);
             }

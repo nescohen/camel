@@ -88,6 +88,7 @@ public class JcloudsBlobStoreConsumer extends ScheduledBatchPollingConsumer {
         return queue.isEmpty() ? 0 : processBatch(CastUtils.cast(queue));
     }
 
+    @Override
     public int processBatch(Queue<Object> exchanges) throws Exception {
         int total = exchanges.size();
 
@@ -102,7 +103,6 @@ public class JcloudsBlobStoreConsumer extends ScheduledBatchPollingConsumer {
             // update pending number of exchanges
             pendingExchanges = total - index - 1;
 
-            log.trace("Processing exchange [{}]...", exchange);
             getProcessor().process(exchange);
             if (exchange.getException() != null) {
                 // if we failed then throw exception

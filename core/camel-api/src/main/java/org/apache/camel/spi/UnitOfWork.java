@@ -110,13 +110,6 @@ public interface UnitOfWork extends Service {
     void afterRoute(Exchange exchange, Route route);
 
     /**
-     * Returns the unique ID of this unit of work, lazily creating one if it does not yet have one
-     *
-     * @return the unique ID
-     */
-    String getId();
-
-    /**
      * Gets the original IN {@link Message} this Unit of Work was started with.
      * <p/>
      * The original message is only returned if the option {@link org.apache.camel.RuntimeConfiguration#isAllowUseOriginalMessage()}
@@ -158,41 +151,46 @@ public interface UnitOfWork extends Service {
     void endTransactedBy(Object key);
 
     /**
-     * Gets the {@link RouteContext} that this {@link UnitOfWork} currently is being routed through.
+     * Gets the {@link Route} that this {@link UnitOfWork} currently is being routed through.
      * <p/>
      * Notice that an {@link Exchange} can be routed through multiple routes and thus the
-     * {@link org.apache.camel.spi.RouteContext} can change over time.
+     * {@link org.apache.camel.Route} can change over time.
      *
-     * @return the route context
-     * @see #pushRouteContext(RouteContext)
-     * @see #popRouteContext()
+     * @return the route, maybe be <tt>null</tt> if not routed through a route currently.
      */
-    RouteContext getRouteContext();
+    Route getRoute();
 
     /**
-     * Pushes the {@link RouteContext} that this {@link UnitOfWork} currently is being routed through.
+     * Pushes the {@link Route} that this {@link UnitOfWork} currently is being routed through.
      * <p/>
      * Notice that an {@link Exchange} can be routed through multiple routes and thus the
-     * {@link org.apache.camel.spi.RouteContext} can change over time.
+     * {@link org.apache.camel.Route} can change over time.
      *
-     * @param routeContext the route context
+     * @param route the route
      */
-    void pushRouteContext(RouteContext routeContext);
+    void pushRoute(Route route);
 
     /**
-     * When finished being routed under the current {@link org.apache.camel.spi.RouteContext}
+     * When finished being routed under the current {@link org.apache.camel.Route}
      * it should be removed.
      *
-     * @return the route context or <tt>null</tt> if none existed
+     * @return the route or <tt>null</tt> if none existed
      */
-    RouteContext popRouteContext();
+    Route popRoute();
 
     /**
-     * Strategy for optional work to be execute before processing
+     * Whether the unit of work should call the before/after process methods or not.
+     */
+    boolean isBeforeAfterProcess();
+
+    /**
+     * Strategy for work to be execute before processing.
      * <p/>
-     * For example the {@link org.apache.camel.impl.MDCUnitOfWork} leverages this
+     * For example the MDCUnitOfWork leverages this
      * to ensure MDC is handled correctly during routing exchanges using the
      * asynchronous routing engine.
+     * <p/>
+     * This requires {@link #isBeforeAfterProcess()} returns <tt>true</tt> to be enabled.
      *
      * @param processor the processor to be executed
      * @param exchange  the current exchange
@@ -202,7 +200,9 @@ public interface UnitOfWork extends Service {
     AsyncCallback beforeProcess(Processor processor, Exchange exchange, AsyncCallback callback);
 
     /**
-     * Strategy for optional work to be executed after the processing
+     * Strategy for work to be executed after the processing
+     * <p/>
+     * This requires {@link #isBeforeAfterProcess()} returns <tt>true</tt> to be enabled.
      *
      * @param processor the processor executed
      * @param exchange  the current exchange
@@ -214,15 +214,13 @@ public interface UnitOfWork extends Service {
     /**
      * Create a child unit of work, which is associated to this unit of work as its parent.
      * <p/>
-     * This is often used when EIPs need to support {@link SubUnitOfWork}s. For example a splitter,
+     * This is often used when EIPs need to support child unit of works. For example a splitter,
      * where the sub messages of the splitter all participate in the same sub unit of work.
      * That sub unit of work then decides whether the Splitter (in general) is failed or a
      * processed successfully.
      *
      * @param childExchange the child exchange
      * @return the created child unit of work
-     * @see SubUnitOfWork
-     * @see SubUnitOfWorkCallback
      */
     UnitOfWork createChildUnitOfWork(Exchange childExchange);
 
@@ -232,31 +230,5 @@ public interface UnitOfWork extends Service {
      * @param parentUnitOfWork the parent
      */
     void setParentUnitOfWork(UnitOfWork parentUnitOfWork);
-
-    /**
-     * Gets the {@link SubUnitOfWorkCallback} if this unit of work participates in a sub unit of work.
-     *
-     * @return the callback, or <tt>null</tt> if this unit of work is not part of a sub unit of work.
-     * @see #beginSubUnitOfWork(org.apache.camel.Exchange)
-     */
-    SubUnitOfWorkCallback getSubUnitOfWorkCallback();
-
-    /**
-     * Begins a {@link SubUnitOfWork}, where sub (child) unit of works participate in a parent unit of work.
-     * The {@link SubUnitOfWork} will callback to the parent unit of work using {@link SubUnitOfWorkCallback}s.
-     *
-     * @param exchange the exchange
-     */
-    void beginSubUnitOfWork(Exchange exchange);
-
-    /**
-     * Ends a {@link SubUnitOfWork}.
-     * <p/>
-     * The {@link #beginSubUnitOfWork(org.apache.camel.Exchange)} must have been invoked
-     * prior to this operation.
-     *
-     * @param exchange the exchange
-     */
-    void endSubUnitOfWork(Exchange exchange);
 
 }

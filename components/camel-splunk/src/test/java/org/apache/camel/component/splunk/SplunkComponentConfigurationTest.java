@@ -18,7 +18,6 @@ package org.apache.camel.component.splunk;
 
 import com.splunk.SSLSecurityProtocol;
 import com.splunk.Service;
-
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Test;
 
@@ -88,7 +87,7 @@ public class SplunkComponentConfigurationTest extends CamelTestSupport {
         SplunkComponent component = context.getComponent("splunk", SplunkComponent.class);
 
         SplunkEndpoint endpoint = (SplunkEndpoint)component
-            .createEndpoint("splunk://normal?username=test&password=pw&host=myhost&port=3333&delay=10s&" + "search=Splunk search query goes here&initEarliestTime=-1d"
+            .createEndpoint("splunk://normal?username=test&password=pw&host=myhost&port=3333&delay=10000&" + "search=Splunk search query goes here&initEarliestTime=-1d"
                             + "&latestTime=now&count=10&" + "owner=me&app=fantasticapp");
         assertEquals("myhost", endpoint.getConfiguration().getHost());
         assertEquals(3333, endpoint.getConfiguration().getPort());

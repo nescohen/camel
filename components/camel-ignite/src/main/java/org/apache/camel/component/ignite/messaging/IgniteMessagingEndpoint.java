@@ -18,6 +18,7 @@ package org.apache.camel.component.ignite.messaging;
 
 import java.util.Map;
 
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
@@ -31,11 +32,11 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteMessaging;
 
 /**
- * The Ignite Messaging endpoint is one of camel-ignite endpoints which allows you to send and
- * consume messages from an <a href="https://apacheignite.readme.io/docs/messaging">Ignite topic</a>.
+ * Send and receive messages from an <a href="https://apacheignite.readme.io/docs/messaging">Ignite topic</a>.
+ *
  * This endpoint supports producers (to send messages) and consumers (to receive messages).
  */
-@UriEndpoint(firstVersion = "2.17.0", scheme = "ignite-messaging", title = "Ignite Messaging", syntax = "ignite-messaging:topic", label = "nosql,cache,messaging")
+@UriEndpoint(firstVersion = "2.17.0", scheme = "ignite-messaging", title = "Ignite Messaging", syntax = "ignite-messaging:topic", category = {Category.MESSAGING})
 public class IgniteMessagingEndpoint extends AbstractIgniteEndpoint {
 
     @UriPath
@@ -94,8 +95,6 @@ public class IgniteMessagingEndpoint extends AbstractIgniteEndpoint {
 
     /**
      * Gets the topic name.
-     * 
-     * @return topic name
      */
     public String getTopic() {
         return topic;
@@ -103,8 +102,6 @@ public class IgniteMessagingEndpoint extends AbstractIgniteEndpoint {
 
     /**
      * The topic name.
-     * 
-     * @param topic topic name
      */
     public void setTopic(String topic) {
         this.topic = topic;
@@ -112,8 +109,6 @@ public class IgniteMessagingEndpoint extends AbstractIgniteEndpoint {
 
     /**
      * Gets the cluster group expression.
-     * 
-     * @return cluster group expression
      */
     public ClusterGroupExpression getClusterGroupExpression() {
         return clusterGroupExpression;
@@ -121,8 +116,6 @@ public class IgniteMessagingEndpoint extends AbstractIgniteEndpoint {
 
     /**
      * The cluster group expression.
-     * 
-     * @param clusterGroupExpression cluster group expression
      */
     public void setClusterGroupExpression(ClusterGroupExpression clusterGroupExpression) {
         this.clusterGroupExpression = clusterGroupExpression;
@@ -130,8 +123,6 @@ public class IgniteMessagingEndpoint extends AbstractIgniteEndpoint {
 
     /**
      * Gets the timeout.
-     * 
-     * @return timeout
      */
     public Long getTimeout() {
         return timeout;
@@ -139,8 +130,6 @@ public class IgniteMessagingEndpoint extends AbstractIgniteEndpoint {
 
     /**
      * The timeout for the send operation when using ordered messages.
-     * 
-     * @param timeout timeout
      */
     public void setTimeout(Long timeout) {
         this.timeout = timeout;
@@ -148,8 +137,6 @@ public class IgniteMessagingEndpoint extends AbstractIgniteEndpoint {
 
     /**
      * Gets the send mode.
-     * 
-     * @return send mode
      */
     public IgniteMessagingSendMode getSendMode() {
         return sendMode;
@@ -158,8 +145,6 @@ public class IgniteMessagingEndpoint extends AbstractIgniteEndpoint {
     /**
      * The send mode to use.
      * Possible values: UNORDERED, ORDERED.
-     * 
-     * @param sendMode send mode
      */
     public void setSendMode(IgniteMessagingSendMode sendMode) {
         this.sendMode = sendMode;

@@ -24,15 +24,12 @@ import org.apache.camel.Endpoint;
 import org.apache.camel.spi.Metadata;
 import org.apache.camel.spi.annotations.Component;
 import org.apache.camel.support.DefaultComponent;
-import org.apache.camel.support.IntrospectionSupport;
+import org.apache.camel.util.PropertiesHelper;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 
-/**
- * Represents the component that manages {@link HBaseEndpoint}.
- */
 @Component("hbase")
 public class HBaseComponent extends DefaultComponent {
 
@@ -62,25 +59,28 @@ public class HBaseComponent extends DefaultComponent {
             }
         }
 
-        connection = ConnectionFactory.createConnection(
-            configuration,
-            Executors.newFixedThreadPool(poolMaxSize)
-        );
+        connection = ConnectionFactory.createConnection(configuration, Executors.newFixedThreadPool(poolMaxSize));
     }
 
     @Override
     protected void doStop() throws Exception {
         if (connection != null) {
+            // this will also shutdown the thread pool
             connection.close();
         }
     }
 
+    @Override
     protected Endpoint createEndpoint(String uri, String remaining, Map<String, Object> parameters) throws Exception {
-        HBaseEndpoint endpoint = new HBaseEndpoint(uri, this, connection, remaining);
-        Map<String, Object> mapping = IntrospectionSupport.extractProperties(parameters, "row.");
+        HBaseEndpoint endpoint = new HBaseEndpoint(uri, this, remaining);
+        Map<String, Object> mapping = PropertiesHelper.extractProperties(parameters, "row.");
         endpoint.setRowMapping(mapping);
         setProperties(endpoint, parameters);
         return endpoint;
+    }
+
+    public Connection getConnection() {
+        return connection;
     }
 
     public Configuration getConfiguration() {

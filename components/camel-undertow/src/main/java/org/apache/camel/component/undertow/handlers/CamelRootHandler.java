@@ -23,6 +23,8 @@ import io.undertow.util.URLUtils;
 
 /**
  * Custom root handler to enable hot swapping individual handlers assigned for each path template and/or HTTP method.
+ *
+ * @see RestRootHandler
  */
 public class CamelRootHandler implements HttpHandler {
     private CamelPathHandler pathHandler;
@@ -31,6 +33,7 @@ public class CamelRootHandler implements HttpHandler {
         pathHandler = new CamelPathHandler(defaultHandler);
     }
 
+    @Override
     public void handleRequest(HttpServerExchange exchange) throws Exception {
         pathHandler.handleRequest(exchange);
     }
@@ -140,6 +143,7 @@ public class CamelRootHandler implements HttpHandler {
         return pathHandler.isEmpty();
     }
 
+    @Override
     public String toString() {
         return pathHandler.toString();
     }

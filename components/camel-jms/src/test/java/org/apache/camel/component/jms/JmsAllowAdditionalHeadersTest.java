@@ -43,6 +43,7 @@ public class JmsAllowAdditionalHeadersTest extends CamelTestSupport {
         assertMockEndpointsSatisfied();
     }
 
+    @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext camelContext = super.createCamelContext();
 
@@ -50,7 +51,7 @@ public class JmsAllowAdditionalHeadersTest extends CamelTestSupport {
 
         JmsComponent jms = jmsComponentAutoAcknowledge(connectionFactory);
         // allow any of those special IBM headers (notice we use * as wildcard)
-        jms.setAllowAdditionalHeaders("JMS_IBM_MQMD*");
+        jms.getConfiguration().setAllowAdditionalHeaders("JMS_IBM_MQMD*");
 
         camelContext.addComponent("jms", jms);
 

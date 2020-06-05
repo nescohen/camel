@@ -21,7 +21,6 @@ import java.util.Collection;
 import com.amazonaws.services.simpledb.AmazonSimpleDB;
 import com.amazonaws.services.simpledb.model.GetAttributesRequest;
 import com.amazonaws.services.simpledb.model.GetAttributesResult;
-
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 
@@ -31,6 +30,7 @@ public class GetAttributesCommand extends AbstractSdbCommand {
         super(sdbClient, configuration, exchange);
     }
 
+    @Override
     public void execute() {
         GetAttributesRequest request = new GetAttributesRequest()
             .withDomainName(determineDomainName())
@@ -53,11 +53,6 @@ public class GetAttributesCommand extends AbstractSdbCommand {
     }
     
     public static Message getMessageForResponse(final Exchange exchange) {
-        if (exchange.getPattern().isOutCapable()) {
-            Message out = exchange.getOut();
-            out.copyFrom(exchange.getIn());
-            return out;
-        }
-        return exchange.getIn();
+        return exchange.getMessage();
     }
 }

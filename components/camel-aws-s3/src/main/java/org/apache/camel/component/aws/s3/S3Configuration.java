@@ -16,9 +16,10 @@
  */
 package org.apache.camel.component.aws.s3;
 
+import com.amazonaws.Protocol;
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.EncryptionMaterials;
-
 import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.spi.UriParam;
 import org.apache.camel.spi.UriParams;
@@ -34,6 +35,8 @@ public class S3Configuration implements Cloneable {
     private String accessKey;
     @UriParam(label = "security", secret = true)
     private String secretKey;
+    @UriParam
+    private EndpointConfiguration endpointConfiguration;
     @UriParam(label = "consumer")
     private String fileName;
     @UriParam(label = "consumer")
@@ -56,6 +59,9 @@ public class S3Configuration implements Cloneable {
     private String storageClass;
     @UriParam(label = "producer")
     private String serverSideEncryption;
+
+    @UriParam(enums = "HTTP,HTTPS", defaultValue = "HTTPS")
+    private Protocol proxyProtocol = Protocol.HTTPS;
     @UriParam
     private String proxyHost;
     @UriParam
@@ -139,6 +145,17 @@ public class S3Configuration implements Cloneable {
         this.secretKey = secretKey;
     }
 
+    public EndpointConfiguration getEndpointConfiguration() {
+        return endpointConfiguration;
+    }
+
+    /**
+     * Amazon AWS Endpoint Configuration
+     */
+    public void setEndpointConfiguration(EndpointConfiguration endpointConfiguration) {
+        this.endpointConfiguration = endpointConfiguration;
+    }
+
     public AmazonS3 getAmazonS3Client() {
         return amazonS3Client;
     }
@@ -204,8 +221,9 @@ public class S3Configuration implements Cloneable {
     }
 
     /**
-     * The region in which S3 client needs to work. When using this parameter, the configuration will expect the capitalized name of the region (for example AP_EAST_1)
-     * You'll need to use the name Regions.EU_WEST_1.name()
+     * The region in which S3 client needs to work. When using this parameter,
+     * the configuration will expect the capitalized name of the region (for
+     * example AP_EAST_1) You'll need to use the name Regions.EU_WEST_1.name()
      */
     public void setRegion(String region) {
         this.region = region;
@@ -294,12 +312,23 @@ public class S3Configuration implements Cloneable {
         this.serverSideEncryption = serverSideEncryption;
     }
 
+    public Protocol getProxyProtocol() {
+        return proxyProtocol;
+    }
+
+    /**
+     * To define a proxy protocol when instantiating the S3 client
+     */
+    public void setProxyProtocol(Protocol proxyProtocol) {
+        this.proxyProtocol = proxyProtocol;
+    }
+
     public String getProxyHost() {
         return proxyHost;
     }
 
     /**
-     * To define a proxy host when instantiating the SQS client
+     * To define a proxy host when instantiating the S3 client
      */
     public void setProxyHost(String proxyHost) {
         this.proxyHost = proxyHost;

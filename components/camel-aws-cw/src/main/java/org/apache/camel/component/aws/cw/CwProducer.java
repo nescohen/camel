@@ -16,7 +16,6 @@
  */
 package org.apache.camel.component.aws.cw;
 
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,11 +32,15 @@ import org.apache.camel.Exchange;
 import org.apache.camel.support.DefaultProducer;
 import org.apache.camel.util.CastUtils;
 import org.apache.camel.util.URISupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A Producer which sends messages to the AWS CloudWatch Service
  */
 public class CwProducer extends DefaultProducer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CwProducer.class);
 
     private transient String cwProducerToString;
     
@@ -45,6 +48,7 @@ public class CwProducer extends DefaultProducer {
         super(endpoint);
     }
 
+    @Override
     public void process(Exchange exchange) throws Exception {
         List<MetricDatum> metricData = getMetricData(exchange);
 
@@ -52,7 +56,7 @@ public class CwProducer extends DefaultProducer {
                 .withMetricData(metricData)
                 .withNamespace(determineNameSpace(exchange));
 
-        log.info("Sending request [{}] from exchange [{}]...", request, exchange);
+        LOG.info("Sending request [{}] from exchange [{}]...", request, exchange);
         getEndpoint().getCloudWatchClient().putMetricData(request);
     }
 

@@ -41,9 +41,6 @@ public class DisruptorComponent extends DefaultComponent {
 
     @Metadata(defaultValue = "" + DEFAULT_BUFFER_SIZE)
     private int bufferSize = -1;
-    //for SEDA compatibility only
-    private int queueSize = -1;
-
     @Metadata(label = "consumer", defaultValue = "1")
     private int defaultConcurrentConsumers = 1;
     @Metadata(label = "consumer")
@@ -93,18 +90,21 @@ public class DisruptorComponent extends DefaultComponent {
             throw new IllegalArgumentException("The 'pollTimeout' argument is not supported by the Disruptor component");
         }
 
-        final DisruptorWaitStrategy waitStrategy = getAndRemoveParameter(parameters, "waitStrategy", DisruptorWaitStrategy.class, defaultWaitStrategy);
-        final DisruptorProducerType producerType = getAndRemoveParameter(parameters, "producerType", DisruptorProducerType.class, defaultProducerType);
-        final boolean multipleConsumers = getAndRemoveParameter(parameters, "multipleConsumers", boolean.class, defaultMultipleConsumers);
-        final boolean blockWhenFull = getAndRemoveParameter(parameters, "blockWhenFull", boolean.class, defaultBlockWhenFull);
+        DisruptorWaitStrategy waitStrategy = getAndRemoveParameter(parameters, "waitStrategy", DisruptorWaitStrategy.class, defaultWaitStrategy);
+        DisruptorProducerType producerType = getAndRemoveParameter(parameters, "producerType", DisruptorProducerType.class, defaultProducerType);
+        boolean multipleConsumers = getAndRemoveParameter(parameters, "multipleConsumers", boolean.class, defaultMultipleConsumers);
+        boolean blockWhenFull = getAndRemoveParameter(parameters, "blockWhenFull", boolean.class, defaultBlockWhenFull);
 
-        final DisruptorReference disruptorReference = getOrCreateDisruptor(uri, remaining, size, producerType, waitStrategy);
-        final DisruptorEndpoint disruptorEndpoint = new DisruptorEndpoint(uri, this, disruptorReference, concurrentConsumers, multipleConsumers, blockWhenFull);
-        disruptorEndpoint.setWaitStrategy(waitStrategy);
-        disruptorEndpoint.setProducerType(producerType);
-        disruptorEndpoint.configureProperties(parameters);
+        DisruptorReference disruptorReference = getOrCreateDisruptor(uri, remaining, size, producerType, waitStrategy);
+        DisruptorEndpoint answer = new DisruptorEndpoint(uri, this, disruptorReference);
+        answer.setConcurrentConsumers(concurrentConsumers);
+        answer.setMultipleConsumers(multipleConsumers);
+        answer.setBlockWhenFull(blockWhenFull);
+        answer.setWaitStrategy(waitStrategy);
+        answer.setProducerType(producerType);
+        setProperties(answer, parameters);
 
-        return disruptorEndpoint;
+        return answer;
     }
 
     private DisruptorReference getOrCreateDisruptor(final String uri, final String name, final int size,
@@ -117,8 +117,6 @@ public class DisruptorComponent extends DefaultComponent {
             sizeToUse = size;
         } else if (bufferSize > 0) {
             sizeToUse = bufferSize;
-        } else if (queueSize > 0) {
-            sizeToUse = queueSize;
         } else {
             sizeToUse = DEFAULT_BUFFER_SIZE;
         }
@@ -235,19 +233,6 @@ public class DisruptorComponent extends DefaultComponent {
      */
     public void setDefaultBlockWhenFull(boolean defaultBlockWhenFull) {
         this.defaultBlockWhenFull = defaultBlockWhenFull;
-    }
-
-    /**
-     * To configure the ring buffer size
-     */
-    @Deprecated
-    public void setQueueSize(final int size) {
-        queueSize = size;
-    }
-
-    @Deprecated
-    public int getQueueSize() {
-        return queueSize;
     }
 
     /**

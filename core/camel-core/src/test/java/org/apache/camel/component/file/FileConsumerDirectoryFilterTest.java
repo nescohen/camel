@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.component.file;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -24,7 +25,7 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,8 +38,8 @@ public class FileConsumerDirectoryFilterTest extends ContextTestSupport {
     private final Set<String> names = new TreeSet<>();
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myFilter", new MyDirectoryFilter<>());
         return jndi;
     }
@@ -56,14 +57,11 @@ public class FileConsumerDirectoryFilterTest extends ContextTestSupport {
         mock.expectedMessageCount(1);
         mock.expectedBodiesReceived("Hello World");
 
-        template.sendBodyAndHeader("file:target/data/directoryfilter/skipDir/", "This is a file to be filtered",
-                Exchange.FILE_NAME, "skipme.txt");
+        template.sendBodyAndHeader("file:target/data/directoryfilter/skipDir/", "This is a file to be filtered", Exchange.FILE_NAME, "skipme.txt");
 
-        template.sendBodyAndHeader("file:target/data/directoryfilter/skipDir2/", "This is a file to be filtered",
-                Exchange.FILE_NAME, "skipme.txt");
+        template.sendBodyAndHeader("file:target/data/directoryfilter/skipDir2/", "This is a file to be filtered", Exchange.FILE_NAME, "skipme.txt");
 
-        template.sendBodyAndHeader("file:target/data/directoryfilter/okDir/", "Hello World",
-                Exchange.FILE_NAME, "hello.txt");
+        template.sendBodyAndHeader("file:target/data/directoryfilter/okDir/", "Hello World", Exchange.FILE_NAME, "hello.txt");
 
         mock.assertIsSatisfied();
 
@@ -80,6 +78,7 @@ public class FileConsumerDirectoryFilterTest extends ContextTestSupport {
         assertEquals("skipDir2", list.get(3));
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {
@@ -91,11 +90,14 @@ public class FileConsumerDirectoryFilterTest extends ContextTestSupport {
     // START SNIPPET: e1
     public class MyDirectoryFilter<T> implements GenericFileFilter<T> {
 
+        @Override
         public boolean accept(GenericFile<T> file) {
-            // remember the name due unit testing (should not be needed in regular use-cases)
+            // remember the name due unit testing (should not be needed in
+            // regular use-cases)
             names.add(file.getFileName());
-            
-            // we dont accept any files within directory starting with skip in the name
+
+            // we dont accept any files within directory starting with skip in
+            // the name
             if (file.isDirectory() && file.getFileName().startsWith("skip")) {
                 return false;
             }

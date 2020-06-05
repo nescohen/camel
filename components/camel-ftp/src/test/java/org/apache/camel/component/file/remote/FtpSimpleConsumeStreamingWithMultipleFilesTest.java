@@ -22,7 +22,9 @@ import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.GenericFile;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FtpSimpleConsumeStreamingWithMultipleFilesTest extends FtpServerTestSupport {
 
@@ -61,8 +63,7 @@ public class FtpSimpleConsumeStreamingWithMultipleFilesTest extends FtpServerTes
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("ftp://localhost:" + getPort() + "/tmp/mytemp?username=admin&password=admin&delay=10s&disconnect=true&streamDownload=true")
-                    .routeId("foo").noAutoStartup()
+                from("ftp://localhost:" + getPort() + "/tmp/mytemp?username=admin&password=admin&delay=10000&disconnect=true&streamDownload=true&stepwise=false").routeId("foo").noAutoStartup()
                     .to("mock:result");
             }
         };

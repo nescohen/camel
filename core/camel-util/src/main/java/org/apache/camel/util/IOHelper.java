@@ -37,6 +37,8 @@ import java.io.Writer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.function.Supplier;
@@ -54,7 +56,6 @@ public final class IOHelper {
     public static final int DEFAULT_BUFFER_SIZE = 1024 * 4;
 
     private static final Logger LOG = LoggerFactory.getLogger(IOHelper.class);
-    private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
     // allows to turn on backwards compatible to turn off regarding the first
     // read byte with value zero (0b0) as EOL.
@@ -66,35 +67,11 @@ public final class IOHelper {
     }
 
     /**
-     * Use this function instead of new String(byte[]) to avoid surprises from
-     * non-standard default encodings.
-     */
-    public static String newStringFromBytes(byte[] bytes) {
-        try {
-            return new String(bytes, UTF8_CHARSET.name());
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("Impossible failure: Charset.forName(\"UTF-8\") returns invalid name.", e);
-        }
-    }
-
-    /**
-     * Use this function instead of new String(byte[], int, int) to avoid
-     * surprises from non-standard default encodings.
-     */
-    public static String newStringFromBytes(byte[] bytes, int start, int length) {
-        try {
-            return new String(bytes, start, length, UTF8_CHARSET.name());
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("Impossible failure: Charset.forName(\"UTF-8\") returns invalid name.", e);
-        }
-    }
-
-    /**
      * Wraps the passed <code>in</code> into a {@link BufferedInputStream}
      * object and returns that. If the passed <code>in</code> is already an
      * instance of {@link BufferedInputStream} returns the same passed
      * <code>in</code> reference as is (avoiding double wrapping).
-     * 
+     *
      * @param in the wrapee to be used for the buffering support
      * @return the passed <code>in</code> decorated through a
      *         {@link BufferedInputStream} object as wrapper
@@ -109,7 +86,7 @@ public final class IOHelper {
      * object and returns that. If the passed <code>out</code> is already an
      * instance of {@link BufferedOutputStream} returns the same passed
      * <code>out</code> reference as is (avoiding double wrapping).
-     * 
+     *
      * @param out the wrapee to be used for the buffering support
      * @return the passed <code>out</code> decorated through a
      *         {@link BufferedOutputStream} object as wrapper
@@ -124,7 +101,7 @@ public final class IOHelper {
      * and returns that. If the passed <code>reader</code> is already an
      * instance of {@link BufferedReader} returns the same passed
      * <code>reader</code> reference as is (avoiding double wrapping).
-     * 
+     *
      * @param reader the wrapee to be used for the buffering support
      * @return the passed <code>reader</code> decorated through a
      *         {@link BufferedReader} object as wrapper
@@ -139,7 +116,7 @@ public final class IOHelper {
      * and returns that. If the passed <code>writer</code> is already an
      * instance of {@link BufferedWriter} returns the same passed
      * <code>writer</code> reference as is (avoiding double wrapping).
-     * 
+     *
      * @param writer the wrapee to be used for the buffering support
      * @return the passed <code>writer</code> decorated through a
      *         {@link BufferedWriter} object as wrapper
@@ -249,6 +226,17 @@ public final class IOHelper {
         }
         output.flush();
         return total;
+    }
+
+    public static void transfer(ReadableByteChannel input, WritableByteChannel output) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
+        while (input.read(buffer) >= 0) {
+            buffer.flip();
+            while (buffer.hasRemaining()) {
+                output.write(buffer);
+            }
+            buffer.clear();
+        }
     }
 
     /**
@@ -417,7 +405,7 @@ public final class IOHelper {
 
     /**
      * Closes the given resources if they are available.
-     * 
+     *
      * @param closeables the objects to close
      */
     public static void close(Closeable... closeables) {
@@ -478,7 +466,7 @@ public final class IOHelper {
 
     /**
      * Get the charset name from the content type string
-     * 
+     *
      * @param contentType
      * @return the charset name, or <tt>UTF-8</tt> if no found
      */
@@ -526,10 +514,16 @@ public final class IOHelper {
         // lookup OS env with upper case key
         String upperKey = key.toUpperCase();
         String value = System.getenv(upperKey);
-        // some OS do not support dashes in keys, so replace with underscore
+
         if (value == null) {
-            String noDashKey = upperKey.replace('-', '_');
-            value = System.getenv(noDashKey);
+            // some OS do not support dashes in keys, so replace with underscore
+            String normalizedKey = upperKey.replace('-', '_');
+
+            // and replace dots with underscores so keys like my.key are
+            // translated to MY_KEY
+            normalizedKey = normalizedKey.replace('.', '_');
+
+            value = System.getenv(normalizedKey);
         }
         return value;
     }
@@ -555,7 +549,7 @@ public final class IOHelper {
         @Override
         public int read() throws IOException {
             if (bufferBytes == null || bufferBytes.remaining() <= 0) {
-                bufferedChars.clear();
+                BufferCaster.cast(bufferedChars).clear();
                 int len = reader.read(bufferedChars);
                 bufferedChars.flip();
                 if (len == -1) {
@@ -563,7 +557,7 @@ public final class IOHelper {
                 }
                 bufferBytes = defaultStreamCharset.encode(bufferedChars);
             }
-            return bufferBytes.get();
+            return bufferBytes.get() & 0xFF;
         }
 
         @Override
@@ -572,7 +566,7 @@ public final class IOHelper {
         }
 
         @Override
-        public void reset() throws IOException {
+        public synchronized void reset() throws IOException {
             reader.reset();
         }
 

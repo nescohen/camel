@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.test.patterns;
+
 import org.apache.camel.RoutesBuilder;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.test.junit4.CamelTestSupport;
@@ -49,7 +50,7 @@ public class RouteProcessorDumpRouteCoverageTest extends CamelTestSupport {
             @Override
             public void configure() throws Exception {
                 from("direct:start")
-                    .process(exchange -> exchange.getOut().setBody("Bye World"));
+                    .process(exchange -> exchange.getMessage().setBody("Bye World"));
             }
         };
     }

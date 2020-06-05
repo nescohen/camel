@@ -23,7 +23,6 @@ import java.util.Set;
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxEvent;
 import com.box.sdk.EventListener;
-
 import org.apache.camel.Processor;
 import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.component.box.api.BoxEventsManager;
@@ -32,11 +31,15 @@ import org.apache.camel.support.component.AbstractApiConsumer;
 import org.apache.camel.support.component.ApiConsumerHelper;
 import org.apache.camel.support.component.ApiMethod;
 import org.apache.camel.support.component.ApiMethodHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The Box consumer.
  */
 public class BoxConsumer extends AbstractApiConsumer<BoxApiName, BoxConfiguration> implements EventListener {
+
+    private static final Logger LOG = LoggerFactory.getLogger(BoxConsumer.class);
 
     private static final String LISTENER_PROPERTY = "listener";
 
@@ -73,10 +76,10 @@ public class BoxConsumer extends AbstractApiConsumer<BoxApiName, BoxConfiguratio
     public void onEvent(BoxEvent event) {
         try {
             // Convert Events to exchange and process
-            log.debug("Processed {} event for {}", ApiConsumerHelper.getResultsProcessed(this, event, false),
+            LOG.debug("Processed {} event for {}", ApiConsumerHelper.getResultsProcessed(this, event, false),
                     boxConnection);
         } catch (Exception e) {
-            log.info("Received exception consuming event: ", e);
+            LOG.info("Received exception consuming event: ", e);
         }
     }
 

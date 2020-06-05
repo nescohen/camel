@@ -115,13 +115,14 @@ public class JmsLoadBalanceFailoverWithForceSendOriginalJmsMessageTest extends C
         };
     }
 
+    @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext camelContext = super.createCamelContext();
 
         ConnectionFactory connectionFactory = CamelJmsTestHelper.createConnectionFactory();
         JmsComponent jms = jmsComponentAutoAcknowledge(connectionFactory);
         // we want to transfer the exception
-        jms.setTransferException(true);
+        jms.getConfiguration().setTransferException(true);
 
         camelContext.addComponent("jms", jms);
 

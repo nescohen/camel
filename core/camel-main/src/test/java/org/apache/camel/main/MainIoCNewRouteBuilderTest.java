@@ -30,8 +30,8 @@ public class MainIoCNewRouteBuilderTest extends Assert {
     @Test
     public void testMainIoC() throws Exception {
         Main main = new Main();
-        main.addConfiguration(new MyConfiguration());
-        main.addRouteBuilder(new MyRouteBuilder());
+        main.configure().addConfiguration(new MyConfiguration());
+        main.configure().addRoutesBuilder(new MyRouteBuilder());
         main.start();
 
         CamelContext camelContext = main.getCamelContext();
@@ -92,7 +92,7 @@ public class MainIoCNewRouteBuilderTest extends Assert {
     public static class MyRouteBuilder extends RouteBuilder {
 
         @BindToRegistry("bar")
-        public MyBar createBar(@PropertyInject(value = "hello") String hello) {
+        public MyBar createBar(@PropertyInject("hello") String hello) {
             return new MyBar(hello);
         }
 

@@ -1,13 +1,15 @@
 [[jsonApi-dataformat]]
-== jsonApi DataFormat
+= JSonApi DataFormat
+:docTitle: JSonApi
+:artifactId: camel-jsonapi
+:description: Marshal and unmarshal JSON:API resources using JSONAPI-Converter library.
+:since: 3.0
+:supportLevel: Stable
 
-*Available as of Camel version 3.0*
-
-### JsonAPI Options
-*Available as of Camel version 3.0*
+*Since Camel {since}*
 
 // dataformat options: START
-The jsonApi dataformat supports 3 options, which are listed below.
+The JSonApi dataformat supports 3 options, which are listed below.
 
 
 
@@ -16,28 +18,28 @@ The jsonApi dataformat supports 3 options, which are listed below.
 | Name | Default | Java Type | Description
 | dataFormatTypes |  | Class[] | The classes to take into account for the marshalling
 | mainFormatType |  | Class | The classes to take into account while unmarshalling
-| contentTypeHeader | false | Boolean | Whether the data format should set the Content-Type header with the type from the data format if the data format is capable of doing so. For example application/xml for data formats marshalling to XML, or application/json for data formats marshalling to JSon etc.
+| contentTypeHeader | false | Boolean | Whether the data format should set the Content-Type header with the type from the data format if the data format is capable of doing so. For example application/xml for data formats marshalling to XML, or application/json for data formats marshalling to JSON etc.
 |===
 // dataformat options: END
 
-// spring-boot-auto-configure options: START
-// spring-boot-auto-configure options: END
 
-### Dependencies
+== Dependencies
 
 To use JsonAPI in your camel routes you need to add the dependency
-on *camel-jsonApi* which implements this data format.
+on *camel-jsonapi* which implements this data format.
 
 If you use maven you could just add the following to your pom.xml,
 substituting the version number for the latest & greatest release (see
 the download page for the latest versions).
 
 [source,xml]
-----------------------------------------------------------
+----
 <dependency>
   <groupId>org.apache.camel</groupId>
-  <artifactId>camel-jacksonxml</artifactId>
+  <artifactId>camel-jsonapi</artifactId>
   <version>x.x.x</version>
   <!-- use the same version as your Camel core version -->
 </dependency>
-----------------------------------------------------------
+----
+
+include::camel-spring-boot::page$jsonapi-starter.adoc[]

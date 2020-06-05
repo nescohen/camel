@@ -16,11 +16,10 @@
  */
 package org.apache.camel.component.dataset;
 
-import javax.naming.Context;
-
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 /**
@@ -33,16 +32,16 @@ public class DataSetSedaTest extends ContextTestSupport {
     private String uri = "dataset:foo?initialDelay=0&produceDelay=1";
 
     @Override
-    protected Context createJndiContext() throws Exception {
-        Context context = super.createJndiContext();
-        context.bind("foo", dataSet);
-        return context;
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
+        answer.bind("foo", dataSet);
+        return answer;
     }
 
     @Test
     public void testDataSetWithSeda() throws Exception {
         MockEndpoint endpoint = getMockEndpoint(uri);
-        endpoint.expectedMessageCount((int) dataSet.getSize());
+        endpoint.expectedMessageCount((int)dataSet.getSize());
 
         context.getRouteController().startAllRoutes();
 

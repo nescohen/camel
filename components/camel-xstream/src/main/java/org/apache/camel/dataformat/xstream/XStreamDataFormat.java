@@ -32,6 +32,7 @@ import com.thoughtworks.xstream.io.xml.StaxWriter;
 import org.apache.camel.Exchange;
 import org.apache.camel.spi.ClassResolver;
 import org.apache.camel.spi.DataFormat;
+import org.apache.camel.spi.Metadata;
 import org.apache.camel.spi.annotations.Dataformat;
 import org.apache.camel.util.IOHelper;
 
@@ -40,6 +41,7 @@ import org.apache.camel.util.IOHelper;
  * ({@link DataFormat}) using XStream to marshal to and from XML
  */
 @Dataformat("xstream")
+@Metadata(includeProperties = "encoding,converters,aliases,omitFields,implicitCollections,permissions,mode,contentTypeHeader")
 public class XStreamDataFormat extends AbstractXStreamWrapper  {
     private String encoding;
     
@@ -103,14 +105,15 @@ public class XStreamDataFormat extends AbstractXStreamWrapper  {
     }
     
     // just make sure the exchange property can override the xmlstream encoding setting
-    protected void updateCharactorEncodingInfo(Exchange exchange) {
+    protected void updateCharacterEncodingInfo(Exchange exchange) {
         if (exchange.getProperty(Exchange.CHARSET_NAME) == null && encoding != null) {
             exchange.setProperty(Exchange.CHARSET_NAME, IOHelper.normalizeCharset(encoding));
         }
     }
 
+    @Override
     protected HierarchicalStreamWriter createHierarchicalStreamWriter(Exchange exchange, Object body, OutputStream stream) throws XMLStreamException {
-        updateCharactorEncodingInfo(exchange);
+        updateCharacterEncodingInfo(exchange);
         if (getXstreamDriver() != null) {
             return getXstreamDriver().createWriter(stream);
         }
@@ -118,8 +121,9 @@ public class XStreamDataFormat extends AbstractXStreamWrapper  {
         return new StaxWriter(new QNameMap(), xmlWriter);
     }
 
+    @Override
     protected HierarchicalStreamReader createHierarchicalStreamReader(Exchange exchange, InputStream stream) throws XMLStreamException {
-        updateCharactorEncodingInfo(exchange);
+        updateCharacterEncodingInfo(exchange);
         if (getXstreamDriver() != null) {
             return getXstreamDriver().createReader(stream);
         }

@@ -29,7 +29,6 @@ import org.apache.camel.support.component.ApiMethodParser;
 import org.apache.camel.support.component.ArgumentSubstitutionParser;
 import org.apache.commons.lang.ClassUtils;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.velocity.VelocityContext;
 
@@ -42,6 +41,9 @@ public abstract class AbstractApiMethodGeneratorMojo extends AbstractApiMethodBa
 
     @Parameter(required = true, property = PREFIX + "proxyClass")
     protected String proxyClass;
+
+    @Parameter
+    protected String classPrefix;
 
     // cached fields
     private Class<?> proxyType;
@@ -115,14 +117,15 @@ public abstract class AbstractApiMethodGeneratorMojo extends AbstractApiMethodBa
 
     public File getApiMethodFile() throws MojoExecutionException {
         final StringBuilder fileName = new StringBuilder();
-        fileName.append(outPackage.replaceAll("\\.", Matcher.quoteReplacement(File.separator))).append(File.separator);
+        fileName.append(outPackage.replace(".", Matcher.quoteReplacement(File.separator))).append(File.separator);
         fileName.append(getEnumName()).append(".java");
         return new File(generatedSrcDir, fileName.toString());
     }
 
     private String getEnumName() throws MojoExecutionException {
         String proxyClassWithCanonicalName = getProxyClassWithCanonicalName(proxyClass);
-        return proxyClassWithCanonicalName.substring(proxyClassWithCanonicalName.lastIndexOf('.') + 1) + "ApiMethod";
+        String prefix = classPrefix != null ? classPrefix : "";
+        return prefix + proxyClassWithCanonicalName.substring(proxyClassWithCanonicalName.lastIndexOf('.') + 1) + "ApiMethod";
     }
 
     private VelocityContext getApiTestContext(List<ApiMethodParser.ApiMethodModel> models) throws MojoExecutionException {
@@ -137,14 +140,15 @@ public abstract class AbstractApiMethodGeneratorMojo extends AbstractApiMethodBa
 
     private String getTestFilePath() throws MojoExecutionException {
         final StringBuilder fileName = new StringBuilder();
-        fileName.append(componentPackage.replaceAll("\\.", Matcher.quoteReplacement(File.separator))).append(File.separator);
+        fileName.append(componentPackage.replace(".", Matcher.quoteReplacement(File.separator))).append(File.separator);
         fileName.append(getUnitTestName()).append(".java");
         return fileName.toString();
     }
 
     private String getUnitTestName() throws MojoExecutionException {
         String proxyClassWithCanonicalName = getProxyClassWithCanonicalName(proxyClass);
-        return proxyClassWithCanonicalName.substring(proxyClassWithCanonicalName.lastIndexOf('.') + 1) + "IntegrationTest";
+        String prefix = classPrefix != null ? classPrefix : "";
+        return prefix + proxyClassWithCanonicalName.substring(proxyClassWithCanonicalName.lastIndexOf('.') + 1) + "IntegrationTest";
     }
 
     private VelocityContext getEndpointContext(List<ApiMethodParser.ApiMethodModel> models) throws MojoExecutionException {
@@ -173,7 +177,7 @@ public abstract class AbstractApiMethodGeneratorMojo extends AbstractApiMethodBa
         if (extraOptions != null && extraOptions.length > 0) {
             for (ExtraOption option : extraOptions) {
                 final String name = option.getName();
-                final String argWithTypes = option.getType().replaceAll(" ", "");
+                final String argWithTypes = option.getType().replace(" ", "");
                 final int rawEnd = argWithTypes.indexOf('<');
                 String typeArgs = null;
                 Class<?> argType;
@@ -199,14 +203,15 @@ public abstract class AbstractApiMethodGeneratorMojo extends AbstractApiMethodBa
     private File getConfigurationFile() throws MojoExecutionException {
         final StringBuilder fileName = new StringBuilder();
         // endpoint configuration goes in component package
-        fileName.append(componentPackage.replaceAll("\\.", Matcher.quoteReplacement(File.separator))).append(File.separator);
+        fileName.append(componentPackage.replace(".", Matcher.quoteReplacement(File.separator))).append(File.separator);
         fileName.append(getConfigName()).append(".java");
         return new File(generatedSrcDir, fileName.toString());
     }
 
     private String getConfigName() throws MojoExecutionException {
         String proxyClassWithCanonicalName = getProxyClassWithCanonicalName(proxyClass);
-        return proxyClassWithCanonicalName.substring(proxyClassWithCanonicalName.lastIndexOf('.') + 1) + "EndpointConfiguration";
+        String prefix = classPrefix != null ? classPrefix : "";
+        return prefix + proxyClassWithCanonicalName.substring(proxyClassWithCanonicalName.lastIndexOf('.') + 1) + "EndpointConfiguration";
     }
 
     private String getProxyClassWithCanonicalName(String proxyClass) {
@@ -245,11 +250,11 @@ public abstract class AbstractApiMethodGeneratorMojo extends AbstractApiMethodBa
         final StringBuilder builder = new StringBuilder();
         final String name = model.getMethod().getName();
         builder.append(Character.toUpperCase(name.charAt(0)));
-        builder.append(name.substring(1));
+        builder.append(name, 1, name.length());
         // find overloaded method suffix from unique name
         final String uniqueName = model.getUniqueName();
         if (uniqueName.length() > name.length()) {
-            builder.append(uniqueName.substring(name.length()));
+            builder.append(uniqueName, name.length(), uniqueName.length());
         }
         return builder.toString();
     }
@@ -297,7 +302,7 @@ public abstract class AbstractApiMethodGeneratorMojo extends AbstractApiMethodBa
         // capitalize first character
         StringBuilder builder = new StringBuilder();
         builder.append(Character.toUpperCase(parameter.charAt(0)));
-        builder.append(parameter.substring(1));
+        builder.append(parameter, 1, parameter.length());
         return builder.toString();
     }
 
@@ -321,7 +326,6 @@ public abstract class AbstractApiMethodGeneratorMojo extends AbstractApiMethodBa
 
             // Note: its ok to split, since we don't support parsing nested type arguments
             final String[] argTypes = typeArgs.split(",");
-            boolean ignore = false;
             final int nTypes = argTypes.length;
             int i = 0;
             for (String argType : argTypes) {
@@ -339,24 +343,23 @@ public abstract class AbstractApiMethodGeneratorMojo extends AbstractApiMethodBa
                         parameterizedType.append(
                             getCanonicalName(getProjectClassLoader().loadClass("java.lang." + argType)));
                     } catch (ClassNotFoundException e1) {
-                        log.warn("Ignoring type parameters <" + typeArgs + "> for argument " + argument.getName()
-                                 + ", unable to load parametric type argument " + argType, e1);
-                        ignore = true;
+                        parameterizedType.append("?");
+                        // if the length of the artType is 1, we think that it's variable type parameter (like T in List<T>)
+                        // not perfect solution, but should work in most of the cases
+                        if (argType.trim().length() > 1) {
+                            log.warn("Ignoring type parameters <" + typeArgs + "> for argument " + argument.getName()
+                                    + ", unable to load parametric type argument " + argType, e1);
+                        }
                     }
                 }
 
-                if (ignore) {
-                    // give up
-                    break;
-                } else if (++i < nTypes) {
+                if (++i < nTypes) {
                     parameterizedType.append(",");
                 }
             }
 
-            if (!ignore) {
-                parameterizedType.append('>');
-                canonicalName = parameterizedType.toString();
-            }
+            parameterizedType.append('>');
+            canonicalName = parameterizedType.toString();
         }
 
         return canonicalName;

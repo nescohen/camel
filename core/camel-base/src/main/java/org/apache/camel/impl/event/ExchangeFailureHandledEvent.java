@@ -17,6 +17,7 @@
 package org.apache.camel.impl.event;
 
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.Processor;
 import org.apache.camel.spi.CamelEvent;
 import org.apache.camel.util.URISupport;
@@ -34,17 +35,20 @@ public class ExchangeFailureHandledEvent extends AbstractExchangeEvent implement
         this.failureHandler = failureHandler;
         this.deadLetterChannel = deadLetterChannel;
         this.deadLetterUri = deadLetterUri;
-        this.handled = source.getProperty(Exchange.ERRORHANDLER_HANDLED, false, Boolean.class);
+        this.handled = source.adapt(ExtendedExchange.class).getErrorHandlerHandled() != null && source.adapt(ExtendedExchange.class).getErrorHandlerHandled();
     }
 
+    @Override
     public Processor getFailureHandler() {
         return failureHandler;
     }
 
+    @Override
     public boolean isDeadLetterChannel() {
         return deadLetterChannel;
     }
 
+    @Override
     public String getDeadLetterUri() {
         return deadLetterUri;
     }

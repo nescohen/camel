@@ -29,14 +29,14 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.util.IOHelper;
 import org.apache.sshd.server.auth.pubkey.PublickeyAuthenticator;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class SftpKeyPairRSAConsumeTest extends SftpServerTestSupport {
 
     private static KeyPair keyPair;
 
-    @BeforeClass
+    @BeforeAll
     public static void createKeys() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(2048);
@@ -80,15 +80,14 @@ public class SftpKeyPairRSAConsumeTest extends SftpServerTestSupport {
     @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         context.getRegistry().bind("keyPair", keyPair);
-        context.getRegistry().bind("knownHosts", getBytesFromFile("./src/test/resources/known_hosts"));
+        context.getRegistry().bind("knownHosts", buildKnownHosts());
 
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
                 from("sftp://localhost:" + getPort() + "/" + FTP_ROOT_DIR
-                        + "?username=admin&knownHosts=#knownHosts&keyPair=#keyPair&delay=10s&strictHostKeyChecking=yes&disconnect=true")
-                    .routeId("foo").noAutoStartup()
-                    .to("mock:result");
+                     + "?username=admin&knownHosts=#knownHosts&keyPair=#keyPair&delay=10000&strictHostKeyChecking=yes&disconnect=true").routeId("foo").noAutoStartup()
+                         .to("mock:result");
             }
         };
     }

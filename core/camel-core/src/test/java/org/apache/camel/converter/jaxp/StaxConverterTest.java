@@ -42,12 +42,20 @@ public class StaxConverterTest extends ContextTestSupport {
 
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
-    private static final String TEST_XML = "<test>Test Message with umlaut \u00E4\u00F6\u00FC</test>"; // umlauts have different encoding in UTF-8 and ISO-8859-1 (Latin1)
+    private static final String TEST_XML = "<test>Test Message with umlaut \u00E4\u00F6\u00FC</test>"; // umlauts
+                                                                                                       // have
+                                                                                                       // different
+                                                                                                       // encoding
+                                                                                                       // in
+                                                                                                       // UTF-8
+                                                                                                       // and
+                                                                                                       // ISO-8859-1
+                                                                                                       // (Latin1)
 
     private static final String TEST_XML_WITH_XML_HEADER_ISO_8859_1 = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>" + TEST_XML;
 
-    private static final ByteArrayInputStream TEST_XML_WITH_XML_HEADER_ISO_8859_1_AS_BYTE_ARRAY_STREAM = new ByteArrayInputStream(
-            TEST_XML_WITH_XML_HEADER_ISO_8859_1.getBytes(ISO_8859_1));
+    private static final ByteArrayInputStream TEST_XML_WITH_XML_HEADER_ISO_8859_1_AS_BYTE_ARRAY_STREAM = new ByteArrayInputStream(TEST_XML_WITH_XML_HEADER_ISO_8859_1
+        .getBytes(ISO_8859_1));
 
     private static final String TEST_XML_WITH_XML_HEADER = "<?xml version=\"1.0\"?>" + TEST_XML;
 
@@ -55,7 +63,8 @@ public class StaxConverterTest extends ContextTestSupport {
 
     static {
         StringBuilder sb = new StringBuilder(7000);
-        // using quote character to make the plain characters comparison work with the generated xml
+        // using quote character to make the plain characters comparison work
+        // with the generated xml
         sb.append("<?xml version='1.0' encoding='utf-8'?>").append("<list>");
         int n = 6963 - TEST_XML.length();
         while (n > 0) {
@@ -75,8 +84,7 @@ public class StaxConverterTest extends ContextTestSupport {
         ByteArrayOutputStream output = null;
         try {
             // enter text encoded with Latin1
-            reader = context.getTypeConverter().mandatoryConvertTo(XMLEventReader.class,
-                    TEST_XML_WITH_XML_HEADER_ISO_8859_1_AS_BYTE_ARRAY_STREAM);
+            reader = context.getTypeConverter().mandatoryConvertTo(XMLEventReader.class, TEST_XML_WITH_XML_HEADER_ISO_8859_1_AS_BYTE_ARRAY_STREAM);
 
             output = new ByteArrayOutputStream();
             // ensure UTF-8 encoding
@@ -114,8 +122,7 @@ public class StaxConverterTest extends ContextTestSupport {
         ByteArrayOutputStream output = null;
         try {
             // enter text encoded with Latin1
-            reader = context.getTypeConverter().mandatoryConvertTo(XMLStreamReader.class,
-                    TEST_XML_WITH_XML_HEADER_ISO_8859_1_AS_BYTE_ARRAY_STREAM);
+            reader = context.getTypeConverter().mandatoryConvertTo(XMLStreamReader.class, TEST_XML_WITH_XML_HEADER_ISO_8859_1_AS_BYTE_ARRAY_STREAM);
 
             output = new ByteArrayOutputStream();
             // ensure UTF-8 encoding
@@ -126,23 +133,23 @@ public class StaxConverterTest extends ContextTestSupport {
             while (reader.hasNext()) {
                 reader.next();
                 switch (reader.getEventType()) {
-                case XMLStreamConstants.START_DOCUMENT:
-                    writer.writeStartDocument();
-                    break;
-                case XMLStreamConstants.END_DOCUMENT:
-                    writer.writeEndDocument();
-                    break;
-                case XMLStreamConstants.START_ELEMENT:
-                    writer.writeStartElement(reader.getName().getLocalPart());
-                    break;
-                case XMLStreamConstants.CHARACTERS:
-                    writer.writeCharacters(reader.getText());
-                    break;
-                case XMLStreamConstants.END_ELEMENT:
-                    writer.writeEndElement();
-                    break;
-                default:
-                    break;
+                    case XMLStreamConstants.START_DOCUMENT:
+                        writer.writeStartDocument();
+                        break;
+                    case XMLStreamConstants.END_DOCUMENT:
+                        writer.writeEndDocument();
+                        break;
+                    case XMLStreamConstants.START_ELEMENT:
+                        writer.writeStartElement(reader.getName().getLocalPart());
+                        break;
+                    case XMLStreamConstants.CHARACTERS:
+                        writer.writeCharacters(reader.getText());
+                        break;
+                    case XMLStreamConstants.END_ELEMENT:
+                        writer.writeEndElement();
+                        break;
+                    default:
+                        break;
                 }
             }
         } finally {
@@ -186,7 +193,7 @@ public class StaxConverterTest extends ContextTestSupport {
                 if (n2 < 0) {
                     break;
                 }
-                assertTrue(Arrays.equals(tmp1,  tmp2));
+                assertTrue(Arrays.equals(tmp1, tmp2));
             }
         } finally {
             if (xreader != null) {
@@ -197,6 +204,7 @@ public class StaxConverterTest extends ContextTestSupport {
             }
         }
     }
+
     @Test
     public void testToInputSreamByXmlStreamReader() throws Exception {
         StringReader src = new StringReader(TEST_XML_7000);
@@ -223,7 +231,7 @@ public class StaxConverterTest extends ContextTestSupport {
                 if (n2 < 0) {
                     break;
                 }
-                assertTrue(Arrays.equals(tmp1,  tmp2));
+                assertTrue(Arrays.equals(tmp1, tmp2));
             }
         } finally {
             if (xreader != null) {

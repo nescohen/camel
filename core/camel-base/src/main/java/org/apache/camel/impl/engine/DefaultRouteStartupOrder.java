@@ -32,33 +32,37 @@ public class DefaultRouteStartupOrder implements RouteStartupOrder {
 
     private final int startupOrder;
     private final Route route;
-    private final BaseRouteService routeService;
+    private final RouteService routeService;
 
-    public DefaultRouteStartupOrder(int startupOrder, Route route, BaseRouteService routeService) {
+    public DefaultRouteStartupOrder(int startupOrder, Route route, RouteService routeService) {
         this.startupOrder = startupOrder;
         this.route = route;
         this.routeService = routeService;
     }
 
+    @Override
     public int getStartupOrder() {
         return startupOrder;
     }
 
+    @Override
     public Route getRoute() {
         return route;
     }
 
+    @Override
     public List<Consumer> getInputs() {
         Map<Route, Consumer> inputs = routeService.getInputs();
         return new ArrayList<>(inputs.values());
     }
 
+    @Override
     public List<Service> getServices() {
         List<Service> services = routeService.getRoute().getServices();
         return new ArrayList<>(services);
     }
 
-    public BaseRouteService getRouteService() {
+    public RouteService getRouteService() {
         return routeService;
     }
 

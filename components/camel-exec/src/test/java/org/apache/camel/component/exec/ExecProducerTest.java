@@ -17,6 +17,7 @@
 package org.apache.camel.component.exec;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 
@@ -27,9 +28,7 @@ import org.apache.camel.Produce;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.component.exec.impl.ExecCommandExecutorMock;
 import org.apache.commons.io.IOUtils;
-
 import org.junit.Test;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -124,7 +123,7 @@ public class ExecProducerTest extends AbstractJUnit4SpringContextTests {
                 exchange.getIn().setBody(input);
             }
         });
-        assertEquals(input, IOUtils.toString(execCommandExecutorMock.lastCommandResult.getCommand().getInput()));
+        assertEquals(input, IOUtils.toString(execCommandExecutorMock.lastCommandResult.getCommand().getInput(), Charset.defaultCharset()));
     }
 
     @Test
@@ -196,7 +195,7 @@ public class ExecProducerTest extends AbstractJUnit4SpringContextTests {
             }
         });
         // test the conversion
-        ExecResult result = exchange.getOut().getBody(ExecResult.class);
+        ExecResult result = exchange.getMessage().getBody(ExecResult.class);
         assertNotNull(result);
     }
 }

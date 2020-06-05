@@ -26,123 +26,121 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.camel.BindToRegistry;
 import org.apache.camel.Exchange;
-import org.apache.camel.Message;
 import org.apache.camel.Processor;
+import org.apache.camel.attachment.AttachmentMessage;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.methods.multipart.FilePart;
-import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
-import org.apache.commons.httpclient.methods.multipart.Part;
-import org.apache.commons.httpclient.methods.multipart.StringPart;
-import org.eclipse.jetty.servlets.MultiPartFilter;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.junit.Test;
 
 public class MultiPartFormWithCustomFilterTest extends BaseJettyTest {
 
+    @BindToRegistry("myMultipartFilter")
+    private MyMultipartFilter multipartFilter = new MyMultipartFilter();
+
     private static class MyMultipartFilter extends MultiPartFilter {
         @Override
-        public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {            
+        public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
             // set a marker attribute to show that this filter class was used
             ((HttpServletResponse)response).addHeader("MyMultipartFilter", "true");
-            
+
             super.doFilter(request, response, chain);
-        }        
+        }
     }
 
     @Test
     public void testSendMultiPartForm() throws Exception {
-        HttpClient httpclient = new HttpClient();
+        CloseableHttpClient client = HttpClients.createDefault();
+
         File file = new File("src/test/resources/log4j2.properties");
-        PostMethod httppost = new PostMethod("http://localhost:" + getPort() + "/test");
-        Part[] parts = {
-            new StringPart("comment", "A binary file of some kind"),
-            new FilePart(file.getName(), file)
-        };
+        HttpPost httppost = new HttpPost("http://localhost:" + getPort() + "/test");
 
-        MultipartRequestEntity reqEntity = new MultipartRequestEntity(parts, httppost.getParams());
-        httppost.setRequestEntity(reqEntity);
+        HttpEntity entity = MultipartEntityBuilder.create().addTextBody("comment", "A binary file of some kind").addBinaryBody(file.getName(), file).build();
+        httppost.setEntity(entity);
 
-        int status = httpclient.executeMethod(httppost);
+        HttpResponse response = client.execute(httppost);
+        assertEquals("Get a wrong response status", 200, response.getStatusLine().getStatusCode());
+        String responseString = EntityUtils.toString(response.getEntity(), "UTF-8");
 
-        assertEquals("Get a wrong response status", 200, status);
+        assertEquals("Get a wrong result", "A binary file of some kind", responseString);
+        assertNotNull("Did not use custom multipart filter", response.getFirstHeader("MyMultipartFilter").getValue());
 
-        String result = httppost.getResponseBodyAsString();
-        assertEquals("Get a wrong result", "A binary file of some kind", result);
-        assertNotNull("Did not use custom multipart filter", httppost.getResponseHeader("MyMultipartFilter"));
+        client.close();
     }
-    
+
     @Test
     public void testSendMultiPartFormOverrideEnableMultpartFilterFalse() throws Exception {
-        HttpClient httpclient = new HttpClient();
+        CloseableHttpClient client = HttpClients.createDefault();
 
         File file = new File("src/test/resources/log4j2.properties");
 
-        PostMethod httppost = new PostMethod("http://localhost:" + getPort() + "/test2");
-        Part[] parts = {
-            new StringPart("comment", "A binary file of some kind"),
-            new FilePart(file.getName(), file)
-        };
+        HttpPost httppost = new HttpPost("http://localhost:" + getPort() + "/test2");
+        HttpEntity entity = MultipartEntityBuilder.create().addTextBody("comment", "A binary file of some kind").addBinaryBody(file.getName(), file).build();
+        httppost.setEntity(entity);
 
-        MultipartRequestEntity reqEntity = new MultipartRequestEntity(parts, httppost.getParams());
-        httppost.setRequestEntity(reqEntity);
+        HttpResponse response = client.execute(httppost);
 
-        int status = httpclient.executeMethod(httppost);
-
-        assertEquals("Get a wrong response status", 200, status);
-        assertNotNull("Did not use custom multipart filter", httppost.getResponseHeader("MyMultipartFilter"));
+        assertEquals("Get a wrong response status", 200, response.getStatusLine().getStatusCode());
+        assertNotNull("Did not use custom multipart filter", response.getFirstHeader("MyMultipartFilter").getValue());
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
-        jndi.bind("myMultipartFilter", new MyMultipartFilter());
-        return jndi;
-    }
-    
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {
                 // START SNIPPET: e1
-                // Set the jetty temp directory which store the file for multi part form
-                // camel-jetty will clean up the file after it handled the request.
+                // Set the jetty temp directory which store the file for multi
+                // part form
+                // camel-jetty will clean up the file after it handled the
+                // request.
                 // The option works rightly from Camel 2.4.0
                 getContext().getGlobalOptions().put("CamelJettyTempDir", "target");
-                
+
                 from("jetty://http://localhost:{{port}}/test?multipartFilterRef=myMultipartFilter").process(new Processor() {
                     public void process(Exchange exchange) throws Exception {
-                        Message in = exchange.getIn();
+                        AttachmentMessage in = exchange.getMessage(AttachmentMessage.class);
                         assertEquals("Get a wrong attachement size", 2, in.getAttachments().size());
                         // The file name is attachment id
                         DataHandler data = in.getAttachment("log4j2.properties");
 
                         assertNotNull("Should get the DataHandle log4j2.properties", data);
-                        // This assert is wrong, but the correct content-type (application/octet-stream)
-                        // will not be returned until Jetty makes it available - currently the content-type
-                        // returned is just the default for FileDataHandler (for the implentation being used)
-                        //assertEquals("Get a wrong content type", "text/plain", data.getContentType());
+                        // This assert is wrong, but the correct content-type
+                        // (application/octet-stream)
+                        // will not be returned until Jetty makes it available -
+                        // currently the content-type
+                        // returned is just the default for FileDataHandler (for
+                        // the implentation being used)
+                        // assertEquals("Get a wrong content type",
+                        // "text/plain", data.getContentType());
                         assertEquals("Got the wrong name", "log4j2.properties", data.getName());
 
-                        assertTrue("We should get the data from the DataHandle", data.getDataSource()
-                            .getInputStream().available() > 0);
+                        assertTrue("We should get the data from the DataHandle", data.getDataSource().getInputStream().available() > 0);
 
-                        // The other form date can be get from the message header
+                        // The other form date can be get from the message
+                        // header
                         exchange.getOut().setBody(in.getHeader("comment"));
                     }
                 });
                 // END SNIPPET: e1
 
-                // Test to ensure that setting a multipartFilterRef overrides the enableMultipartFilter=false parameter
+                // Test to ensure that setting a multipartFilterRef overrides
+                // the enableMultipartFilter=false parameter
                 from("jetty://http://localhost:{{port}}/test2?multipartFilterRef=myMultipartFilter&enableMultipartFilter=false").process(new Processor() {
                     public void process(Exchange exchange) throws Exception {
-                        Message in = exchange.getIn();
+                        AttachmentMessage in = exchange.getMessage(AttachmentMessage.class);
                         assertEquals("Get a wrong attachement size", 2, in.getAttachments().size());
                         DataHandler data = in.getAttachment("log4j2.properties");
 
                         assertNotNull("Should get the DataHandle log4j2.properties", data);
-                        // The other form date can be get from the message header
+                        // The other form date can be get from the message
+                        // header
                         exchange.getOut().setBody(in.getHeader("comment"));
                     }
                 });

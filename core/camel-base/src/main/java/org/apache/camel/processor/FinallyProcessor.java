@@ -21,15 +21,21 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.Traceable;
 import org.apache.camel.spi.IdAware;
+import org.apache.camel.spi.RouteIdAware;
 import org.apache.camel.support.ExchangeHelper;
 import org.apache.camel.support.processor.DelegateAsyncProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Processor to handle do finally supporting asynchronous routing engine
  */
-public class FinallyProcessor extends DelegateAsyncProcessor implements Traceable, IdAware {
+public class FinallyProcessor extends DelegateAsyncProcessor implements Traceable, IdAware, RouteIdAware {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FinallyProcessor.class);
 
     private String id;
+    private String routeId;
 
     public FinallyProcessor(Processor processor) {
         super(processor);
@@ -37,17 +43,7 @@ public class FinallyProcessor extends DelegateAsyncProcessor implements Traceabl
 
     @Override
     public boolean process(final Exchange exchange, final AsyncCallback callback) {
-        // clear exception and fault so finally block can be executed
-        final boolean fault;
-        if (exchange.hasOut()) {
-            fault = exchange.getOut().isFault();
-            exchange.getOut().setFault(false);
-        } else {
-            fault = exchange.getIn().isFault();
-            exchange.getIn().setFault(false);
-        }
-
-        final Exception exception = exchange.getException();
+        Exception exception = exchange.getException();
         exchange.setException(null);
         // but store the caught exception as a property
         if (exception != null) {
@@ -60,24 +56,37 @@ public class FinallyProcessor extends DelegateAsyncProcessor implements Traceabl
         }
 
         // continue processing
-        return processor.process(exchange, new FinallyAsyncCallback(exchange, callback, exception, fault));
+        return processor.process(exchange, new FinallyAsyncCallback(exchange, callback, exception));
     }
 
     @Override
     public String toString() {
-        return "Finally{" + getProcessor() + "}";
+        return id;
     }
 
+    @Override
     public String getTraceLabel() {
         return "finally";
     }
 
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public void setId(String id) {
         this.id = id;
+    }
+
+    @Override
+    public String getRouteId() {
+        return routeId;
+    }
+
+    @Override
+    public void setRouteId(String routeId) {
+        this.routeId = routeId;
     }
 
     private final class FinallyAsyncCallback implements AsyncCallback {
@@ -85,13 +94,11 @@ public class FinallyProcessor extends DelegateAsyncProcessor implements Traceabl
         private final Exchange exchange;
         private final AsyncCallback callback;
         private final Exception exception;
-        private final boolean fault;
 
-        FinallyAsyncCallback(Exchange exchange, AsyncCallback callback, Exception exception, boolean fault) {
+        FinallyAsyncCallback(Exchange exchange, AsyncCallback callback, Exception exception) {
             this.exchange = exchange;
             this.callback = callback;
             this.exception = exception;
-            this.fault = fault;
         }
 
         @Override
@@ -104,19 +111,13 @@ public class FinallyProcessor extends DelegateAsyncProcessor implements Traceabl
                     exchange.setException(exception);
                     exchange.setProperty(Exchange.EXCEPTION_CAUGHT, exception);
                 }
-                // set fault flag back
-                if (fault) {
-                    if (exchange.hasOut()) {
-                        exchange.getOut().setFault(true);
-                    } else {
-                        exchange.getIn().setFault(true);
-                    }
-                }
 
                 if (!doneSync) {
                     // signal callback to continue routing async
                     ExchangeHelper.prepareOutToIn(exchange);
-                    log.trace("Processing complete for exchangeId: {} >>> {}", exchange.getExchangeId(), exchange);
+                    if (LOG.isTraceEnabled()) {
+                        LOG.trace("Processing complete for exchangeId: {} >>> {}", exchange.getExchangeId(), exchange);
+                    }
                 }
             } finally {
                 // callback must always be called

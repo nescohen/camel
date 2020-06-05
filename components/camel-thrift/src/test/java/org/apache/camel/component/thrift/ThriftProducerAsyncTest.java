@@ -30,7 +30,6 @@ import org.apache.camel.component.thrift.generated.InvalidOperation;
 import org.apache.camel.component.thrift.generated.Operation;
 import org.apache.camel.component.thrift.generated.Work;
 import org.apache.camel.support.SynchronizationAdapter;
-
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +54,7 @@ public class ThriftProducerAsyncTest extends ThriftProducerBaseTest {
 
             @Override
             public void onComplete(Exchange exchange) {
-                responseBody = exchange.getOut().getBody();
+                responseBody = exchange.getMessage().getBody();
                 latch.countDown();
             }
             
@@ -88,7 +87,7 @@ public class ThriftProducerAsyncTest extends ThriftProducerBaseTest {
 
             @Override
             public void onComplete(Exchange exchange) {
-                responseBody = exchange.getOut().getBody();
+                responseBody = exchange.getMessage().getBody();
                 latch.countDown();
             }
             
@@ -147,7 +146,7 @@ public class ThriftProducerAsyncTest extends ThriftProducerBaseTest {
 
             @Override
             public void onComplete(Exchange exchange) {
-                responseBody = exchange.getOut().getBody();
+                responseBody = exchange.getMessage().getBody();
                 latch.countDown();
             }
 
@@ -174,7 +173,7 @@ public class ThriftProducerAsyncTest extends ThriftProducerBaseTest {
 
             @Override
             public void onComplete(Exchange exchange) {
-                responseBody = exchange.getOut().getBody();
+                responseBody = exchange.getMessage().getBody();
                 latch.countDown();
             }
 
@@ -215,7 +214,7 @@ public class ThriftProducerAsyncTest extends ThriftProducerBaseTest {
 
             @Override
             public void onComplete(Exchange exchange) {
-                responseBody = exchange.getOut().getBody();
+                responseBody = exchange.getMessage().getBody();
                 latch.countDown();
             }
 
@@ -247,7 +246,7 @@ public class ThriftProducerAsyncTest extends ThriftProducerBaseTest {
 
             @Override
             public void onComplete(Exchange exchange) {
-                responseBody = exchange.getOut().getBody();
+                responseBody = exchange.getMessage().getBody();
                 latch.countDown();
             }
 

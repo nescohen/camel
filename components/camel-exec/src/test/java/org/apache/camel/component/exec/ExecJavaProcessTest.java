@@ -17,9 +17,11 @@
 package org.apache.camel.component.exec;
 
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.camel.BindToRegistry;
 import org.apache.camel.EndpointInject;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
@@ -30,7 +32,6 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.exec.impl.ProvokeExceptionExecCommandExecutor;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.converter.IOConverter;
-import org.apache.camel.impl.JndiRegistry;
 import org.apache.camel.reifier.RouteReifier;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.apache.commons.io.IOUtils;
@@ -68,24 +69,20 @@ import static org.apache.commons.io.IOUtils.LINE_SEPARATOR;
 public class ExecJavaProcessTest extends CamelTestSupport {
 
     private static final String EXECUTABLE_PROGRAM_ARG = ExecutableJavaProgram.class.getName();
-
+    
     @Produce("direct:input")
     ProducerTemplate producerTemplate;
 
     @EndpointInject("mock:output")
     MockEndpoint output;
+    
+    @BindToRegistry("executorMock")
+    private ProvokeExceptionExecCommandExecutor provokerMock = new ProvokeExceptionExecCommandExecutor();
 
     @Override
     public boolean isUseAdviceWith() {
         return true;
     }
-
-    @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry registry = super.createRegistry();
-        registry.bind("executorMock", new ProvokeExceptionExecCommandExecutor());
-        return registry;
-    } 
 
     @Test
     public void testExecJavaProcessExitCode0() throws Exception {
@@ -121,7 +118,7 @@ public class ExecJavaProcessTest extends CamelTestSupport {
         ExecResult inBody = e.getIn().getBody(ExecResult.class);
 
         output.assertIsSatisfied();
-        assertEquals(PRINT_IN_STDOUT, IOUtils.toString(inBody.getStdout()));
+        assertEquals(PRINT_IN_STDOUT, IOUtils.toString(inBody.getStdout(), Charset.defaultCharset()));
     }
 
     @Test
@@ -203,7 +200,7 @@ public class ExecJavaProcessTest extends CamelTestSupport {
         Exchange e = sendExchange(commandArgument, NO_TIMEOUT);
         output.assertIsSatisfied();
         InputStream out = e.getIn().getBody(InputStream.class);
-        assertEquals(PRINT_IN_STDOUT, IOUtils.toString(out));
+        assertEquals(PRINT_IN_STDOUT, IOUtils.toString(out, Charset.defaultCharset()));
     }
 
     @Test
@@ -217,7 +214,7 @@ public class ExecJavaProcessTest extends CamelTestSupport {
         output.assertIsSatisfied();
         byte[] out = e.getIn().getBody(byte[].class);
         assertNotNull(out);
-        assertEquals(PRINT_IN_STDOUT, new String(out));
+        assertEquals(PRINT_IN_STDOUT, new String(out, Charset.defaultCharset()));
     }
 
     @Test
@@ -248,9 +245,9 @@ public class ExecJavaProcessTest extends CamelTestSupport {
         output.setExpectedMessageCount(1);
         Exchange exchange = sendExchange(THREADS, NO_TIMEOUT);
 
-        String err = IOUtils.toString(exchange.getIn().getHeader(EXEC_STDERR, InputStream.class));
+        String err = IOUtils.toString(exchange.getIn().getHeader(EXEC_STDERR, InputStream.class), Charset.defaultCharset());
         ExecResult result = exchange.getIn().getBody(ExecResult.class);
-        String[] outs = IOUtils.toString(result.getStdout()).split(LINE_SEPARATOR);
+        String[] outs = IOUtils.toString(result.getStdout(), Charset.defaultCharset()).split(LINE_SEPARATOR);
         String[] errs = err.split(LINE_SEPARATOR);
 
         output.assertIsSatisfied();
@@ -393,7 +390,7 @@ public class ExecJavaProcessTest extends CamelTestSupport {
 
         Exchange e = sendExchange(READ_INPUT_LINES_AND_PRINT_THEM, 20000, whiteSpaceSeparatedLines, false);
         ExecResult inBody = e.getIn().getBody(ExecResult.class);
-        assertEquals(expected, IOUtils.toString(inBody.getStdout()));
+        assertEquals(expected, IOUtils.toString(inBody.getStdout(), Charset.defaultCharset()));
     }
 
     /**

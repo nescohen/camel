@@ -27,6 +27,7 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Endpoint;
 import org.apache.camel.NoSuchBeanException;
 import org.apache.camel.TypeConversionException;
+import org.apache.camel.spi.Registry;
 import org.apache.camel.support.DefaultComponent;
 import org.junit.Test;
 
@@ -41,8 +42,8 @@ public class DefaultComponentTest extends ContextTestSupport {
             super(context);
         }
 
-        protected Endpoint createEndpoint(String uri, String remaining, Map<String, Object> parameters)
-            throws Exception {
+        @Override
+        protected Endpoint createEndpoint(String uri, String remaining, Map<String, Object> parameters) throws Exception {
             return null;
         }
     }
@@ -119,9 +120,8 @@ public class DefaultComponentTest extends ContextTestSupport {
         try {
             my.resolveAndRemoveReferenceParameter(parameters, "number", Integer.class);
         } catch (TypeConversionException ex) {
-            assertEquals("Error during type conversion from type: java.lang.String "
-                    + "to the required type: java.lang.Integer "
-                    + "with value abc due to java.lang.NumberFormatException: For input string: \"abc\"", ex.getMessage());
+            assertEquals("Error during type conversion from type: java.lang.String " + "to the required type: java.lang.Integer "
+                         + "with value abc due to java.lang.NumberFormatException: For input string: \"abc\"", ex.getMessage());
         }
     }
 
@@ -165,7 +165,7 @@ public class DefaultComponentTest extends ContextTestSupport {
         assertEquals(1, values.size());
         assertEquals(new Date(10), values.get(0));
     }
-    
+
     @Test
     public void testResolveAndRemoveReferenceListParameterListComma() {
         Map<String, Object> parameters = new HashMap<>();
@@ -263,17 +263,18 @@ public class DefaultComponentTest extends ContextTestSupport {
         }
     }
 
-    protected JndiRegistry createRegistry() throws Exception {
+    @Override
+    protected Registry createRegistry() throws Exception {
         Date bean1 = new Date(10);
         Date bean2 = new Date(11);
-        JndiRegistry jndiRegistry = super.createRegistry();
-        jndiRegistry.bind("beginning", new Date(0));
-        jndiRegistry.bind("bean1", bean1);
-        jndiRegistry.bind("bean2", bean2);
-        jndiRegistry.bind("listBean", Arrays.asList(bean1, bean2));
-        jndiRegistry.bind("numeric", "12345");
-        jndiRegistry.bind("non-numeric", "abc");
-        return jndiRegistry;
+        Registry registry = super.createRegistry();
+        registry.bind("beginning", new Date(0));
+        registry.bind("bean1", bean1);
+        registry.bind("bean2", bean2);
+        registry.bind("listBean", Arrays.asList(bean1, bean2));
+        registry.bind("numeric", "12345");
+        registry.bind("non-numeric", "abc");
+        return registry;
     }
 
 }

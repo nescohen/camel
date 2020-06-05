@@ -26,14 +26,18 @@ import org.apache.camel.CamelContext;
 import org.apache.camel.CamelContextAware;
 import org.apache.camel.Exchange;
 import org.apache.camel.Expression;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.Navigate;
 import org.apache.camel.Processor;
 import org.apache.camel.spi.IdAware;
 import org.apache.camel.spi.IdempotentRepository;
+import org.apache.camel.spi.RouteIdAware;
 import org.apache.camel.spi.Synchronization;
 import org.apache.camel.support.AsyncProcessorConverterHelper;
 import org.apache.camel.support.AsyncProcessorSupport;
 import org.apache.camel.support.service.ServiceHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An implementation of the <a
@@ -43,10 +47,13 @@ import org.apache.camel.support.service.ServiceHelper;
  *
  * @see org.apache.camel.spi.IdempotentRepository
  */
-public class IdempotentConsumer extends AsyncProcessorSupport implements CamelContextAware, Navigate<Processor>, IdAware {
+public class IdempotentConsumer extends AsyncProcessorSupport implements CamelContextAware, Navigate<Processor>, IdAware, RouteIdAware {
+
+    private static final Logger LOG = LoggerFactory.getLogger(IdempotentConsumer.class);
 
     private CamelContext camelContext;
     private String id;
+    private String routeId;
     private final Expression messageIdExpression;
     private final AsyncProcessor processor;
     private final IdempotentRepository idempotentRepository;
@@ -69,7 +76,7 @@ public class IdempotentConsumer extends AsyncProcessorSupport implements CamelCo
 
     @Override
     public String toString() {
-        return "IdempotentConsumer[" + messageIdExpression + " -> " + processor + "]";
+        return id;
     }
 
     @Override
@@ -82,14 +89,25 @@ public class IdempotentConsumer extends AsyncProcessorSupport implements CamelCo
         this.camelContext = camelContext;
     }
 
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public void setId(String id) {
         this.id = id;
     }
 
+    public String getRouteId() {
+        return routeId;
+    }
+
+    public void setRouteId(String routeId) {
+        this.routeId = routeId;
+    }
+
+    @Override
     public boolean process(final Exchange exchange, final AsyncCallback callback) {
         final AsyncCallback target;
 
@@ -126,7 +144,7 @@ public class IdempotentConsumer extends AsyncProcessorSupport implements CamelCo
 
                 if (skipDuplicate) {
                     // if we should skip duplicate then we are done
-                    log.debug("Ignoring duplicate message with id: {} for exchange: {}", messageId, exchange);
+                    LOG.debug("Ignoring duplicate message with id: {} for exchange: {}", messageId, exchange);
                     callback.done(true);
                     return true;
                 }
@@ -136,7 +154,7 @@ public class IdempotentConsumer extends AsyncProcessorSupport implements CamelCo
             target = new IdempotentConsumerCallback(exchange, onCompletion, callback, completionEager);
             if (!completionEager) {
                 // the scope is to do the idempotent completion work as an unit of work on the exchange when its done being routed
-                exchange.addOnCompletion(onCompletion);
+                exchange.adapt(ExtendedExchange.class).addOnCompletion(onCompletion);
             }
         } catch (Exception e) {
             exchange.setException(e);
@@ -148,6 +166,7 @@ public class IdempotentConsumer extends AsyncProcessorSupport implements CamelCo
         return processor.process(exchange, target);
     }
 
+    @Override
     public List<Processor> next() {
         if (!hasNext()) {
             return null;
@@ -157,6 +176,7 @@ public class IdempotentConsumer extends AsyncProcessorSupport implements CamelCo
         return answer;
     }
 
+    @Override
     public boolean hasNext() {
         return processor != null;
     }
@@ -182,6 +202,7 @@ public class IdempotentConsumer extends AsyncProcessorSupport implements CamelCo
     // Implementation methods
     // -------------------------------------------------------------------------
 
+    @Override
     protected void doStart() throws Exception {
         // must add before start so it will have CamelContext injected first
         if (!camelContext.hasService(idempotentRepository)) {
@@ -190,6 +211,7 @@ public class IdempotentConsumer extends AsyncProcessorSupport implements CamelCo
         ServiceHelper.startService(processor, idempotentRepository);
     }
 
+    @Override
     protected void doStop() throws Exception {
         ServiceHelper.stopService(processor, idempotentRepository);
     }

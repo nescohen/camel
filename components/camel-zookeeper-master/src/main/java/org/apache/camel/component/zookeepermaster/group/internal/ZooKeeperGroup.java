@@ -162,6 +162,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     /**
      * Start the cache. The cache is not started automatically. You must call this method.
      */
+    @Override
     public void start() {
         LOG.info("Starting ZK Group for path: {}", path);
         if (started.compareAndSet(false, true)) {
@@ -236,12 +237,12 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
         if (started.get()) {
             boolean update = state == null && oldState != null
-                || state != null && oldState == null
-                || !Arrays.equals(encode(state), encode(oldState));
+                    || state != null && oldState == null
+                    || !Arrays.equals(encode(state), encode(oldState));
             if (update) {
                 offerOperation(new CompositeOperation(
-                    new RefreshOperation(this, RefreshMode.FORCE_GET_DATA_AND_STAT),
-                    new UpdateOperation<>(this, state)
+                        new RefreshOperation(this, RefreshMode.FORCE_GET_DATA_AND_STAT),
+                        new UpdateOperation<>(this, state)
                 ));
             }
         }
@@ -289,8 +290,8 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
         state.uuid = uuid;
         creating.set(true);
         String pathId = client.create().creatingParentsIfNeeded()
-            .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
-            .forPath(path + "/0", encode(state));
+                .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
+                .forPath(path + "/0", encode(state));
         creating.set(false);
         unstable.set(false);
         if (LOG.isTraceEnabled()) {
@@ -371,7 +372,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
         for (ChildData<T> child : currentData.values()) {
             T node = child.getNode();
             if (!filtered.containsKey(node.getContainer())
-                || filtered.get(node.getContainer()).getPath().compareTo(child.getPath()) < 0) {
+                    || filtered.get(node.getContainer()).getPath().compareTo(child.getPath()) < 0) {
                 filtered.put(node.getContainer(), child);
             }
         }
@@ -490,8 +491,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
                 handleException(e);
             }
             return null;
-        }
-        );
+        });
     }
 
     void getDataAndStat(final String fullPath) throws Exception {
@@ -522,27 +522,27 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
     private void handleStateChange(ConnectionState newState) {
         switch (newState) {
-        case SUSPENDED:
-        case LOST: {
-            connected.set(false);
-            clear();
-            EventOperation op = new EventOperation(this, GroupListener.GroupEvent.DISCONNECTED);
-            op.invoke();
-            break;
-        }
+            case SUSPENDED:
+            case LOST: {
+                connected.set(false);
+                clear();
+                EventOperation op = new EventOperation(this, GroupListener.GroupEvent.DISCONNECTED);
+                op.invoke();
+                break;
+            }
 
-        case CONNECTED:
-        case RECONNECTED: {
-            connected.set(true);
-            offerOperation(new CompositeOperation(
-                new RefreshOperation(this, RefreshMode.FORCE_GET_DATA_AND_STAT),
-                new UpdateOperation<>(this, state),
-                new EventOperation(this, GroupListener.GroupEvent.CONNECTED)
-            ));
-            break;
-        }
-        default:
-            // noop
+            case CONNECTED:
+            case RECONNECTED: {
+                connected.set(true);
+                offerOperation(new CompositeOperation(
+                        new RefreshOperation(this, RefreshMode.FORCE_GET_DATA_AND_STAT),
+                        new UpdateOperation<>(this, state),
+                        new EventOperation(this, GroupListener.GroupEvent.CONNECTED)
+                ));
+                break;
+            }
+            default:
+                // noop
         }
     }
 

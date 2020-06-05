@@ -17,10 +17,12 @@
 package org.apache.camel.component.jpa;
 
 import java.util.Map;
+
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.LockModeType;
 
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Exchange;
 import org.apache.camel.Expression;
@@ -34,10 +36,10 @@ import org.apache.camel.spi.UriEndpoint;
 import org.apache.camel.spi.UriParam;
 import org.apache.camel.spi.UriPath;
 import org.apache.camel.support.ExpressionAdapter;
-import org.apache.camel.support.IntrospectionSupport;
 import org.apache.camel.support.ScheduledPollEndpoint;
 import org.apache.camel.util.CastUtils;
 import org.apache.camel.util.ObjectHelper;
+import org.apache.camel.util.PropertiesHelper;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalEntityManagerFactoryBean;
 import org.springframework.orm.jpa.SharedEntityManagerCreator;
@@ -46,9 +48,9 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * The jpa component enables you to store and retrieve Java objects from databases using JPA.
+ * Store and retrieve Java objects from databases using Java Persistence API (JPA).
  */
-@UriEndpoint(firstVersion = "1.0.0", scheme = "jpa", title = "JPA", syntax = "jpa:entityType", label = "database,sql")
+@UriEndpoint(firstVersion = "1.0.0", scheme = "jpa", title = "JPA", syntax = "jpa:entityType", category = {Category.DATABASE, Category.SQL})
 public class JpaEndpoint extends ScheduledPollEndpoint {
 
     private EntityManagerFactory entityManagerFactory;
@@ -61,7 +63,7 @@ public class JpaEndpoint extends ScheduledPollEndpoint {
     private String persistenceUnit = "camel";
     @UriParam(defaultValue = "true")
     private boolean joinTransaction = true;
-    @UriParam
+    @UriParam(label = "advanced")
     private boolean sharedEntityManager;
     @UriParam(defaultValue = "-1")
     private int maximumResults = -1;
@@ -72,51 +74,48 @@ public class JpaEndpoint extends ScheduledPollEndpoint {
     @UriParam(label = "consumer")
     private int maxMessagesPerPoll;
 
-    @UriParam(optionalPrefix = "consumer.")
+    @UriParam
     private String query;
-    @UriParam(optionalPrefix = "consumer.")
+    @UriParam
     private String namedQuery;
-    @UriParam(optionalPrefix = "consumer.")
+    @UriParam
     private String nativeQuery;
-    @UriParam(label = "consumer", optionalPrefix = "consumer.", defaultValue = "PESSIMISTIC_WRITE")
+    @UriParam(label = "consumer", defaultValue = "PESSIMISTIC_WRITE")
     private LockModeType lockModeType = LockModeType.PESSIMISTIC_WRITE;
-    @UriParam(optionalPrefix = "consumer.", multiValue = true)
+    @UriParam(label = "consumer,advanced", multiValue = true)
     private Map<String, Object> parameters;
-    @UriParam(optionalPrefix = "consumer.")
+    @UriParam
     private Class<?> resultClass;
-    @UriParam(label = "consumer", optionalPrefix = "consumer.")
+    @UriParam(label = "consumer")
     private boolean transacted;
-    @UriParam(label = "consumer", optionalPrefix = "consumer.")
+    @UriParam(label = "consumer")
     private boolean skipLockedEntity;
-    @UriParam(label = "consumer", optionalPrefix = "consumer.")
+    @UriParam(label = "consumer")
     private DeleteHandler<Object> deleteHandler;
-    @UriParam(label = "consumer", optionalPrefix = "consumer.")
+    @UriParam(label = "consumer")
     private DeleteHandler<Object> preDeleteHandler;
 
     @UriParam(label = "producer", defaultValue = "true")
     private boolean flushOnSend = true;
     @UriParam(label = "producer")
     private boolean usePersist;
-    @UriParam(label = "producer")
+    @UriParam(label = "producer,advanced")
     private boolean usePassedInEntityManager;
     @UriParam(label = "producer")
     private boolean remove;
     @UriParam(label = "producer")
     private Boolean useExecuteUpdate;
+    @UriParam(label = "producer")
+    private boolean findEntity;
 
     @UriParam(label = "advanced", prefix = "emf.", multiValue = true)
     private Map<String, Object> entityManagerProperties;
-
 
     public JpaEndpoint() {
     }
 
     public JpaEndpoint(String uri, JpaComponent component) {
         super(uri, component);
-        if (component != null) {
-            entityManagerFactory = component.getEntityManagerFactory();
-            transactionManager = component.getTransactionManager();
-        }
     }
 
     @Override
@@ -124,6 +123,7 @@ public class JpaEndpoint extends ScheduledPollEndpoint {
         return (JpaComponent) super.getComponent();
     }
 
+    @Override
     public Producer createProducer() throws Exception {
         validate();
         JpaProducer producer = new JpaProducer(this, getProducerExpression());
@@ -132,10 +132,12 @@ public class JpaEndpoint extends ScheduledPollEndpoint {
         producer.setNativeQuery(getNativeQuery());
         producer.setParameters(getParameters());
         producer.setResultClass(getResultClass());
-        producer.setUseExecuteUpdate(isUseExecuteUpdate());
+        producer.setFindEntity(isFindEntity());
+        producer.setUseExecuteUpdate(getUseExecuteUpdate());
         return producer;
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         validate();
         JpaConsumer consumer = new JpaConsumer(this, processor);
@@ -168,18 +170,17 @@ public class JpaEndpoint extends ScheduledPollEndpoint {
 
     @Override
     public void configureProperties(Map<String, Object> options) {
-        super.configureProperties(options);
-        Map<String, Object> emProperties = IntrospectionSupport.extractProperties(options, "emf.");
-        if (emProperties != null) {
+        Map<String, Object> emProperties = PropertiesHelper.extractProperties(options, "emf.");
+        if (!emProperties.isEmpty()) {
             setEntityManagerProperties(emProperties);
         }
+        super.configureProperties(options);
     }
 
     @Override
     protected String createEndpointUri() {
         return "jpa" + (entityType != null ? "://" + entityType.getName() : "");
     }
-
 
     // Properties
     // -------------------------------------------------------------------------
@@ -314,7 +315,7 @@ public class JpaEndpoint extends ScheduledPollEndpoint {
     public void setMaxMessagesPerPoll(int maxMessagesPerPoll) {
         this.maxMessagesPerPoll = maxMessagesPerPoll;
     }
-    
+
     public boolean isUsePersist() {
         return usePersist;
     }
@@ -496,7 +497,7 @@ public class JpaEndpoint extends ScheduledPollEndpoint {
         this.preDeleteHandler = preDeleteHandler;
     }
 
-    public Boolean isUseExecuteUpdate() {
+    public Boolean getUseExecuteUpdate() {
         return useExecuteUpdate;
     }
 
@@ -507,6 +508,18 @@ public class JpaEndpoint extends ScheduledPollEndpoint {
      */
     public void setUseExecuteUpdate(Boolean useExecuteUpdate) {
         this.useExecuteUpdate = useExecuteUpdate;
+    }
+
+    public boolean isFindEntity() {
+        return findEntity;
+    }
+
+    /**
+     * If enabled then the producer will find a single entity by using the message body as key and entityType as the class type.
+     * This can be used instead of a query to find a single entity.
+     */
+    public void setFindEntity(boolean findEntity) {
+        this.findEntity = findEntity;
     }
 
     // Implementation methods
@@ -570,4 +583,15 @@ public class JpaEndpoint extends ScheduledPollEndpoint {
         };
     }
 
+    @Override
+    protected void doInit() throws Exception {
+        super.doInit();
+
+        if (entityManagerFactory == null && getComponent() != null) {
+            entityManagerFactory = getComponent().getEntityManagerFactory();
+        }
+        if (transactionManager == null && getComponent() != null) {
+            transactionManager = getComponent().getTransactionManager();
+        }
+    }
 }

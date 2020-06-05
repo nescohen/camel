@@ -19,14 +19,14 @@ package org.apache.camel.component.bean;
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Expression;
 import org.apache.camel.NoSuchBeanException;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class BeanRegistryBeanTest extends ContextTestSupport {
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("foo", new MyFooBean());
         jndi.bind("static", MyFooBean.class);
         return jndi;
@@ -36,7 +36,7 @@ public class BeanRegistryBeanTest extends ContextTestSupport {
     public void testNoBean() {
         RegistryBean rb = new RegistryBean(context, "bar");
         try {
-            rb.getBean();
+            rb.getBean(null);
             fail("Should have thrown exception");
         } catch (NoSuchBeanException e) {
             assertEquals("bar", e.getName());
@@ -46,7 +46,7 @@ public class BeanRegistryBeanTest extends ContextTestSupport {
     @Test
     public void testBean() {
         RegistryBean rb = new RegistryBean(context, "foo");
-        Object bean = rb.getBean();
+        Object bean = rb.getBean(null);
         assertIsInstanceOf(MyFooBean.class, bean);
 
         assertNotNull(rb.getContext());
@@ -65,7 +65,7 @@ public class BeanRegistryBeanTest extends ContextTestSupport {
         };
         rb.setParameterMappingStrategy(myStrategy);
 
-        Object bean = rb.getBean();
+        Object bean = rb.getBean(null);
         assertIsInstanceOf(MyFooBean.class, bean);
 
         assertNotNull(rb.getContext());
@@ -78,7 +78,7 @@ public class BeanRegistryBeanTest extends ContextTestSupport {
     public void testLookupClass() throws Exception {
         RegistryBean rb = new RegistryBean(context, "static");
 
-        Object bean = rb.getBean();
+        Object bean = rb.getBean(null);
         MyFooBean foo = assertIsInstanceOf(MyFooBean.class, bean);
         assertEquals("foofoo", foo.echo("foo"));
     }
@@ -87,7 +87,7 @@ public class BeanRegistryBeanTest extends ContextTestSupport {
     public void testLookupFQNClass() throws Exception {
         RegistryBean rb = new RegistryBean(context, "org.apache.camel.component.bean.MyDummyBean");
 
-        Object bean = rb.getBean();
+        Object bean = rb.getBean(null);
         MyDummyBean dummy = assertIsInstanceOf(MyDummyBean.class, bean);
         assertEquals("Hello World", dummy.hello("World"));
     }
@@ -100,5 +100,4 @@ public class BeanRegistryBeanTest extends ContextTestSupport {
 
     }
 
-    
 }

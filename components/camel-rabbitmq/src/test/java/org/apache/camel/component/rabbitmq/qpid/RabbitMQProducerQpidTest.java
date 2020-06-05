@@ -15,15 +15,21 @@
  * limitations under the License.
  */
 package org.apache.camel.component.rabbitmq.qpid;
+
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.camel.component.rabbitmq.RabbitMQProducerIntTest;
+import org.apache.camel.component.rabbitmq.integration.RabbitMQProducerIntTest;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 
 public class RabbitMQProducerQpidTest extends RabbitMQProducerIntTest {
+    @Override
+    public boolean isStartDocker() {
+        return false;
+    }
+
     @BeforeClass
     public static void startBroker() throws Exception {
         systemLauncher.startup(createQpidSystemConfig());
@@ -33,12 +39,12 @@ public class RabbitMQProducerQpidTest extends RabbitMQProducerIntTest {
     public static void stopBroker() {
         systemLauncher.shutdown();
     }
-    
+
     @Ignore
     @Override
     public void producedMessageIsReceivedWhenPublisherAcknowledgementsAreEnabledAndBadRoutingKeyIsUsed() throws InterruptedException, IOException, TimeoutException {
     }
-    
+
     @Ignore
     @Override
     public void shouldSuccessfullyProduceMessageWhenGuaranteedDeliveryIsActivatedOnABadRouteButMessageIsNotMandatory() throws InterruptedException, IOException, TimeoutException {

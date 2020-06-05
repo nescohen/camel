@@ -18,9 +18,9 @@ package org.apache.camel.component.file.remote;
 
 public class FtpProducerFileExistOverrideNotEagerDeleteTargetFileTwoUploadTest extends FtpProducerFileExistOverrideTwoUploadTest {
 
+    @Override
     protected String getFtpUrl() {
         return "ftp://admin@localhost:" + getPort() + "/exist?password=admin&tempPrefix=upload-&fileExist=Override&disconnect=true&eagerDeleteTargetFile=false";
     }
 
 }
-

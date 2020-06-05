@@ -34,6 +34,7 @@ import org.w3c.dom.NodeList;
 
 import org.apache.camel.core.xml.CamelJMXAgentDefinition;
 import org.apache.camel.core.xml.CamelPropertyPlaceholderDefinition;
+import org.apache.camel.core.xml.CamelRouteControllerDefinition;
 import org.apache.camel.core.xml.CamelStreamCachingStrategyDefinition;
 import org.apache.camel.impl.engine.DefaultCamelContextNameStrategy;
 import org.apache.camel.spi.CamelContextNameStrategy;
@@ -124,6 +125,7 @@ public class CamelNamespaceHandler extends NamespaceHandlerSupport {
         }
     }
 
+    @Override
     public void init() {
         // register restContext parser
         registerParser("restContext", new RestContextDefinitionParser());
@@ -148,6 +150,7 @@ public class CamelNamespaceHandler extends NamespaceHandlerSupport {
         addBeanDefinitionParser("jmxAgent", CamelJMXAgentDefinition.class, false, false);
         addBeanDefinitionParser("streamCaching", CamelStreamCachingStrategyDefinition.class, false, false);
         addBeanDefinitionParser("propertyPlaceholder", CamelPropertyPlaceholderDefinition.class, false, false);
+        addBeanDefinitionParser("routeController", CamelRouteControllerDefinition.class, false, false);
 
         // error handler could be the sub element of camelContext or defined outside camelContext
         BeanDefinitionParser errorHandlerParser = new ErrorHandlerDefinitionParser();
@@ -377,6 +380,7 @@ public class CamelNamespaceHandler extends NamespaceHandlerSupport {
                 builder.addPropertyValue("camelPropertyPlaceholder", factoryBean.getCamelPropertyPlaceholder());
                 builder.addPropertyValue("camelJMXAgent", factoryBean.getCamelJMXAgent());
                 builder.addPropertyValue("camelStreamCachingStrategy", factoryBean.getCamelStreamCachingStrategy());
+                builder.addPropertyValue("camelRouteController", factoryBean.getCamelRouteController());
                 builder.addPropertyValue("threadPoolProfiles", factoryBean.getThreadPoolProfiles());
                 builder.addPropertyValue("beansFactory", factoryBean.getBeansFactory());
                 builder.addPropertyValue("beans", factoryBean.getBeans());

@@ -20,14 +20,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.iron.ironmq.Message;
-
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Test;
-
 
 public class IronMQBatchConsumerTest extends CamelTestSupport {
 
@@ -65,6 +63,7 @@ public class IronMQBatchConsumerTest extends CamelTestSupport {
 
         CamelContext context = super.createCamelContext();
         IronMQComponent component = new IronMQComponent(context);
+        component.init();
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("projectId", "dummy");
         parameters.put("token", "dummy");

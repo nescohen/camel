@@ -15,14 +15,15 @@
  * limitations under the License.
  */
 package org.apache.camel.component.file;
+
 import java.io.File;
 
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
 import org.apache.camel.spi.IdempotentRepository;
+import org.apache.camel.spi.Registry;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,8 +35,8 @@ public class FileConsumerIdempotentRefTest extends ContextTestSupport {
     private static volatile boolean invoked;
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myRepo", new MyIdempotentRepository());
         return jndi;
     }
@@ -52,8 +53,8 @@ public class FileConsumerIdempotentRefTest extends ContextTestSupport {
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {
-                from("file://target/data/idempotent/?idempotent=true&idempotentRepository=#myRepo&move=done/${file:name}&initialDelay=0&delay=10")
-                        .convertBodyTo(String.class).to("mock:result");
+                from("file://target/data/idempotent/?idempotent=true&idempotentRepository=#myRepo&move=done/${file:name}&initialDelay=0&delay=10").convertBodyTo(String.class)
+                    .to("mock:result");
             }
         };
     }
@@ -87,6 +88,7 @@ public class FileConsumerIdempotentRefTest extends ContextTestSupport {
 
     public class MyIdempotentRepository implements IdempotentRepository {
 
+        @Override
         public boolean add(String messageId) {
             // will return true 1st time, and false 2nd time
             boolean result = invoked;
@@ -95,28 +97,33 @@ public class FileConsumerIdempotentRefTest extends ContextTestSupport {
             return !result;
         }
 
+        @Override
         public boolean contains(String key) {
             return invoked;
         }
 
+        @Override
         public boolean remove(String key) {
             return true;
         }
 
+        @Override
         public boolean confirm(String key) {
             return true;
         }
-        
+
         @Override
         public void clear() {
-            return;  
+            return;
         }
 
+        @Override
         public void start() {
         }
 
+        @Override
         public void stop() {
         }
     }
-    
+
 }

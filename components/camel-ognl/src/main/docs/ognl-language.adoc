@@ -1,7 +1,12 @@
 [[ognl-language]]
-== OGNL Language
+= OGNL Language
+:docTitle: OGNL
+:artifactId: camel-ognl
+:description: Evaluate an Apache Commons Object Graph Navigation Library (OGNL) expression against the Camel Exchange.
+:since: 1.1
+:supportLevel: Stable
 
-*Available as of Camel version 1.1*
+*Since Camel {since}*
 
 Camel allows http://commons.apache.org/proper/commons-ognl/[OGNL] to be
 used as an Expression or
@@ -24,7 +29,7 @@ you can construct the syntax as follows:
 "getRequest().getBody().getFamilyName()"
 ----------------------------------------
 
-### OGNL Options
+== OGNL Options
 
 
 // language options: START
@@ -38,38 +43,11 @@ The OGNL language supports 1 options, which are listed below.
 | trim | true | Boolean | Whether to trim the value to remove leading and trailing whitespaces and line breaks
 |===
 // language options: END
-// spring-boot-auto-configure options: START
-=== Spring Boot Auto-Configuration
-
-When using Spring Boot make sure to use the following Maven dependency to have support for auto configuration:
-
-[source,xml]
-----
-<dependency>
-  <groupId>org.apache.camel</groupId>
-  <artifactId>camel-ognl-starter</artifactId>
-  <version>x.x.x</version>
-  <!-- use the same version as your Camel core version -->
-</dependency>
-----
-
-
-The component supports 2 options, which are listed below.
-
-
-
-[width="100%",cols="2,5,^1,2",options="header"]
-|===
-| Name | Description | Default | Type
-| *camel.language.ognl.enabled* | Enable ognl language | true | Boolean
-| *camel.language.ognl.trim* | Whether to trim the value to remove leading and trailing whitespaces and line breaks | true | Boolean
-|===
-// spring-boot-auto-configure options: END
 
 
 
 
-### Variables
+== Variables
 
 [width="100%",cols="10%,10%,80%",options="header",]
 |=======================================================================
@@ -96,9 +74,9 @@ The component supports 2 options, which are listed below.
 |property(name, type) |Type |the property by the given name as the given type
 |=======================================================================
 
-### Samples
+== Samples
 
-For example you could use OGNL inside a xref:message-filter.adoc[Message
+For example you could use OGNL inside a xref:{eip-vc}:eips:filter-eip.adoc[Message
 Filter] in XML
 
 [source,java]
@@ -116,12 +94,12 @@ And the sample using Java DSL:
 
 [source,java]
 ---------------------------------------------------------------------------------
-   from("seda:foo").filter().ognl("request.headers.foo == 'bar'").to("seda:bar");
+from("seda:foo").filter().ognl("request.headers.foo == 'bar'").to("seda:bar");
 ---------------------------------------------------------------------------------
 
-### Loading script from external resource
+== Loading script from external resource
 
-*Available as of Camel 2.11*
+*Since Camel 2.11*
 
 You can externalize the script and have Camel load it from a resource
 such as `"classpath:"`, `"file:"`, or `"http:"`. +
@@ -133,7 +111,7 @@ eg to refer to a file on the classpath you can do:
 .setHeader("myHeader").ognl("resource:classpath:myognl.txt")
 ------------------------------------------------------------
 
-### Dependencies
+== Dependencies
 
 To use OGNL in your camel routes you need to add the a dependency on
 *camel-ognl* which implements the OGNL language.
@@ -152,4 +130,6 @@ the download page for the latest versions).
 -------------------------------------
 
 Otherwise, you'll also need
-http://repo2.maven.org/maven2/org/apache/servicemix/bundles/org.apache.servicemix.bundles.ognl/2.7.3_4/org.apache.servicemix.bundles.ognl-2.7.3_4.jar[OGNL]
+https://repo1.maven.org/maven2/org/apache/servicemix/bundles/org.apache.servicemix.bundles.ognl/2.7.3_4/org.apache.servicemix.bundles.ognl-2.7.3_4.jar[OGNL]
+
+include::camel-spring-boot::page$ognl-starter.adoc[]

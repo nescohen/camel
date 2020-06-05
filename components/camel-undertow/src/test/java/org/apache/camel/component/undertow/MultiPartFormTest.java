@@ -21,9 +21,7 @@ import java.util.Map;
 
 import javax.activation.DataHandler;
 
-import org.apache.camel.Exchange;
-import org.apache.camel.Message;
-import org.apache.camel.Processor;
+import org.apache.camel.attachment.AttachmentMessage;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.util.IOHelper;
 import org.apache.http.HttpEntity;
@@ -34,13 +32,13 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.junit.Test;
 
 public class MultiPartFormTest extends BaseUndertowTest {
+
     private HttpEntity createMultipartRequestEntity() throws Exception {
         File file = new File("src/test/resources/log4j2.properties");
         return MultipartEntityBuilder.create()
                 .addTextBody("comment", "A binary file of some kind")
                 .addBinaryBody(file.getName(), file)
                 .build();
-
     }
 
     @Test
@@ -63,30 +61,27 @@ public class MultiPartFormTest extends BaseUndertowTest {
         assertEquals("Get a wrong result", "A binary file of some kind", result);
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {
-                from("undertow://http://localhost:{{port}}/test").process(new Processor() {
+                from("undertow://http://localhost:{{port}}/test").process(exchange -> {
+                    AttachmentMessage in = exchange.getIn(AttachmentMessage.class);
+                    assertEquals("Get a wrong attachement size", 1, in.getAttachments().size());
+                    // The file name is attachment id
+                    DataHandler data = in.getAttachment("log4j2.properties");
 
-                    public void process(Exchange exchange) throws Exception {
-                        Message in = exchange.getIn();
-                        assertEquals("Get a wrong attachement size", 1, in.getAttachments().size());
-                        // The file name is attachment id
-                        DataHandler data = in.getAttachment("log4j2.properties");
+                    assertNotNull("Should get the DataHandler log4j2.properties", data);
+                    assertEquals("Got the wrong name", "log4j2.properties", data.getName());
 
-                        assertNotNull("Should get the DataHandler log4j2.properties", data);
-                        assertEquals("Got the wrong name", "log4j2.properties", data.getName());
+                    assertTrue("We should get the data from the DataHandler", data.getDataSource()
+                        .getInputStream().available() > 0);
 
-                        assertTrue("We should get the data from the DataHandler", data.getDataSource()
-                            .getInputStream().available() > 0);
-
-                        // form data should also be available as a body
-                        Map body = in.getBody(Map.class);
-                        assertEquals("A binary file of some kind", body.get("comment"));
-                        assertEquals(data, body.get("log4j2.properties"));
-                        exchange.getOut().setBody(in.getHeader("comment"));
-                    }
-
+                    // form data should also be available as a body
+                    Map body = in.getBody(Map.class);
+                    assertEquals("A binary file of some kind", body.get("comment"));
+                    assertEquals(data, body.get("log4j2.properties"));
+                    exchange.getMessage().setBody(in.getHeader("comment"));
                 });
                 // END SNIPPET: e1
             }

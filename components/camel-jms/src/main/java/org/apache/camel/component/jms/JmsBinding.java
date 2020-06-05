@@ -109,7 +109,7 @@ public class JmsBinding {
             this.messageCreatedStrategy = endpoint.getMessageCreatedStrategy();
         } else if (endpoint.getComponent() != null) {
             // fallback and use from component
-            this.messageCreatedStrategy = endpoint.getComponent().getMessageCreatedStrategy();
+            this.messageCreatedStrategy = endpoint.getComponent().getConfiguration().getMessageCreatedStrategy();
         } else {
             this.messageCreatedStrategy = null;
         }
@@ -211,7 +211,7 @@ public class JmsBinding {
                 try {
                     Object value = JmsMessageHelper.getProperty(jmsMessage, name);
                     if (headerFilterStrategy != null
-                        && headerFilterStrategy.applyFilterToExternalHeaders(name, value, exchange)) {
+                            && headerFilterStrategy.applyFilterToExternalHeaders(name, value, exchange)) {
                         continue;
                     }
 
@@ -245,7 +245,8 @@ public class JmsBinding {
 
     protected Object createByteArrayFromBytesMessage(Exchange exchange, BytesMessage message) throws JMSException {
         // ActiveMQ has special optimised mode for bytes message, so we should use streaming if possible
-        Long size = getSafeLongProperty(message, "_AMQ_LARGE_SIZE");
+        boolean artemis = endpoint != null && endpoint.isArtemisStreamingEnabled();
+        Long size = artemis ? getSafeLongProperty(message, "_AMQ_LARGE_SIZE") : null;
         if (size != null && size > 0) {
             LOG.trace("Optimised for Artemis: Reading from BytesMessage in streaming mode directly into CachedOutputStream payload");
             CachedOutputStream cos = new CachedOutputStream(exchange, true);
@@ -363,7 +364,7 @@ public class JmsBinding {
      * Appends the JMS headers from the Camel {@link JmsMessage}
      */
     public void appendJmsProperties(Message jmsMessage, Exchange exchange, org.apache.camel.Message in) throws JMSException {
-        Set<Map.Entry<String, Object>> entries = in.getHeaders().entrySet();        
+        Set<Map.Entry<String, Object>> entries = in.getHeaders().entrySet();
         for (Map.Entry<String, Object> entry : entries) {
             String headerName = entry.getKey();
             Object headerValue = entry.getValue();
@@ -374,7 +375,7 @@ public class JmsBinding {
     public void appendJmsProperty(Message jmsMessage, Exchange exchange, org.apache.camel.Message in,
                                   String headerName, Object headerValue) throws JMSException {
         if (isStandardJMSHeader(headerName)) {
-            if (headerName.equals("JMSCorrelationID")) {
+            if (headerName.equals("JMSCorrelationID") && (endpoint == null || !endpoint.isUseMessageIDAsCorrelationID())) {
                 jmsMessage.setJMSCorrelationID(ExchangeHelper.convertToType(exchange, String.class, headerValue));
             } else if (headerName.equals("JMSReplyTo") && headerValue != null) {
                 if (headerValue instanceof String) {
@@ -405,7 +406,7 @@ public class JmsBinding {
             // see message properties: http://java.sun.com/j2ee/1.4/docs/api/javax/jms/Message.html
             Object value = getValidJMSHeaderValue(headerName, headerValue);
             // if the value was null, then it may be allowed as an additional header
-            if (value == null && endpoint.getConfiguration().getAllowAdditionalHeaders() != null) {
+            if (value == null && (endpoint != null && endpoint.getConfiguration().getAllowAdditionalHeaders() != null)) {
                 Iterator it = ObjectHelper.createIterator(endpoint.getConfiguration().getAllowAdditionalHeaders());
                 while (it.hasNext()) {
                     String pattern = (String) it.next();
@@ -448,7 +449,7 @@ public class JmsBinding {
 
         // the 4th char must be a letter to be a standard JMS header
         if (headerName.length() > 3) {
-            Character fourth = headerName.charAt(3);
+            char fourth = headerName.charAt(3);
             if (Character.isLetter(fourth)) {
                 return true;
             }
@@ -510,14 +511,7 @@ public class JmsBinding {
     }
 
     protected Message createJmsMessage(Exchange exchange, org.apache.camel.Message camelMessage, Session session, CamelContext context) throws JMSException {
-        Message answer = createJmsMessage(exchange, camelMessage.getBody(), camelMessage.getHeaders(), session, context);
-
-        // special for transferFault
-        boolean isFault = camelMessage.isFault();
-        if (answer != null && isFault && endpoint != null && endpoint.isTransferFault()) {
-            answer.setBooleanProperty(JmsConstants.JMS_TRANSFER_FAULT, true);
-        }
-        return answer;
+        return createJmsMessage(exchange, camelMessage.getBody(), camelMessage.getHeaders(), session, context);
     }
 
     protected Message createJmsMessage(Exchange exchange, Object body, Map<String, Object> headers, Session session, CamelContext context) throws JMSException {
@@ -526,7 +520,7 @@ public class JmsBinding {
         // special for transferExchange
         if (endpoint != null && endpoint.isTransferExchange()) {
             LOG.trace("Option transferExchange=true so we use JmsMessageType: Object");
-            Serializable holder = DefaultExchangeHolder.marshal(exchange, true, endpoint.isAllowSerializedHeaders());
+            Serializable holder = DefaultExchangeHolder.marshal(exchange, true, endpoint.isAllowSerializedHeaders(), false);
             Message answer = session.createObjectMessage(holder);
             // ensure default delivery mode is used by default
             answer.setJMSDeliveryMode(Message.DEFAULT_DELIVERY_MODE);
@@ -585,8 +579,8 @@ public class JmsBinding {
     }
 
     /**
-     * Return the {@link JmsMessageType} 
-     * 
+     * Return the {@link JmsMessageType}
+     *
      * @return type or null if no mapping was possible
      */
     protected JmsMessageType getJMSMessageTypeForBody(Exchange exchange, Object body, Map<String, Object> headers, Session session, CamelContext context) {
@@ -604,14 +598,14 @@ public class JmsBinding {
         } else if (body instanceof Map) {
             type = Map;
         } else if (body instanceof Serializable) {
-            type = Object;            
+            type = Object;
         } else if (exchange.getContext().getTypeConverter().tryConvertTo(File.class, body) != null
                 || exchange.getContext().getTypeConverter().tryConvertTo(InputStream.class, body) != null) {
             type = streamingEnabled ? Stream : Bytes;
         }
 
         if (type == Stream) {
-            boolean artemis = isVendor(session, "Artemis");
+            boolean artemis = endpoint.isArtemisStreamingEnabled() && isVendor(session, "Artemis");
             if (artemis) {
                 // if running ActiveMQ Artemis then it has optimised streaming mode using byte messages so enforce as bytes
                 type = Bytes;
@@ -620,100 +614,100 @@ public class JmsBinding {
 
         return type;
     }
-    
+
     /**
-     * 
-     * Create the {@link Message} 
-     * 
+     *
+     * Create the {@link Message}
+     *
      * @return jmsMessage or null if the mapping was not successfully
      */
     protected Message createJmsMessageForType(Exchange exchange, Object body, Map<String, Object> headers, Session session, CamelContext context, JmsMessageType type) throws JMSException {
         switch (type) {
-        case Text: {
-            TextMessage message = session.createTextMessage();
-            if (body != null) {
-                String payload = context.getTypeConverter().convertTo(String.class, exchange, body);
-                message.setText(payload);
-            }
-            return message;
-        }
-        case Bytes: {
-            BytesMessage message = session.createBytesMessage();
-            if (body != null) {
-                try {
-                    if (isVendor(session, "Artemis")) {
-                        LOG.trace("Optimised for Artemis: Streaming payload in BytesMessage");
-                        InputStream is = context.getTypeConverter().mandatoryConvertTo(InputStream.class, exchange, body);
-                        message.setObjectProperty("JMS_AMQ_InputStream", is);
-                        LOG.trace("Optimised for Artemis: Finished streaming payload in BytesMessage");
-                    } else {
-                        byte[] payload = context.getTypeConverter().mandatoryConvertTo(byte[].class, exchange, body);
-                        message.writeBytes(payload);
-                    }
-                } catch (NoTypeConversionAvailableException e) {
-                    // cannot convert to inputstream then thrown an exception to avoid sending a null message
-                    JMSException cause = new MessageFormatException(e.getMessage());
-                    cause.initCause(e);
-                    throw cause;
+            case Text: {
+                TextMessage message = session.createTextMessage();
+                if (body != null) {
+                    String payload = context.getTypeConverter().convertTo(String.class, exchange, body);
+                    message.setText(payload);
                 }
+                return message;
             }
-            return message;
-        }
-        case Map: {
-            MapMessage message = session.createMapMessage();
-            if (body != null) {
-                Map<?, ?> payload = context.getTypeConverter().convertTo(Map.class, exchange, body);
-                populateMapMessage(message, payload, context);
-            }
-            return message;
-        }
-        case Object: {
-            ObjectMessage message = session.createObjectMessage();
-            if (body != null) {
-                try {
-                    Serializable payload = context.getTypeConverter().mandatoryConvertTo(Serializable.class, exchange, body);
-                    message.setObject(payload);
-                } catch (NoTypeConversionAvailableException e) {
-                    // cannot convert to serializable then thrown an exception to avoid sending a null message
-                    JMSException cause = new MessageFormatException(e.getMessage());
-                    cause.initCause(e);
-                    throw cause;
-                }
-            }
-            return message;
-        }
-        case Stream: {
-            StreamMessage message = session.createStreamMessage();
-            if (body != null) {
-                long size = 0;
-                try {
-                    InputStream is = context.getTypeConverter().mandatoryConvertTo(InputStream.class, exchange, body);
-                    LOG.trace("Writing payload in StreamMessage");
-                    // assume streaming is bigger payload so use same buffer size as the file component
-                    byte[] buffer = new byte[FileUtil.BUFFER_SIZE];
-                    int len = 0;
-                    int count = 0;
-                    while (len >= 0) {
-                        count++;
-                        len = is.read(buffer);
-                        if (len >= 0) {
-                            size += len;
-                            LOG.trace("Writing payload chunk {} as bytes in StreamMessage", count);
-                            message.writeBytes(buffer, 0, len);
+            case Bytes: {
+                BytesMessage message = session.createBytesMessage();
+                if (body != null) {
+                    try {
+                        if (endpoint.isArtemisStreamingEnabled() && isVendor(session, "Artemis")) {
+                            LOG.trace("Optimised for Artemis: Streaming payload in BytesMessage");
+                            InputStream is = context.getTypeConverter().mandatoryConvertTo(InputStream.class, exchange, body);
+                            message.setObjectProperty("JMS_AMQ_InputStream", is);
+                            LOG.trace("Optimised for Artemis: Finished streaming payload in BytesMessage");
+                        } else {
+                            byte[] payload = context.getTypeConverter().mandatoryConvertTo(byte[].class, exchange, body);
+                            message.writeBytes(payload);
                         }
+                    } catch (NoTypeConversionAvailableException e) {
+                        // cannot convert to inputstream then thrown an exception to avoid sending a null message
+                        JMSException cause = new MessageFormatException(e.getMessage());
+                        cause.initCause(e);
+                        throw cause;
                     }
-                    LOG.trace("Finished writing payload (size {}) as bytes in StreamMessage", size);
-                } catch (NoTypeConversionAvailableException | IOException e) {
-                    // cannot convert to inputstream then thrown an exception to avoid sending a null message
-                    JMSException cause = new MessageFormatException(e.getMessage());
-                    cause.initCause(e);
-                    throw cause;
                 }
+                return message;
             }
-            return message;
-        }
-        default:
-            break;
+            case Map: {
+                MapMessage message = session.createMapMessage();
+                if (body != null) {
+                    Map<?, ?> payload = context.getTypeConverter().convertTo(Map.class, exchange, body);
+                    populateMapMessage(message, payload, context);
+                }
+                return message;
+            }
+            case Object: {
+                ObjectMessage message = session.createObjectMessage();
+                if (body != null) {
+                    try {
+                        Serializable payload = context.getTypeConverter().mandatoryConvertTo(Serializable.class, exchange, body);
+                        message.setObject(payload);
+                    } catch (NoTypeConversionAvailableException e) {
+                        // cannot convert to serializable then thrown an exception to avoid sending a null message
+                        JMSException cause = new MessageFormatException(e.getMessage());
+                        cause.initCause(e);
+                        throw cause;
+                    }
+                }
+                return message;
+            }
+            case Stream: {
+                StreamMessage message = session.createStreamMessage();
+                if (body != null) {
+                    long size = 0;
+                    try {
+                        InputStream is = context.getTypeConverter().mandatoryConvertTo(InputStream.class, exchange, body);
+                        LOG.trace("Writing payload in StreamMessage");
+                        // assume streaming is bigger payload so use same buffer size as the file component
+                        byte[] buffer = new byte[FileUtil.BUFFER_SIZE];
+                        int len = 0;
+                        int count = 0;
+                        while (len >= 0) {
+                            count++;
+                            len = is.read(buffer);
+                            if (len >= 0) {
+                                size += len;
+                                LOG.trace("Writing payload chunk {} as bytes in StreamMessage", count);
+                                message.writeBytes(buffer, 0, len);
+                            }
+                        }
+                        LOG.trace("Finished writing payload (size {}) as bytes in StreamMessage", size);
+                    } catch (NoTypeConversionAvailableException | IOException e) {
+                        // cannot convert to inputstream then thrown an exception to avoid sending a null message
+                        JMSException cause = new MessageFormatException(e.getMessage());
+                        cause.initCause(e);
+                        throw cause;
+                    }
+                }
+                return message;
+            }
+            default:
+                break;
         }
         return null;
     }
@@ -721,7 +715,7 @@ public class JmsBinding {
      * Populates a {@link MapMessage} from a {@link Map} instance.
      */
     protected void populateMapMessage(MapMessage message, Map<?, ?> map, CamelContext context)
-        throws JMSException {
+            throws JMSException {
         for (Entry<?, ?> entry : map.entrySet()) {
             String keyString = CamelContextHelper.convertTo(context, String.class, entry.getKey());
             if (keyString != null) {
@@ -752,7 +746,7 @@ public class JmsBinding {
     protected boolean shouldOutputHeader(org.apache.camel.Message camelMessage, String headerName,
                                          Object headerValue, Exchange exchange) {
         return headerFilterStrategy == null
-            || !headerFilterStrategy.applyFilterToCamelHeaders(headerName, headerValue, exchange);
+                || !headerFilterStrategy.applyFilterToCamelHeaders(headerName, headerValue, exchange);
     }
 
 }

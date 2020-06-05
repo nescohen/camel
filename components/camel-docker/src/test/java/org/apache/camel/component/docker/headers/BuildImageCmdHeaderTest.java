@@ -16,7 +16,6 @@
  */
 package org.apache.camel.component.docker.headers;
 
-
 import java.io.File;
 import java.io.InputStream;
 import java.util.Map;
@@ -25,7 +24,7 @@ import com.github.dockerjava.api.command.BuildImageCmd;
 import com.github.dockerjava.core.command.BuildImageResultCallback;
 import org.apache.camel.component.docker.DockerConstants;
 import org.apache.camel.component.docker.DockerOperation;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -56,7 +55,10 @@ public class BuildImageCmdHeaderTest extends BaseDockerHeaderTest<BuildImageCmd>
     private String tag = "1.0";
 
     @Test
-    public void buildImageFromInputStreamHeaderTest() {
+    void buildImageFromInputStreamHeaderTest() {
+        Mockito.when(dockerClient.buildImageCmd(any(InputStream.class))).thenReturn(mockObject);
+        Mockito.when(mockObject.exec(any())).thenReturn(callback);
+        Mockito.when(callback.awaitImageId()).thenReturn(anyString());
 
         template.sendBodyAndHeaders("direct:in", inputStream, getHeaders());
 
@@ -69,7 +71,10 @@ public class BuildImageCmdHeaderTest extends BaseDockerHeaderTest<BuildImageCmd>
     }
 
     @Test
-    public void buildImageFromFileHeaderTest() {
+    void buildImageFromFileHeaderTest() {
+        Mockito.when(dockerClient.buildImageCmd(any(File.class))).thenReturn(mockObject);
+        Mockito.when(mockObject.exec(any())).thenReturn(callback);
+        Mockito.when(callback.awaitImageId()).thenReturn(anyString());
 
         template.sendBodyAndHeaders("direct:in", file, getHeaders());
 
@@ -83,11 +88,6 @@ public class BuildImageCmdHeaderTest extends BaseDockerHeaderTest<BuildImageCmd>
 
     @Override
     protected void setupMocks() {
-        Mockito.when(dockerClient.buildImageCmd(any(InputStream.class))).thenReturn(mockObject);
-        Mockito.when(dockerClient.buildImageCmd(any(File.class))).thenReturn(mockObject);
-
-        Mockito.when(mockObject.exec(any())).thenReturn(callback);
-        Mockito.when(callback.awaitImageId()).thenReturn(anyString());
     }
 
     @Override

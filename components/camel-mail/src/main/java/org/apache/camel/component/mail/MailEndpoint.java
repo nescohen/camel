@@ -20,6 +20,7 @@ import javax.mail.Message;
 import javax.mail.search.SearchTerm;
 
 import com.sun.mail.imap.SortTerm;
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
@@ -32,14 +33,14 @@ import org.apache.camel.spi.UriParam;
 import org.apache.camel.support.ScheduledPollEndpoint;
 
 /**
- * To send or receive emails using imap/pop3 or smtp protocols.
+ * Send and receive emails using imap, pop3 and smtp protocols.
  */
 @UriEndpoint(firstVersion = "1.0.0", scheme = "imap,imaps,pop3,pop3s,smtp,smtps", title = "IMAP,IMAPS,POP3,POP3S,SMTP,SMTPS",
         syntax = "imap:host:port", alternativeSyntax = "imap:username:password@host:port",
-        label = "mail")
+        category = {Category.MAIL})
 public class MailEndpoint extends ScheduledPollEndpoint implements HeaderFilterStrategyAware {
 
-    @UriParam(optionalPrefix = "consumer.", defaultValue = "" + MailConsumer.DEFAULT_CONSUMER_DELAY, label = "consumer,scheduler",
+    @UriParam(defaultValue = "" + MailConsumer.DEFAULT_CONSUMER_DELAY, javaType = "java.time.Duration", label = "consumer,scheduler",
             description = "Milliseconds before the next poll.")
     private long delay = MailConsumer.DEFAULT_CONSUMER_DELAY;
 
@@ -55,7 +56,7 @@ public class MailEndpoint extends ScheduledPollEndpoint implements HeaderFilterS
     private int maxMessagesPerPoll;
     @UriParam(label = "consumer,filter", prefix = "searchTerm.", multiValue = true)
     private SearchTerm searchTerm;
-    @UriParam(label = "consumer,sort", javaType = "java.lang.String")
+    @UriParam(label = "consumer,sort")
     private SortTerm[] sortTerm;
     @UriParam(label = "consumer,advanced")
     private MailBoxPostProcessAction postProcessAction;
@@ -78,10 +79,11 @@ public class MailEndpoint extends ScheduledPollEndpoint implements HeaderFilterS
         super(uri, component);
         this.configuration = configuration;
         // ScheduledPollConsumer default delay is 500 millis and that is too often for polling a mailbox,
-        // so we override with a new default value. End user can override this value by providing a consumer.delay parameter
+        // so we override with a new default value. End user can override this value by providing a delay parameter
         setDelay(MailConsumer.DEFAULT_CONSUMER_DELAY);
     }
 
+    @Override
     public Producer createProducer() throws Exception {
         JavaMailSender sender = configuration.getJavaMailSender();
         if (sender == null) {
@@ -98,6 +100,7 @@ public class MailEndpoint extends ScheduledPollEndpoint implements HeaderFilterS
         return new MailProducer(this, sender);
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         if (configuration.getProtocol().startsWith("smtp")) {
             throw new IllegalArgumentException("Protocol " + configuration.getProtocol()
@@ -119,10 +122,6 @@ public class MailEndpoint extends ScheduledPollEndpoint implements HeaderFilterS
         answer.setMaxMessagesPerPoll(getMaxMessagesPerPoll());
         configureConsumer(answer);
         return answer;
-    }
-
-    public boolean isSingleton() {
-        return false;
     }
 
     public Exchange createExchange(Message message) {
@@ -160,6 +159,7 @@ public class MailEndpoint extends ScheduledPollEndpoint implements HeaderFilterS
         this.configuration = configuration;
     }
 
+    @Override
     public HeaderFilterStrategy getHeaderFilterStrategy() {
         return headerFilterStrategy;
     }
@@ -167,6 +167,7 @@ public class MailEndpoint extends ScheduledPollEndpoint implements HeaderFilterS
     /**
      * To use a custom {@link org.apache.camel.spi.HeaderFilterStrategy} to filter headers.
      */
+    @Override
     public void setHeaderFilterStrategy(HeaderFilterStrategy headerFilterStrategy) {
         this.headerFilterStrategy = headerFilterStrategy;
     }

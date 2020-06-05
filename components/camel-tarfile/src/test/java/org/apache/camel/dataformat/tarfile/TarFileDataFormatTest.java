@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.dataformat.tarfile;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -26,6 +27,7 @@ import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.camel.CamelExecutionException;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.NotifyBuilder;
@@ -119,6 +121,11 @@ public class TarFileDataFormatTest extends CamelTestSupport {
         template.sendBody("direct:untar", getTaredText("file"));
 
         assertMockEndpointsSatisfied();
+    }
+
+    @Test(expected = CamelExecutionException.class)
+    public void testUntarWithCorruptedTarFile() throws Exception {
+        template.sendBody("direct:corruptUntar", new File("src/test/resources/data/corrupt.tar"));
     }
 
     @Test
@@ -291,6 +298,7 @@ public class TarFileDataFormatTest extends CamelTestSupport {
                 from("direct:tarToFile").marshal(tar).to("file:" + TEST_DIR.getPath()).to("mock:tarToFile");
                 from("direct:dslTar").marshal(tar).to("mock:dslTar");
                 from("direct:dslUntar").unmarshal(tar).to("mock:dslUntar");
+                from("direct:corruptUntar").unmarshal(tar).to("mock:corruptUntar");
             }
         };
     }

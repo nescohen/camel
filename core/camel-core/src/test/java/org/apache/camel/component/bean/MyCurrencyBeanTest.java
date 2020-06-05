@@ -18,14 +18,14 @@ package org.apache.camel.component.bean;
 
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class MyCurrencyBeanTest extends ContextTestSupport {
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myCurrencyBean", new MyCurrencyBean());
         return jndi;
     }
@@ -53,13 +53,9 @@ public class MyCurrencyBeanTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start")
-                    .to("bean:myCurrencyBean?method=display( ${body} )")
-                    .to("mock:result");
+                from("direct:start").to("bean:myCurrencyBean?method=display( ${body} )").to("mock:result");
 
-                from("direct:price")
-                    .to("bean:myCurrencyBean?method=displayPrice( ${body}, ${header.price} )")
-                    .to("mock:result");
+                from("direct:price").to("bean:myCurrencyBean?method=displayPrice( ${body}, ${header.price} )").to("mock:result");
             }
         };
     }

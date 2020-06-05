@@ -234,7 +234,7 @@ public class MllpSocketBuffer {
                     }
                     socketOutputStream.flush();
                 } catch (IOException ioEx) {
-                    final String exceptionMessage = String.format("writeTo({}) - IOException encountered", socket);
+                    final String exceptionMessage = String.format("writeTo(%s) - IOException encountered", socket);
                     resetSocket(socket, exceptionMessage);
                     throw new MllpSocketException(exceptionMessage, ioEx);
                 }
@@ -626,7 +626,7 @@ public class MllpSocketBuffer {
                 if (hasStartOfBlock()) {
                     log.trace("readSocketInputStream(socketInputStream, {}) - read {} bytes for a total of {} bytes", socket, readCount, availableByteCount);
                 } else {
-                    log.warn("readSocketInputStream(socketInputStream, {}) - ignoring {} bytes received before START_OF_BLOCK", socket, size(), toPrintFriendlyStringAndReset());
+                    log.warn("readSocketInputStream(socketInputStream, {}) - ignoring {} bytes received before START_OF_BLOCK: {}", socket, size(), toPrintFriendlyStringAndReset());
                 }
             }
         } catch (SocketTimeoutException timeoutEx) {

@@ -38,6 +38,7 @@ import javax.jms.Session;
 
 import org.apache.camel.AggregationStrategy;
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.Predicate;
 import org.apache.camel.Processor;
 import org.apache.camel.RuntimeCamelException;
@@ -278,6 +279,7 @@ public class SjmsBatchConsumer extends DefaultConsumer {
             this.triggers = triggers;
         }
 
+        @Override
         public void run() {
             // only run if CamelContext has been fully started
             if (!getEndpoint().getCamelContext().getStatus().isStarted()) {
@@ -357,10 +359,10 @@ public class SjmsBatchConsumer extends DefaultConsumer {
                 consumer.close();
             } catch (JMSException ex2) {
                 // only include stacktrace in debug logging
-                if (log.isDebugEnabled()) {
-                    log.debug("Exception caught closing consumer", ex2);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Exception caught closing consumer", ex2);
                 }
-                log.warn("Exception caught closing consumer: {}. This exception is ignored.", ex2.getMessage());
+                LOG.warn("Exception caught closing consumer: {}. This exception is ignored.", ex2.getMessage());
             }
         }
 
@@ -369,10 +371,10 @@ public class SjmsBatchConsumer extends DefaultConsumer {
                 session.close();
             } catch (JMSException ex2) {
                 // only include stacktrace in debug logging
-                if (log.isDebugEnabled()) {
-                    log.debug("Exception caught closing session", ex2);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Exception caught closing session", ex2);
                 }
-                log.warn("Exception caught closing session: {}. This exception is ignored.", ex2.getMessage());
+                LOG.warn("Exception caught closing session: {}. This exception is ignored.", ex2.getMessage());
             }
         }
 
@@ -402,7 +404,8 @@ public class SjmsBatchConsumer extends DefaultConsumer {
                     if (timeout.compareAndSet(true, false) || timeoutInterval.compareAndSet(true, false)) {
                         // trigger timeout
                         LOG.trace("Completion batch due timeout");
-                        completionBatch(session);
+                        String completedBy = completionInterval > 0 ? "interval" : "timeout";
+                        completionBatch(session, completedBy);
                         reset();
                         continue;
                     }
@@ -410,7 +413,7 @@ public class SjmsBatchConsumer extends DefaultConsumer {
                     if (completionSize > 0 && messageCount >= completionSize) {
                         // trigger completion size
                         LOG.trace("Completion batch due size");
-                        completionBatch(session);
+                        completionBatch(session, "size");
                         reset();
                         continue;
                     }
@@ -453,7 +456,7 @@ public class SjmsBatchConsumer extends DefaultConsumer {
                                     if (complete) {
                                         // trigger completion predicate
                                         LOG.trace("Completion batch due predicate");
-                                        completionBatch(session);
+                                        completionBatch(session, "predicate");
                                         reset();
                                     }
                                 } catch (Exception e) {
@@ -491,12 +494,12 @@ public class SjmsBatchConsumer extends DefaultConsumer {
                 aggregatedExchange = null;
             }
 
-            private void completionBatch(final Session session) {
+            private void completionBatch(final Session session, String completedBy) {
                 // batch
                 if (aggregatedExchange == null && getEndpoint().isSendEmptyMessageWhenIdle()) {
                     processEmptyMessage();
                 } else if (aggregatedExchange != null) {
-                    processBatch(aggregatedExchange, session);
+                    processBatch(aggregatedExchange, session, completedBy);
                 }
             }
 
@@ -534,7 +537,7 @@ public class SjmsBatchConsumer extends DefaultConsumer {
          */
         private void processEmptyMessage() {
             Exchange exchange = getEndpoint().createExchange();
-            log.debug("Sending empty message as there were no messages from polling: {}", getEndpoint());
+            LOG.debug("Sending empty message as there were no messages from polling: {}", getEndpoint());
             try {
                 getProcessor().process(exchange);
             } catch (Exception e) {
@@ -545,7 +548,7 @@ public class SjmsBatchConsumer extends DefaultConsumer {
         /**
          * Send an message with the batches messages.
          */
-        private void processBatch(Exchange exchange, Session session) {
+        private void processBatch(Exchange exchange, Session session, String completedBy) {
             int id = BATCH_COUNT.getAndIncrement();
             int batchSize = exchange.getProperty(Exchange.BATCH_SIZE, Integer.class);
             if (LOG.isDebugEnabled()) {
@@ -553,8 +556,16 @@ public class SjmsBatchConsumer extends DefaultConsumer {
                 LOG.debug("Processing batch[" + id + "]:size=" + batchSize + ":total=" + total);
             }
 
+            if ("timeout".equals(completedBy)) {
+                aggregationStrategy.timeout(exchange, id, batchSize, completionTimeout);
+            }
+            exchange.setProperty(Exchange.AGGREGATED_COMPLETED_BY, completedBy);
+
+            // invoke the on completion callback
+            aggregationStrategy.onCompletion(exchange);
+
             SessionCompletion sessionCompletion = new SessionCompletion(session);
-            exchange.addOnCompletion(sessionCompletion);
+            exchange.adapt(ExtendedExchange.class).addOnCompletion(sessionCompletion);
             try {
                 getProcessor().process(exchange);
                 long total = MESSAGE_PROCESSED.addAndGet(batchSize);

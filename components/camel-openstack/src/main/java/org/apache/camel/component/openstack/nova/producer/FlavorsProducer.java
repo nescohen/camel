@@ -42,20 +42,20 @@ public class FlavorsProducer extends AbstractOpenstackProducer {
     public void process(Exchange exchange) throws Exception {
         final String operation = getOperation(exchange);
         switch (operation) {
-        case OpenstackConstants.CREATE:
-            doCreate(exchange);
-            break;
-        case OpenstackConstants.GET:
-            doGet(exchange);
-            break;
-        case OpenstackConstants.GET_ALL:
-            doGetAll(exchange);
-            break;
-        case OpenstackConstants.DELETE:
-            doDelete(exchange);
-            break;
-        default:
-            throw new IllegalArgumentException("Unsupported operation " + operation);
+            case OpenstackConstants.CREATE:
+                doCreate(exchange);
+                break;
+            case OpenstackConstants.GET:
+                doGet(exchange);
+                break;
+            case OpenstackConstants.GET_ALL:
+                doGetAll(exchange);
+                break;
+            case OpenstackConstants.DELETE:
+                doDelete(exchange);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported operation " + operation);
         }
     }
 
@@ -83,7 +83,7 @@ public class FlavorsProducer extends AbstractOpenstackProducer {
         final String flavorId = msg.getHeader(OpenstackConstants.ID, msg.getHeader(NovaConstants.FLAVOR_ID, String.class), String.class);
         StringHelper.notEmpty(flavorId, "FlavorID");
         final ActionResponse response = os.compute().flavors().delete(flavorId);
-        checkFailure(response, msg, "Delete flavor");
+        checkFailure(response, exchange, "Delete flavor");
     }
 
     private org.openstack4j.model.compute.Flavor messageToFlavor(Message message) {

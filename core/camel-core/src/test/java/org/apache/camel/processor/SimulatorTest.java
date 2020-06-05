@@ -16,21 +16,20 @@
  */
 package org.apache.camel.processor;
 
-import javax.naming.Context;
-
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.InvalidPayloadException;
 import org.apache.camel.Message;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.support.jndi.JndiContext;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class SimulatorTest extends ContextTestSupport {
 
-    protected Context createJndiContext() throws Exception {
-        JndiContext answer = new JndiContext();
+    @Override
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
         answer.bind("foo", new MyBean("foo"));
         answer.bind("bar", new MyBean("bar"));
         return answer;
@@ -46,8 +45,7 @@ public class SimulatorTest extends ContextTestSupport {
         assertRespondsWith("bar", "Bye said bar");
     }
 
-    protected void assertRespondsWith(final String value, String containedText)
-        throws InvalidPayloadException {
+    protected void assertRespondsWith(final String value, String containedText) throws InvalidPayloadException {
         Exchange response = template.request("direct:a", new Processor() {
             public void process(Exchange exchange) throws Exception {
                 Message in = exchange.getIn();
@@ -58,16 +56,16 @@ public class SimulatorTest extends ContextTestSupport {
 
         assertNotNull("Should receive a response!", response);
 
-        String text = response.getOut().getMandatoryBody(String.class);
+        String text = response.getMessage().getMandatoryBody(String.class);
         assertStringContains(text, containedText);
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
                 // START SNIPPET: example
-                from("direct:a").
-                    recipientList(simple("bean:${in.header.cheese}"));
+                from("direct:a").recipientList(simple("bean:${in.header.cheese}"));
                 // END SNIPPET: example
             }
         };

@@ -19,9 +19,8 @@ package org.apache.camel.util;
 import java.util.Properties;
 
 import org.apache.camel.ContextTestSupport;
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.model.ModelHelper;
-import org.apache.camel.spi.PropertiesComponent;
 import org.junit.Test;
 
 /**
@@ -31,7 +30,8 @@ public class DumpModelAsXmlChoiceFilterRoutePropertyPlaceholderTest extends Cont
 
     @Test
     public void testDumpModelAsXml() throws Exception {
-        String xml = ModelHelper.dumpModelAsXml(context, context.getRouteDefinition("myRoute"));
+        ExtendedCamelContext ecc = context.adapt(ExtendedCamelContext.class);
+        String xml = ecc.getModelToXMLDumper().dumpModelAsXml(context, context.getRouteDefinition("myRoute"));
         assertNotNull(xml);
         log.info(xml);
 
@@ -43,7 +43,8 @@ public class DumpModelAsXmlChoiceFilterRoutePropertyPlaceholderTest extends Cont
 
     @Test
     public void testDumpModelAsXmAl() throws Exception {
-        String xml = ModelHelper.dumpModelAsXml(context, context.getRouteDefinition("a"));
+        ExtendedCamelContext ecc = context.adapt(ExtendedCamelContext.class);
+        String xml = ecc.getModelToXMLDumper().dumpModelAsXml(context, context.getRouteDefinition("a"));
         assertNotNull(xml);
         log.info(xml);
 
@@ -63,32 +64,14 @@ public class DumpModelAsXmlChoiceFilterRoutePropertyPlaceholderTest extends Cont
                 prop.put("extra", "extra-gold");
                 prop.put("mypath", "xpath");
 
-                PropertiesComponent pc = context.getPropertiesComponent(true);
-                pc.setInitialProperties(prop);
+                context.getPropertiesComponent().setInitialProperties(prop);
 
-                from("direct:start").routeId("myRoute")
-                    .to("log:input")
-                    .transform().header("{{duke}}")
-                    .choice()
-                        .when().header("{{best}}")
-                            .to("mock:gold")
-                            .filter().header("{{extra}}")
-                                .to("mock:extra-gold")
-                            .endChoice()
-                        .when().simple("${body} contains 'Camel'")
-                            .to("mock:camel")
-                        .otherwise()
-                            .to("mock:other")
-                    .end()
+                from("direct:start").routeId("myRoute").to("log:input").transform().header("{{duke}}").choice().when().header("{{best}}").to("mock:gold").filter()
+                    .header("{{extra}}").to("mock:extra-gold").endChoice().when().simple("${body} contains 'Camel'").to("mock:camel").otherwise().to("mock:other").end()
                     .to("mock:result");
 
-                from("seda:a").routeId("a")
-                    .setProperty("foo").constant("bar")
-                    .choice()
-                        .when(header("test").isNotNull()).log("not null")
-                        .when(xpath("/foo/bar")).log("{{mypath}}")
-                    .end()
-                    .to("mock:a");
+                from("seda:a").routeId("a").setProperty("foo").constant("bar").choice().when(header("test").isNotNull()).log("not null").when(xpath("/foo/bar")).log("{{mypath}}")
+                    .end().to("mock:a");
             }
         };
     }

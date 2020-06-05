@@ -15,12 +15,13 @@
  * limitations under the License.
  */
 package org.apache.camel.component.bean;
+
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.Header;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,8 +35,8 @@ public class FileBeanParameterBindingTest extends ContextTestSupport {
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("foo", new MyFooBean());
         return jndi;
     }
@@ -54,14 +55,11 @@ public class FileBeanParameterBindingTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("file:target/data/foo")
-                    .to("bean:foo?method=before")
-                    .process(new Processor() {
-                        public void process(Exchange exchange) throws Exception {
-                            exchange.getIn().setHeader("bar", 123);
-                        }
-                    }).to("bean:foo?method=after")
-                    .to("mock:result");
+                from("file:target/data/foo").to("bean:foo?method=before").process(new Processor() {
+                    public void process(Exchange exchange) throws Exception {
+                        exchange.getIn().setHeader("bar", 123);
+                    }
+                }).to("bean:foo?method=after").to("mock:result");
 
             }
         };

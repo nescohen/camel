@@ -25,11 +25,11 @@ import org.apache.camel.Exchange;
 import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.NamedNode;
 import org.apache.camel.Processor;
+import org.apache.camel.Route;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
 import org.apache.camel.spi.AsyncProcessorAwaitManager;
 import org.apache.camel.spi.Policy;
-import org.apache.camel.spi.RouteContext;
+import org.apache.camel.spi.Registry;
 import org.apache.camel.support.AsyncCallbackToCompletableFutureAdapter;
 import org.apache.camel.support.AsyncProcessorConverterHelper;
 import org.junit.Test;
@@ -40,8 +40,8 @@ public class AsyncEndpointPolicyTest extends ContextTestSupport {
     private static String afterThreadName;
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("foo", new MyPolicy("foo"));
         return jndi;
     }
@@ -77,29 +77,17 @@ public class AsyncEndpointPolicyTest extends ContextTestSupport {
 
                 from("direct:start")
                     // wraps the entire route in the same policy
-                    .policy("foo")
-                        .to("mock:foo")
-                        .to("async:bye:camel")
-                        .to("mock:bar")
-                        .to("mock:result");
+                    .policy("foo").to("mock:foo").to("async:bye:camel").to("mock:bar").to("mock:result");
 
-                from("direct:send")
-                    .to("mock:before")
-                    .to("log:before")
-                    .process(new Processor() {
-                        public void process(Exchange exchange) throws Exception {
-                            beforeThreadName = Thread.currentThread().getName();
-                        }
-                    })
-                    .to("direct:start")
-                    .process(new Processor() {
-                        public void process(Exchange exchange) throws Exception {
-                            afterThreadName = Thread.currentThread().getName();
-                        }
-                    })
-                    .to("log:after")
-                    .to("mock:after")
-                    .to("mock:response");
+                from("direct:send").to("mock:before").to("log:before").process(new Processor() {
+                    public void process(Exchange exchange) throws Exception {
+                        beforeThreadName = Thread.currentThread().getName();
+                    }
+                }).to("direct:start").process(new Processor() {
+                    public void process(Exchange exchange) throws Exception {
+                        afterThreadName = Thread.currentThread().getName();
+                    }
+                }).to("log:after").to("mock:after").to("mock:response");
             }
         };
     }
@@ -113,12 +101,13 @@ public class AsyncEndpointPolicyTest extends ContextTestSupport {
             this.name = name;
         }
 
-        public void beforeWrap(RouteContext routeContext,
-                               NamedNode definition) {
+        @Override
+        public void beforeWrap(Route route, NamedNode definition) {
             // no need to modify the route
         }
 
-        public Processor wrap(RouteContext routeContext, final Processor processor) {
+        @Override
+        public Processor wrap(Route route, final Processor processor) {
             return new AsyncProcessor() {
                 public boolean process(final Exchange exchange, final AsyncCallback callback) {
                     invoked++;
@@ -149,6 +138,5 @@ public class AsyncEndpointPolicyTest extends ContextTestSupport {
             return invoked;
         }
     }
-
 
 }

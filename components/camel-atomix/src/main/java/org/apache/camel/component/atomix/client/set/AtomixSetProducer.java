@@ -21,9 +21,9 @@ import java.time.Duration;
 import io.atomix.collections.DistributedSet;
 import io.atomix.resource.ReadConsistency;
 import org.apache.camel.AsyncCallback;
-import org.apache.camel.InvokeOnHeader;
 import org.apache.camel.Message;
 import org.apache.camel.component.atomix.client.AbstractAtomixClientProducer;
+import org.apache.camel.spi.InvokeOnHeader;
 import org.apache.camel.util.ObjectHelper;
 
 import static org.apache.camel.component.atomix.client.AtomixClientConstants.RESOURCE_ACTION;
@@ -32,7 +32,7 @@ import static org.apache.camel.component.atomix.client.AtomixClientConstants.RES
 import static org.apache.camel.component.atomix.client.AtomixClientConstants.RESOURCE_TTL;
 import static org.apache.camel.component.atomix.client.AtomixClientConstants.RESOURCE_VALUE;
 
-final class AtomixSetProducer extends AbstractAtomixClientProducer<AtomixSetEndpoint, DistributedSet> {
+public final class AtomixSetProducer extends AbstractAtomixClientProducer<AtomixSetEndpoint, DistributedSet> {
     private final AtomixSetConfiguration configuration;
 
     protected AtomixSetProducer(AtomixSetEndpoint endpoint) {
@@ -44,10 +44,15 @@ final class AtomixSetProducer extends AbstractAtomixClientProducer<AtomixSetEndp
     // Handlers
     // *********************************
 
+    private long getResourceTtl(Message message) {
+        Duration ttl = message.getHeader(RESOURCE_TTL, configuration::getTtl, Duration.class);
+        return ttl != null ? ttl.toMillis() : 0;
+    }
+
     @InvokeOnHeader("ADD")
     boolean onAdd(Message message, AsyncCallback callback) throws Exception {
         final DistributedSet<Object> set = getResource(message);
-        final long ttl = message.getHeader(RESOURCE_TTL, configuration::getTtl, long.class);
+        final long ttl = getResourceTtl(message);
         final Object val = message.getHeader(RESOURCE_VALUE, message::getBody, Object.class);
 
         ObjectHelper.notNull(val, RESOURCE_VALUE);

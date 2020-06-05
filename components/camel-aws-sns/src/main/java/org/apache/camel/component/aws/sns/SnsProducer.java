@@ -19,8 +19,11 @@ package org.apache.camel.component.aws.sns;
 import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import com.amazonaws.services.sns.model.MessageAttributeValue;
 import com.amazonaws.services.sns.model.PublishRequest;
@@ -31,7 +34,8 @@ import org.apache.camel.Message;
 import org.apache.camel.spi.HeaderFilterStrategy;
 import org.apache.camel.support.DefaultProducer;
 import org.apache.camel.util.URISupport;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A Producer which sends messages to the Amazon Web Service Simple Notification Service
@@ -39,12 +43,15 @@ import org.apache.camel.util.URISupport;
  */
 public class SnsProducer extends DefaultProducer {
 
+    private static final Logger LOG = LoggerFactory.getLogger(SnsProducer.class);
+
     private transient String snsProducerToString;
 
     public SnsProducer(Endpoint endpoint) {
         super(endpoint);
     }
 
+    @Override
     public void process(Exchange exchange) throws Exception {
         PublishRequest request = new PublishRequest();
 
@@ -54,11 +61,11 @@ public class SnsProducer extends DefaultProducer {
         request.setMessage(exchange.getIn().getBody(String.class));
         request.setMessageAttributes(this.translateAttributes(exchange.getIn().getHeaders(), exchange));
 
-        log.trace("Sending request [{}] from exchange [{}]...", request, exchange);
+        LOG.trace("Sending request [{}] from exchange [{}]...", request, exchange);
 
         PublishResult result = getEndpoint().getSNSClient().publish(request);
 
-        log.trace("Received result [{}]", result);
+        LOG.trace("Received result [{}]", result);
 
         Message message = getMessageForResponse(exchange);
         message.setHeader(SnsConstants.MESSAGE_ID, result.getMessageId());
@@ -104,9 +111,17 @@ public class SnsProducer extends DefaultProducer {
                     mav.setDataType("String");
                     mav.withStringValue(value.toString());
                     result.put(entry.getKey(), mav);
+                } else if (value instanceof List) {
+                    String resultString = ((List<?>) value).stream()
+                            .map(o -> o instanceof String ? String.format("\"%s\"", o) : Objects.toString(o))
+                            .collect(Collectors.joining(", "));
+                    MessageAttributeValue mav = new MessageAttributeValue();
+                    mav.setDataType("String.Array");
+                    mav.withStringValue("[" + resultString + "]");
+                    result.put(entry.getKey(), mav);
                 } else {
                     // cannot translate the message header to message attribute value
-                    log.warn("Cannot put the message header key={}, value={} into Sns MessageAttribute", entry.getKey(), entry.getValue());
+                    LOG.warn("Cannot put the message header key={}, value={} into Sns MessageAttribute", entry.getKey(), entry.getValue());
                 }
             }
         }
@@ -131,11 +146,6 @@ public class SnsProducer extends DefaultProducer {
     }
 
     public static Message getMessageForResponse(final Exchange exchange) {
-        if (exchange.getPattern().isOutCapable()) {
-            Message out = exchange.getOut();
-            out.copyFrom(exchange.getIn());
-            return out;
-        }
-        return exchange.getIn();
+        return exchange.getMessage();
     }
 }

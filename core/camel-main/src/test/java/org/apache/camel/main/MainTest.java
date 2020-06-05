@@ -16,11 +16,16 @@
  */
 package org.apache.camel.main;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.camel.CamelContext;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
+import org.apache.camel.spi.ManagementStrategy;
 import org.junit.Assert;
 import org.junit.Test;
+
+import static org.apache.camel.util.CollectionHelper.propertiesOf;
 
 public class MainTest extends Assert {
 
@@ -28,7 +33,7 @@ public class MainTest extends Assert {
     public void testMain() throws Exception {
         // lets make a simple route
         Main main = new Main();
-        main.addRouteBuilder(new MyRouteBuilder());
+        main.configure().addRoutesBuilder(new MyRouteBuilder());
         main.enableTrace();
         main.bind("foo", 31);
         main.start();
@@ -50,10 +55,13 @@ public class MainTest extends Assert {
 
     @Test
     public void testDisableHangupSupport() throws Exception {
+        DefaultMainShutdownStrategy shutdownStrategy = new DefaultMainShutdownStrategy();
+        shutdownStrategy.disableHangupSupport();
+
         // lets make a simple route
         Main main = new Main();
-        main.addRouteBuilder(new MyRouteBuilder());
-        main.disableHangupSupport();
+        main.setShutdownStrategy(shutdownStrategy);
+        main.configure().addRoutesBuilder(new MyRouteBuilder());
         main.enableTrace();
         main.bind("foo", 31);
         main.start();
@@ -71,7 +79,7 @@ public class MainTest extends Assert {
 
         main.stop();
     }
-    
+
     @Test
     public void testLoadingRouteFromCommand() throws Exception {
         Main main = new Main();
@@ -94,12 +102,48 @@ public class MainTest extends Assert {
     public void testOptionalProperties() throws Exception {
         // lets make a simple route
         Main main = new Main();
-        main.addRouteBuilder(new MyRouteBuilder());
+        main.configure().addRoutesBuilder(new MyRouteBuilder());
         main.start();
 
         CamelContext camelContext = main.getCamelContext();
         // should load application.properties from classpath
         assertEquals("World", camelContext.resolvePropertyPlaceholders("{{hello}}"));
+
+        main.stop();
+    }
+
+    @Test
+    public void testDisableTracing() throws Exception {
+        Main main = new Main();
+        main.configure().addRoutesBuilder(new MyRouteBuilder());
+        main.start();
+
+        CamelContext camelContext = main.getCamelContext();
+        assertFalse("Tracing should be disabled", camelContext.isTracing());
+
+        main.stop();
+    }
+
+    @Test
+    public void testLifecycleConfiguration() throws Exception {
+        AtomicInteger durationMaxMessages = new AtomicInteger();
+
+        Main main = new Main() {
+            @Override
+            protected void configureLifecycle(CamelContext camelContext) throws Exception {
+                durationMaxMessages.set(configure().getDurationMaxMessages());
+                super.configureLifecycle(camelContext);
+            }
+        };
+
+        main.setOverrideProperties(propertiesOf("camel.main.duration-max-messages", "1"));
+        main.start();
+
+        CamelContext camelContext = main.getCamelContext();
+        ManagementStrategy strategy = camelContext.getManagementStrategy();
+
+        assertEquals("DurationMaxMessages should be set to 1", 1, durationMaxMessages.get());
+        assertTrue(strategy.getEventNotifiers().stream().anyMatch(n -> n instanceof MainDurationEventNotifier));
 
         main.stop();
     }

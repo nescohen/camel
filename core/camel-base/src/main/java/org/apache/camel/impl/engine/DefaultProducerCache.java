@@ -26,8 +26,11 @@ import org.apache.camel.CamelContext;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.ExchangePattern;
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.FailedToCreateProducerException;
 import org.apache.camel.Processor;
+import org.apache.camel.Producer;
+import org.apache.camel.StatefulService;
 import org.apache.camel.processor.CamelInternalProcessor;
 import org.apache.camel.processor.SharedCamelInternalProcessor;
 import org.apache.camel.spi.EndpointUtilizationStatistics;
@@ -37,14 +40,19 @@ import org.apache.camel.support.EventHelper;
 import org.apache.camel.support.service.ServiceHelper;
 import org.apache.camel.support.service.ServiceSupport;
 import org.apache.camel.util.StopWatch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default implementation of {@link ProducerCache}.
  */
 public class DefaultProducerCache extends ServiceSupport implements ProducerCache {
 
-    private final CamelContext camelContext;
-    private final ServicePool<AsyncProducer> producers;
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultProducerCache.class);
+    private static final long ACQUIRE_WAIT_TIME = 30000;
+
+    private final ExtendedCamelContext camelContext;
+    private final ProducerServicePool producers;
     private final Object source;
     private final SharedCamelInternalProcessor internalProcessor;
 
@@ -55,9 +63,14 @@ public class DefaultProducerCache extends ServiceSupport implements ProducerCach
 
     public DefaultProducerCache(Object source, CamelContext camelContext, int cacheSize) {
         this.source = source;
-        this.camelContext = camelContext;
-        this.maxCacheSize = cacheSize == 0 ? CamelContextHelper.getMaximumCachePoolSize(camelContext) : cacheSize;
-        this.producers = new ServicePool<>(Endpoint::createAsyncProducer, AsyncProducer::getEndpoint, maxCacheSize);
+        this.camelContext = (ExtendedCamelContext) camelContext;
+        this.maxCacheSize = cacheSize <= 0 ? CamelContextHelper.getMaximumCachePoolSize(camelContext) : cacheSize;
+        if (cacheSize >= 0) {
+            this.producers = createServicePool(camelContext, maxCacheSize);
+        } else {
+            // no cache then empty
+            this.producers = null;
+        }
 
         // only if JMX is enabled
         if (camelContext.getManagementStrategy() != null && camelContext.getManagementStrategy().getManagementAgent() != null) {
@@ -67,13 +80,19 @@ public class DefaultProducerCache extends ServiceSupport implements ProducerCach
         }
 
         // internal processor used for sending
-        internalProcessor = new SharedCamelInternalProcessor(new CamelInternalProcessor.UnitOfWorkProcessorAdvice(null));
+        internalProcessor = new SharedCamelInternalProcessor(camelContext, new CamelInternalProcessor.UnitOfWorkProcessorAdvice(null, camelContext));
     }
 
+    protected ProducerServicePool createServicePool(CamelContext camelContext, int cacheSize) {
+        return new ProducerServicePool(Endpoint::createAsyncProducer, Producer::getEndpoint, cacheSize);
+    }
+
+    @Override
     public boolean isEventNotifierEnabled() {
         return eventNotifierEnabled;
     }
 
+    @Override
     public void setEventNotifierEnabled(boolean eventNotifierEnabled) {
         this.eventNotifierEnabled = eventNotifierEnabled;
     }
@@ -93,15 +112,38 @@ public class DefaultProducerCache extends ServiceSupport implements ProducerCach
         return camelContext;
     }
 
+    @Override
     public Object getSource() {
         return source;
     }
 
+    @Override
     public AsyncProducer acquireProducer(Endpoint endpoint) {
         try {
             AsyncProducer producer = producers.acquire(endpoint);
             if (statistics != null) {
                 statistics.onHit(endpoint.getEndpointUri());
+            }
+            // if producer is starting then wait for it to be ready
+            if (producer instanceof StatefulService) {
+                StatefulService ss = (StatefulService) producer;
+                if (ss.isStarting()) {
+                    LOG.trace("Waiting for producer to finish starting: {}", producer);
+                    StopWatch watch = new StopWatch();
+                    boolean done = false;
+                    while (!done) {
+                        done = !ss.isStarting() || watch.taken() > ACQUIRE_WAIT_TIME;
+                        if (!done) {
+                            Thread.sleep(5);
+                            if (LOG.isTraceEnabled()) {
+                                LOG.trace("Waiting {} ms for producer to finish starting: {} state: {}", watch.taken(), producer, ss.getStatus());
+                            }
+                        }
+                    }
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Waited {} ms for producer to finish starting: {} state: {}", watch.taken(), producer, ss.getStatus());
+                    }
+                }
             }
             return producer;
         } catch (Throwable e) {
@@ -109,10 +151,12 @@ public class DefaultProducerCache extends ServiceSupport implements ProducerCach
         }
     }
 
+    @Override
     public void releaseProducer(Endpoint endpoint, AsyncProducer producer) {
         producers.release(endpoint, producer);
     }
 
+    @Override
     public Exchange send(Endpoint endpoint, Exchange exchange, Processor resultProcessor) {
         if (camelContext.isStopped()) {
             exchange.setException(new RejectedExecutionException("CamelContext is stopped"));
@@ -122,7 +166,7 @@ public class DefaultProducerCache extends ServiceSupport implements ProducerCach
         AsyncProducer producer = acquireProducer(endpoint);
         try {
             // now lets dispatch
-            log.debug(">>>> {} {}", endpoint, exchange);
+            LOG.debug(">>>> {} {}", endpoint, exchange);
 
             // set property which endpoint we send to
             exchange.setProperty(Exchange.TO_ENDPOINT, endpoint.getEndpointUri());
@@ -130,7 +174,7 @@ public class DefaultProducerCache extends ServiceSupport implements ProducerCach
             // send the exchange using the processor
             StopWatch watch = null;
             try {
-                if (eventNotifierEnabled) {
+                if (eventNotifierEnabled && camelContext.isEventNotificationApplicable()) {
                     boolean sending = EventHelper.notifyExchangeSending(exchange.getContext(), exchange, endpoint);
                     if (sending) {
                         watch = new StopWatch();
@@ -145,7 +189,7 @@ public class DefaultProducerCache extends ServiceSupport implements ProducerCach
                 exchange.setException(e);
             } finally {
                 // emit event that the exchange was sent to the endpoint
-                if (eventNotifierEnabled && watch != null) {
+                if (watch != null) {
                     long timeTaken = watch.taken();
                     EventHelper.notifyExchangeSent(exchange.getContext(), exchange, endpoint, timeTaken);
                 }
@@ -181,6 +225,7 @@ public class DefaultProducerCache extends ServiceSupport implements ProducerCach
         return asyncSendExchange(endpoint, pattern, processor, resultProcessor, null, future);
     }
 
+    @Override
     public CompletableFuture<Exchange> asyncSendExchange(Endpoint endpoint,
                                                          ExchangePattern pattern,
                                                          Processor processor,
@@ -218,6 +263,7 @@ public class DefaultProducerCache extends ServiceSupport implements ProducerCach
         return future;
     }
 
+    @Override
     public boolean doInAsyncProducer(Endpoint endpoint,
                                      Exchange exchange,
                                      AsyncCallback callback,
@@ -230,7 +276,7 @@ public class DefaultProducerCache extends ServiceSupport implements ProducerCach
 
             if (producer == null) {
                 if (isStopped()) {
-                    log.warn("Ignoring exchange sent after processor is stopped: {}", exchange);
+                    LOG.warn("Ignoring exchange sent after processor is stopped: {}", exchange);
                     callback.done(true);
                     return true;
                 } else {
@@ -248,7 +294,7 @@ public class DefaultProducerCache extends ServiceSupport implements ProducerCach
         try {
             // record timing for sending the exchange using the producer
             StopWatch watch;
-            if (eventNotifierEnabled && exchange != null) {
+            if (eventNotifierEnabled && camelContext.isEventNotificationApplicable()) {
                 boolean sending = EventHelper.notifyExchangeSending(exchange.getContext(), exchange, endpoint);
                 if (sending) {
                     watch = new StopWatch();
@@ -262,14 +308,14 @@ public class DefaultProducerCache extends ServiceSupport implements ProducerCach
             // invoke the callback
             return producerCallback.doInAsyncProducer(producer, exchange, doneSync -> {
                 try {
-                    if (eventNotifierEnabled && watch != null) {
+                    if (watch != null) {
                         long timeTaken = watch.taken();
                         // emit event that the exchange was sent to the endpoint
                         EventHelper.notifyExchangeSent(exchange.getContext(), exchange, endpoint, timeTaken);
                     }
 
                     // release back to the pool
-                    producers.release(endpoint, producer);
+                    releaseProducer(endpoint, producer);
                 } finally {
                     callback.done(doneSync);
                 }
@@ -287,14 +333,14 @@ public class DefaultProducerCache extends ServiceSupport implements ProducerCach
     protected boolean asyncDispatchExchange(Endpoint endpoint, AsyncProducer producer,
                                             Processor resultProcessor, Exchange exchange, AsyncCallback callback) {
         // now lets dispatch
-        log.debug(">>>> {} {}", endpoint, exchange);
+        LOG.debug(">>>> {} {}", endpoint, exchange);
 
         // set property which endpoint we send to
         exchange.setProperty(Exchange.TO_ENDPOINT, endpoint.getEndpointUri());
 
         // send the exchange using the processor
         try {
-            if (eventNotifierEnabled) {
+            if (eventNotifierEnabled && camelContext.isEventNotificationApplicable()) {
                 callback = new EventNotifierCallback(callback, exchange, endpoint);
             }
             // invoke the asynchronous method
@@ -308,73 +354,69 @@ public class DefaultProducerCache extends ServiceSupport implements ProducerCach
 
     }
 
-    protected AsyncProducer doGetProducer(Endpoint endpoint) throws Exception {
-        return producers.acquire(endpoint);
-    }
-
-    protected void doStart() throws Exception {
+    @Override
+    protected void doInit() throws Exception {
         if (extendedStatistics) {
             int max = maxCacheSize == 0 ? CamelContextHelper.getMaximumCachePoolSize(camelContext) : maxCacheSize;
             statistics = new DefaultEndpointUtilizationStatistics(max);
         }
-
-        ServiceHelper.startService(producers, statistics);
+        ServiceHelper.initService(producers);
     }
 
-    protected void doStop() throws Exception {
-        // when stopping we intend to shutdown
-        ServiceHelper.stopAndShutdownServices(statistics, producers);
+    @Override
+    protected void doStart() throws Exception {
         if (statistics != null) {
             statistics.clear();
         }
+        ServiceHelper.startService(producers);
     }
 
-    public int size() {
-        int size = producers.size();
+    @Override
+    protected void doStop() throws Exception {
+        ServiceHelper.stopService(producers);
+    }
 
-        log.trace("size = {}", size);
+    @Override
+    protected void doShutdown() throws Exception {
+        ServiceHelper.stopAndShutdownServices(producers);
+    }
+
+    @Override
+    public int size() {
+        int size = producers != null ? producers.size() : 0;
+
+        LOG.trace("size = {}", size);
         return size;
     }
 
+    @Override
     public int getCapacity() {
         return maxCacheSize;
     }
 
-    public long getHits() {
-        return producers.getHits();
-    }
-
-    public long getMisses() {
-        return producers.getMisses();
-    }
-
-    public long getEvicted() {
-        return producers.getEvicted();
-    }
-
-    public void resetCacheStatistics() {
-        producers.resetStatistics();
-        if (statistics != null) {
-            statistics.clear();
-        }
-    }
-
+    @Override
     public synchronized void purge() {
         try {
-            producers.stop();
-            producers.start();
+            if (producers != null) {
+                producers.stop();
+                producers.start();
+            }
         } catch (Exception e) {
-            log.debug("Error restarting producers", e);
+            LOG.debug("Error restarting producers", e);
         }
         if (statistics != null) {
             statistics.clear();
         }
     }
 
+    @Override
     public void cleanUp() {
-        producers.cleanUp();
+        if (producers != null) {
+            producers.cleanUp();
+        }
     }
 
+    @Override
     public EndpointUtilizationStatistics getEndpointUtilizationStatistics() {
         return statistics;
     }

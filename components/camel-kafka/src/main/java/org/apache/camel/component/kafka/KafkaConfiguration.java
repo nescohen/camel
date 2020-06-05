@@ -17,7 +17,9 @@
 package org.apache.camel.component.kafka;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
@@ -41,6 +43,7 @@ import org.apache.camel.support.jsse.KeyStoreParameters;
 import org.apache.camel.support.jsse.SSLContextParameters;
 import org.apache.camel.support.jsse.SecureSocketProtocolsParameters;
 import org.apache.camel.support.jsse.TrustManagersParameters;
+import org.apache.camel.util.ObjectHelper;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -100,9 +103,9 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
     private Integer sessionTimeoutMs = 10000;
     @UriParam(label = "consumer", defaultValue = "500")
     private Integer maxPollRecords;
-    @UriParam(label = "consumer", defaultValue = "5000")
+    @UriParam(label = "consumer", defaultValue = "5000", javaType = "java.time.Duration")
     private Long pollTimeoutMs = 5000L;
-    @UriParam(label = "consumer")
+    @UriParam(label = "consumer", javaType = "java.time.Duration")
     private Long maxPollIntervalMs;
     // auto.offset.reset1
     @UriParam(label = "consumer", defaultValue = "latest", enums = "latest,earliest,none")
@@ -136,12 +139,6 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
     private boolean breakOnFirstError;
     @UriParam(label = "consumer")
     private StateRepository<String, String> offsetRepository;
-
-    // Producer Camel specific configuration properties
-    @UriParam(label = "producer")
-    private boolean bridgeEndpoint;
-    @UriParam(label = "producer", defaultValue = "true")
-    private boolean circularTopicDetection = true;
 
     // Producer configuration properties
     @UriParam(label = "producer", defaultValue = KafkaConstants.KAFKA_DEFAULT_PARTITIONER)
@@ -198,8 +195,8 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
     @UriParam(label = "producer", defaultValue = "65536")
     private Integer receiveBufferBytes = 65536;
     // request.timeout.ms
-    @UriParam(label = "producer", defaultValue = "305000")
-    private Integer requestTimeoutMs = 305000;
+    @UriParam(label = "producer", defaultValue = "30000")
+    private Integer requestTimeoutMs = 30000;
     // send.buffer.bytes
     @UriParam(label = "producer", defaultValue = "131072")
     private Integer sendBufferBytes = 131072;
@@ -319,6 +316,12 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
     @UriParam(label = "confluent,consumer")
     private boolean specificAvroReader;
 
+    // Additional properties
+    @UriParam(label = "common", prefix = "additionalProperties.", multiValue = true)
+    private Map<String, Object> additionalProperties = new HashMap<>();
+    @UriParam(label = "common", defaultValue = "30000")
+    private int shutdownTimeout = 30000;
+
     public KafkaConfiguration() {
     }
 
@@ -343,7 +346,6 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
         addPropertyIfNotNull(props, ProducerConfig.COMPRESSION_TYPE_CONFIG, getCompressionCodec());
         addPropertyIfNotNull(props, ProducerConfig.RETRIES_CONFIG, getRetries());
         addPropertyIfNotNull(props, ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, getInterceptorClasses());
-        addPropertyIfNotNull(props, ProducerConfig.SEND_BUFFER_CONFIG, getRetries());
         addPropertyIfNotNull(props, ProducerConfig.BATCH_SIZE_CONFIG, getProducerBatchSize());
         addPropertyIfNotNull(props, ProducerConfig.CLIENT_ID_CONFIG, getClientId());
         addPropertyIfNotNull(props, ProducerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG, getConnectionMaxIdleMs());
@@ -392,6 +394,9 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
         addPropertyIfNotNull(props, SaslConfigs.SASL_MECHANISM, getSaslMechanism());
         addPropertyIfNotNull(props, SaslConfigs.SASL_JAAS_CONFIG, getSaslJaasConfig());
 
+        // additional properties
+        applyAdditionalProperties(props, getAdditionalProperties());
+
         return props;
     }
 
@@ -409,7 +414,7 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
         addPropertyIfNotNull(props, ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, getInterceptorClasses());
         addPropertyIfNotNull(props, ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, getAutoOffsetReset());
         addPropertyIfNotNull(props, ConsumerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG, getConnectionMaxIdleMs());
-        addPropertyIfNotNull(props, ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, isAutoCommitEnable());
+        addPropertyIfNotNull(props, ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, getAutoCommitEnable());
         addPropertyIfNotNull(props, ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, getPartitionAssignor());
         addPropertyIfNotNull(props, ConsumerConfig.RECEIVE_BUFFER_CONFIG, getReceiveBufferBytes());
         addPropertyIfNotNull(props, ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, getConsumerRequestTimeoutMs());
@@ -455,6 +460,10 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
         addListPropertyIfNotNull(props, SaslConfigs.SASL_KERBEROS_PRINCIPAL_TO_LOCAL_RULES, getKerberosPrincipalToLocalRules());
         addPropertyIfNotNull(props, SaslConfigs.SASL_MECHANISM, getSaslMechanism());
         addPropertyIfNotNull(props, SaslConfigs.SASL_JAAS_CONFIG, getSaslJaasConfig());
+
+        // additional properties
+        applyAdditionalProperties(props, getAdditionalProperties());
+
         return props;
     }
 
@@ -508,6 +517,12 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
         }
     }
 
+    private void applyAdditionalProperties(final Properties props, final Map<String, Object> additionalProperties) {
+        if (!ObjectHelper.isEmpty(getAdditionalProperties())) {
+            additionalProperties.forEach((property, value) -> addPropertyIfNotNull(props, property, value));
+        }
+    }
+
     private static <T> void addPropertyIfNotNull(Properties props, String key, T value) {
         if (value != null) {
             // Kafka expects all properties as String
@@ -554,36 +569,6 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
      */
     public void setGroupId(String groupId) {
         this.groupId = groupId;
-    }
-
-    public boolean isBridgeEndpoint() {
-        return bridgeEndpoint;
-    }
-
-    /**
-     * If the option is true, then KafkaProducer will ignore the
-     * KafkaConstants.TOPIC header setting of the inbound message.
-     */
-    public void setBridgeEndpoint(boolean bridgeEndpoint) {
-        this.bridgeEndpoint = bridgeEndpoint;
-    }
-
-    public boolean isCircularTopicDetection() {
-        return circularTopicDetection;
-    }
-
-    /**
-     * If the option is true, then KafkaProducer will detect if the message is
-     * attempted to be sent back to the same topic it may come from, if the
-     * message was original from a kafka consumer. If the KafkaConstants.TOPIC
-     * header is the same as the original kafka consumer topic, then the header
-     * setting is ignored, and the topic of the producer endpoint is used. In
-     * other words this avoids sending the same message back to where it came
-     * from. This option is not in use if the option bridgeEndpoint is set to
-     * true.
-     */
-    public void setCircularTopicDetection(boolean circularTopicDetection) {
-        this.circularTopicDetection = circularTopicDetection;
     }
 
     public String getPartitioner() {
@@ -645,8 +630,12 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
         this.clientId = clientId;
     }
 
-    public Boolean isAutoCommitEnable() {
+    public boolean isAutoCommitEnable() {
         return offsetRepository == null ? autoCommitEnable : false;
+    }
+
+    public Boolean getAutoCommitEnable() {
+        return autoCommitEnable;
     }
 
     /**
@@ -672,6 +661,17 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
      */
     public void setAllowManualCommit(boolean allowManualCommit) {
         this.allowManualCommit = allowManualCommit;
+    }
+
+    public int getShutdownTimeout() {
+        return shutdownTimeout;
+    }
+
+    /**
+     * Timeout in milli seconds to wait gracefully for the consumer or producer to shutdown and terminate its worker threads.
+     */
+    public void setShutdownTimeout(int shutdownTimeout) {
+        this.shutdownTimeout = shutdownTimeout;
     }
 
     public StateRepository<String, String> getOffsetRepository() {
@@ -807,22 +807,24 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
     }
 
     /**
-     * URL of the Confluent Platform schema registry servers to use. 
-     * The format is host1:port1,host2:port2. 
-     * This is known as schema.registry.url in the Confluent Platform documentation.
-     * This option is only available in the Confluent Platform (not standard Apache Kafka)
+     * URL of the Confluent Platform schema registry servers to use. The format
+     * is host1:port1,host2:port2. This is known as schema.registry.url in the
+     * Confluent Platform documentation. This option is only available in the
+     * Confluent Platform (not standard Apache Kafka)
      */
     public void setSchemaRegistryURL(String schemaRegistryURL) {
         this.schemaRegistryURL = schemaRegistryURL;
     }
-    
+
     public boolean isSpecificAvroReader() {
         return specificAvroReader;
     }
-    
+
     /**
-     * This enables the use of a specific Avro reader for use with the Confluent Platform schema registry and the io.confluent.kafka.serializers.KafkaAvroDeserializer.
-     * This option is only available in the Confluent Platform (not standard Apache Kafka)
+     * This enables the use of a specific Avro reader for use with the Confluent
+     * Platform schema registry and the
+     * io.confluent.kafka.serializers.KafkaAvroDeserializer. This option is only
+     * available in the Confluent Platform (not standard Apache Kafka)
      */
     public void setSpecificAvroReader(boolean specificAvroReader) {
         this.specificAvroReader = specificAvroReader;
@@ -970,7 +972,8 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
      * and the first rule that matches a principal name is used to map it to a
      * short name. Any later rules in the list are ignored. By default,
      * principal names of the form {username}/{hostname}@{REALM} are mapped to
-     * {username}. For more details on the format please see the security authorization and acls documentation..
+     * {username}. For more details on the format please see the security
+     * authorization and acls documentation..
      * <p/>
      * Multiple values can be separated by comma
      */
@@ -1148,6 +1151,9 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
     /**
      * SSL configuration using a Camel {@link SSLContextParameters} object. If
      * configured it's applied before the other SSL endpoint parameters.
+     *
+     * NOTE: Kafka only supports loading keystore from file locations, so prefix the location with file:
+     * in the KeyStoreParameters.resource option.
      */
     public void setSslContextParameters(SSLContextParameters sslContextParameters) {
         this.sslContextParameters = sslContextParameters;
@@ -1341,7 +1347,7 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
      * under load when records arrive faster than they can be sent out. However
      * in some circumstances the client may want to reduce the number of
      * requests even under moderate load. This setting accomplishes this by
-     * adding a small amount of artificial delay—that is, rather than
+     * adding a small amount of artificial delay that is, rather than
      * immediately sending out a record the producer will wait for up to the
      * given delay to allow other records to be sent so that the sends can be
      * batched together. This can be thought of as analogous to Nagle's
@@ -1645,6 +1651,8 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
      * To use a custom worker pool for continue routing {@link Exchange} after
      * kafka server has acknowledge the message that was sent to it from
      * {@link KafkaProducer} using asynchronous non-blocking processing.
+     * If using this option then you must handle the lifecycle of the thread pool
+     * to shut the pool down when no longer needed.
      */
     public void setWorkerPool(ExecutorService workerPool) {
         this.workerPool = workerPool;
@@ -1739,6 +1747,7 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
         this.reconnectBackoffMaxMs = reconnectBackoffMaxMs;
     }
 
+    @Override
     public HeaderFilterStrategy getHeaderFilterStrategy() {
         return headerFilterStrategy;
     }
@@ -1747,6 +1756,7 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
      * To use a custom HeaderFilterStrategy to filter header to and from Camel
      * message.
      */
+    @Override
     public void setHeaderFilterStrategy(HeaderFilterStrategy headerFilterStrategy) {
         this.headerFilterStrategy = headerFilterStrategy;
     }
@@ -1780,4 +1790,18 @@ public class KafkaConfiguration implements Cloneable, HeaderFilterStrategyAware 
         this.kafkaHeaderSerializer = kafkaHeaderSerializer;
     }
 
+    /**
+     * Sets additional properties for either kafka consumer or kafka producer in
+     * case they can't be set directly on the camel configurations (e.g: new
+     * Kafka properties that are not reflected yet in Camel configurations), the
+     * properties have to be prefixed with `additionalProperties.`. E.g:
+     * `additionalProperties.transactional.id=12345&additionalProperties.schema.registry.url=http://localhost:8811/avro`
+     */
+    public void setAdditionalProperties(Map<String, Object> additionalProperties) {
+        this.additionalProperties = additionalProperties;
+    }
+
+    public Map<String, Object> getAdditionalProperties() {
+        return additionalProperties;
+    }
 }

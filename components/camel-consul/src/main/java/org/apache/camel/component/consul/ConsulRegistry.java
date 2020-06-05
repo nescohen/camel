@@ -59,7 +59,6 @@ public class ConsulRegistry implements Registry {
 
     /* constructor (since spring.xml does not support builder pattern) */
     public ConsulRegistry(String hostname, int port) {
-        super();
         this.hostname = hostname;
         this.port = port;
         this.consul = Consul.builder().withUrl("http://" + this.hostname + ":" + this.port).build();
@@ -75,15 +74,13 @@ public class ConsulRegistry implements Registry {
     @Override
     public Object lookupByName(String key) {
         // Substitute $ character in key
-        key = key.replaceAll("\\$", "/");
+        key = key.replace('$', '/');
         kvClient = consul.keyValueClient();
 
-        return kvClient.getValueAsString(key).map(
-            result -> {
-                byte[] postDecodedValue = ConsulRegistryUtils.decodeBase64(result);
-                return ConsulRegistryUtils.deserialize(postDecodedValue);
-            }
-        ).orElse(null);
+        return kvClient.getValueAsString(key).map(result -> {
+            byte[] postDecodedValue = ConsulRegistryUtils.decodeBase64(result);
+            return ConsulRegistryUtils.deserialize(postDecodedValue);
+        }).orElse(null);
     }
 
     @Override
@@ -95,8 +92,7 @@ public class ConsulRegistry implements Registry {
         try {
             return type.cast(object);
         } catch (Throwable e) {
-            String msg = "Found bean: " + name + " in Consul Registry: " + this + " of type: "
-                    + object.getClass().getName() + "expected type was: " + type;
+            String msg = "Found bean: " + name + " in Consul Registry: " + this + " of type: " + object.getClass().getName() + "expected type was: " + type;
             throw new NoSuchBeanException(name, msg, e);
         }
     }
@@ -105,7 +101,7 @@ public class ConsulRegistry implements Registry {
     public <T> Map<String, T> findByTypeWithName(Class<T> type) {
         Map<String, T> result = new HashMap<>();
         // encode $ signs as they occur in subclass types
-        String keyPrefix = type.getName().replaceAll("\\$", "/");
+        String keyPrefix = type.getName().replace('$', '/');
         kvClient = consul.keyValueClient();
 
         List<String> keys;
@@ -121,7 +117,7 @@ public class ConsulRegistry implements Registry {
             for (String key : keys) {
                 // change bookmark back into actual key
                 key = key.substring(key.lastIndexOf('/') + 1);
-                obj = lookupByName(key.replaceAll("\\$", "/"));
+                obj = lookupByName(key.replace('$', '/'));
                 if (type.isInstance(obj)) {
                     result.put(key, type.cast(obj));
                 }
@@ -132,7 +128,7 @@ public class ConsulRegistry implements Registry {
 
     @Override
     public <T> Set<T> findByType(Class<T> type) {
-        String keyPrefix = type.getName().replaceAll("\\$", "/");
+        String keyPrefix = type.getName().replace('$', '/');
         Set<T> result = new HashSet<>();
 
         List<String> keys;
@@ -148,7 +144,7 @@ public class ConsulRegistry implements Registry {
             for (String key : keys) {
                 // change bookmark back into actual key
                 key = key.substring(key.lastIndexOf('/') + 1);
-                obj = lookupByName(key.replaceAll("\\$", "/"));
+                obj = lookupByName(key.replace('$', '/'));
                 if (type.isInstance(obj)) {
                     result.add(type.cast(obj));
                 }
@@ -167,8 +163,7 @@ public class ConsulRegistry implements Registry {
         SessionClient sessionClient = consul.sessionClient();
         String sessionName = "session_" + UUID.randomUUID().toString();
 
-        SessionCreatedResponse response = sessionClient
-                .createSession(ImmutableSession.builder().name(sessionName).build());
+        SessionCreatedResponse response = sessionClient.createSession(ImmutableSession.builder().name(sessionName).build());
         String sessionId = response.getId();
         kvClient = consul.keyValueClient();
         String lockKey = "lock_" + key;
@@ -185,13 +180,12 @@ public class ConsulRegistry implements Registry {
 
     public void put(String key, Object object) {
         // Substitute $ character in key
-        key = key.replaceAll("\\$", "/");
+        key = key.replace('$', '/');
         // create session to avoid conflicts
         // (not sure if that is safe enough, again)
         SessionClient sessionClient = consul.sessionClient();
         String sessionName = "session_" + UUID.randomUUID().toString();
-        SessionCreatedResponse response = sessionClient
-                .createSession(ImmutableSession.builder().name(sessionName).build());
+        SessionCreatedResponse response = sessionClient.createSession(ImmutableSession.builder().name(sessionName).build());
         String sessionId = response.getId();
         kvClient = consul.keyValueClient();
         String lockKey = "lock_" + key;
@@ -201,14 +195,14 @@ public class ConsulRegistry implements Registry {
         if (lookupByName(key) != null) {
             remove(key);
         }
-        Object clone = ConsulRegistryUtils.clone((Serializable) object);
-        byte[] serializedObject = ConsulRegistryUtils.serialize((Serializable) clone);
+        Object clone = ConsulRegistryUtils.clone((Serializable)object);
+        byte[] serializedObject = ConsulRegistryUtils.serialize((Serializable)clone);
         // pre-encode due native encoding issues
         String value = ConsulRegistryUtils.encodeBase64(serializedObject);
         // store the actual class
         kvClient.putValue(key, value);
         // store just as a bookmark
-        kvClient.putValue(object.getClass().getName().replaceAll("\\$", "/") + "/" + key, "1");
+        kvClient.putValue(object.getClass().getName().replace('$', '/') + "/" + key, "1");
         kvClient.releaseLock(lockKey, sessionId);
     }
 
@@ -296,6 +290,7 @@ public class ConsulRegistry implements Registry {
 
         /**
          * Serializes the given {@code serializable} using Java Serialization
+         * 
          * @param serializable
          * @return the serialized object as a byte array
          */

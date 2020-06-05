@@ -41,32 +41,32 @@ public class GroupProducer extends AbstractKeystoneProducer {
     public void process(Exchange exchange) throws Exception {
         final String operation = getOperation(exchange);
         switch (operation) {
-        case OpenstackConstants.CREATE:
-            doCreate(exchange);
-            break;
-        case OpenstackConstants.GET:
-            doGet(exchange);
-            break;
-        case OpenstackConstants.GET_ALL:
-            doGetAll(exchange);
-            break;
-        case OpenstackConstants.UPDATE:
-            doUpdate(exchange);
-            break;
-        case OpenstackConstants.DELETE:
-            doDelete(exchange);
-            break;
-        case KeystoneConstants.ADD_USER_TO_GROUP:
-            doAddUser(exchange);
-            break;
-        case KeystoneConstants.CHECK_GROUP_USER:
-            doCheckUserGroup(exchange);
-            break;
-        case KeystoneConstants.REMOVE_USER_FROM_GROUP:
-            doRemoveUserFromGroup(exchange);
-            break;
-        default:
-            throw new IllegalArgumentException("Unsupported operation " + operation);
+            case OpenstackConstants.CREATE:
+                doCreate(exchange);
+                break;
+            case OpenstackConstants.GET:
+                doGet(exchange);
+                break;
+            case OpenstackConstants.GET_ALL:
+                doGetAll(exchange);
+                break;
+            case OpenstackConstants.UPDATE:
+                doUpdate(exchange);
+                break;
+            case OpenstackConstants.DELETE:
+                doDelete(exchange);
+                break;
+            case KeystoneConstants.ADD_USER_TO_GROUP:
+                doAddUser(exchange);
+                break;
+            case KeystoneConstants.CHECK_GROUP_USER:
+                doCheckUserGroup(exchange);
+                break;
+            case KeystoneConstants.REMOVE_USER_FROM_GROUP:
+                doRemoveUserFromGroup(exchange);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported operation " + operation);
         }
     }
 
@@ -101,7 +101,7 @@ public class GroupProducer extends AbstractKeystoneProducer {
         final String id = msg.getHeader(OpenstackConstants.ID, msg.getHeader(KeystoneConstants.GROUP_ID, String.class), String.class);
         StringHelper.notEmpty(id, "Group ID");
         final ActionResponse response = osV3Client.identity().groups().delete(id);
-        checkFailure(response, msg, "Delete group with ID " + id);
+        checkFailure(response, exchange, "Delete group with ID " + id);
     }
 
     private void doAddUser(Exchange exchange) {
@@ -111,7 +111,7 @@ public class GroupProducer extends AbstractKeystoneProducer {
         StringHelper.notEmpty(userId, "User ID");
         StringHelper.notEmpty(groupId, "Group ID");
         final ActionResponse response = osV3Client.identity().groups().addUserToGroup(groupId, userId);
-        checkFailure(response, msg, String.format("Add user %s to group %s", userId, groupId));
+        checkFailure(response, exchange, String.format("Add user %s to group %s", userId, groupId));
     }
 
     private void doCheckUserGroup(Exchange exchange) {
@@ -131,7 +131,7 @@ public class GroupProducer extends AbstractKeystoneProducer {
         StringHelper.notEmpty(userId, "User ID");
         StringHelper.notEmpty(groupId, "Group ID");
         final ActionResponse response = osV3Client.identity().groups().removeUserFromGroup(groupId, userId);
-        checkFailure(response, msg, String.format("Delete user %s from group %s", userId, groupId));
+        checkFailure(response, exchange, String.format("Delete user %s from group %s", userId, groupId));
     }
 
     private Group messageToGroup(Message message) {

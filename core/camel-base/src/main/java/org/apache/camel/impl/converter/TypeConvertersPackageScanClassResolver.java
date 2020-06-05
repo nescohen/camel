@@ -87,12 +87,13 @@ public class TypeConvertersPackageScanClassResolver extends ServiceSupport imple
     }
 
     @Override
-    protected void doStart() throws Exception {
+    public void setAcceptableSchemes(String schemes) {
         // noop
     }
 
     @Override
-    protected void doStop() throws Exception {
+    public void clearCache() {
         // noop
     }
+
 }

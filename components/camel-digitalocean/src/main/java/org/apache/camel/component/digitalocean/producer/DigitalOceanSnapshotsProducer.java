@@ -35,22 +35,23 @@ public class DigitalOceanSnapshotsProducer extends DigitalOceanProducer {
         super(endpoint, configuration);
     }
 
+    @Override
     public void process(Exchange exchange) throws Exception {
 
         switch (determineOperation(exchange)) {
 
-        case list:
-            getSnapshots(exchange);
-            break;
-        case get:
-            getSnapshot(exchange);
-            break;
-        case delete:
-            deleteSnapshot(exchange);
-            break;
+            case list:
+                getSnapshots(exchange);
+                break;
+            case get:
+                getSnapshot(exchange);
+                break;
+            case delete:
+                deleteSnapshot(exchange);
+                break;
 
-        default:
-            throw new IllegalArgumentException("Unsupported operation");
+            default:
+                throw new IllegalArgumentException("Unsupported operation");
         }
 
 

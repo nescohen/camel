@@ -25,9 +25,9 @@ import org.apache.camel.SSLContextParametersAware;
 import org.apache.camel.spi.Metadata;
 import org.apache.camel.spi.annotations.Component;
 import org.apache.camel.support.HeaderFilterStrategyComponent;
-import org.apache.camel.support.IntrospectionSupport;
 import org.apache.camel.support.jsse.SSLContextParameters;
 import org.apache.camel.util.ObjectHelper;
+import org.apache.camel.util.PropertiesHelper;
 import org.apache.camel.util.URISupport;
 import org.apache.camel.util.UnsafeUriCharactersEncoder;
 import org.asynchttpclient.AsyncHttpClient;
@@ -37,13 +37,17 @@ import org.asynchttpclient.Realm;
 import org.asynchttpclient.Realm.Builder;
 import org.asynchttpclient.cookie.CookieStore;
 import org.asynchttpclient.cookie.ThreadSafeCookieStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *  To call external HTTP services using <a href="http://github.com/sonatype/async-http-client">Async Http Client</a>
  */
 @Component("ahc")
 public class AhcComponent extends HeaderFilterStrategyComponent implements SSLContextParametersAware {
-    
+
+    private static final Logger LOG = LoggerFactory.getLogger(AhcComponent.class);
+
     private static final String CLIENT_CONFIG_PREFIX = "clientConfig.";
     private static final String CLIENT_REALM_CONFIG_PREFIX = "clientConfig.realm.";
 
@@ -80,20 +84,20 @@ public class AhcComponent extends HeaderFilterStrategyComponent implements SSLCo
         endpoint.setClientConfig(getClientConfig());
         endpoint.setBinding(getBinding());
         endpoint.setSslContextParameters(ssl);
-        
+
         setProperties(endpoint, parameters);
 
-        if (IntrospectionSupport.hasProperties(parameters, CLIENT_CONFIG_PREFIX)) {
+        if (PropertiesHelper.hasProperties(parameters, CLIENT_CONFIG_PREFIX)) {
             DefaultAsyncHttpClientConfig.Builder builder = endpoint.getClientConfig() == null
                     ? new DefaultAsyncHttpClientConfig.Builder() : AhcComponent.cloneConfig(endpoint.getClientConfig());
-            
+
             if (endpoint.getClient() != null) {
-                log.warn("The user explicitly set an AsyncHttpClient instance on the component or "
+                LOG.warn("The user explicitly set an AsyncHttpClient instance on the component or "
                          + "endpoint, but this endpoint URI contains client configuration parameters.  "
                          + "Are you sure that this is what was intended?  The AsyncHttpClient will be used"
                          + " and the URI parameters will be ignored.");
             } else if (endpoint.getClientConfig() != null) {
-                log.warn("The user explicitly set an AsyncHttpClientConfig instance on the component or "
+                LOG.warn("The user explicitly set an AsyncHttpClientConfig instance on the component or "
                          + "endpoint, but this endpoint URI contains client configuration parameters.  "
                          + "Are you sure that this is what was intended?  The URI parameters will be applied"
                          + " to a clone of the supplied AsyncHttpClientConfig in order to prevent unintended modification"
@@ -103,10 +107,10 @@ public class AhcComponent extends HeaderFilterStrategyComponent implements SSLCo
 
             // special for realm builder
             Builder realmBuilder = null;
-            if (IntrospectionSupport.hasProperties(parameters, CLIENT_REALM_CONFIG_PREFIX)) {
+            if (PropertiesHelper.hasProperties(parameters, CLIENT_REALM_CONFIG_PREFIX)) {
 
                 // set and validate additional parameters on client config
-                Map<String, Object> realmParams = IntrospectionSupport.extractProperties(parameters, CLIENT_REALM_CONFIG_PREFIX);
+                Map<String, Object> realmParams = PropertiesHelper.extractProperties(parameters, CLIENT_REALM_CONFIG_PREFIX);
 
                 // copy the parameters for the endpoint to have
                 endpoint.setClientConfigRealmOptions(new LinkedHashMap<>(realmParams));
@@ -125,9 +129,9 @@ public class AhcComponent extends HeaderFilterStrategyComponent implements SSLCo
                 setProperties(realmBuilder, realmParams);
                 validateParameters(uri, realmParams, null);
             }
-            
+
             // set and validate additional parameters on client config
-            Map<String, Object> clientParams = IntrospectionSupport.extractProperties(parameters, CLIENT_CONFIG_PREFIX);
+            Map<String, Object> clientParams = PropertiesHelper.extractProperties(parameters, CLIENT_CONFIG_PREFIX);
 
             // copy the parameters for the endpoint to have
             endpoint.setClientConfigOptions(new LinkedHashMap<>(clientParams));
@@ -145,7 +149,7 @@ public class AhcComponent extends HeaderFilterStrategyComponent implements SSLCo
         addressUri = UnsafeUriCharactersEncoder.encodeHttpURI(addressUri);
         URI httpUri = URISupport.createRemainingURI(new URI(addressUri), parameters);
         endpoint.setHttpUri(httpUri);
-        
+
         return endpoint;
     }
 

@@ -16,12 +16,14 @@
  */
 package org.apache.camel.component.bean.validator;
 
+import javax.validation.ValidationProviderResolver;
+
+import org.apache.camel.BindToRegistry;
 import org.apache.camel.EndpointInject;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
-import org.apache.camel.test.junit4.CamelTestSupport;
-import org.junit.Test;
+import org.apache.camel.test.junit5.CamelTestSupport;
+import org.junit.jupiter.api.Test;
 
 public class HibernateValidationProviderResolverTest extends CamelTestSupport {
 
@@ -30,11 +32,14 @@ public class HibernateValidationProviderResolverTest extends CamelTestSupport {
     @EndpointInject("mock:test")
     MockEndpoint mockEndpoint;
 
+    @BindToRegistry("myValidationProviderResolver")
+    ValidationProviderResolver validationProviderResolver = new HibernateValidationProviderResolver();
+
     @Override
-    protected RouteBuilder createRouteBuilder() throws Exception {
+    protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             @Override
-            public void configure() throws Exception {
+            public void configure() {
                 onException(BeanValidationException.class).to(mockEndpoint);
 
                 from("direct:test").
@@ -43,17 +48,10 @@ public class HibernateValidationProviderResolverTest extends CamelTestSupport {
         };
     }
 
-    @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry registry = super.createRegistry();
-        registry.bind("myValidationProviderResolver", new HibernateValidationProviderResolver());
-        return registry;
-    }
-
     // Tests
 
     @Test
-    public void shouldResolveHibernateValidationProviderResolver() throws InterruptedException {
+    void shouldResolveHibernateValidationProviderResolver() throws InterruptedException {
         // Given
         mockEndpoint.expectedMessageCount(1);
         mockEndpoint.message(0).body().isInstanceOf(CarWithAnnotations.class);

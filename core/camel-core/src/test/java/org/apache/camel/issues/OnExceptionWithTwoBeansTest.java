@@ -18,18 +18,20 @@ package org.apache.camel.issues;
 
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
+import org.apache.camel.support.DefaultRegistry;
 import org.junit.Test;
 
 public class OnExceptionWithTwoBeansTest extends ContextTestSupport {
-    
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry registry = new JndiRegistry(createJndiContext());
+
+    @Override
+    protected Registry createRegistry() throws Exception {
+        Registry registry = new DefaultRegistry();
         registry.bind("checkin", new MyBean1());
         registry.bind("handler", new MyBean2());
         return registry;
     }
-    
+
     @Test
     public void testOnExceptionFirstBean() throws Exception {
         getMockEndpoint("mock:error").expectedMessageCount(1);
@@ -38,7 +40,7 @@ public class OnExceptionWithTwoBeansTest extends ContextTestSupport {
         template.sendBody("direct:start", "illegal");
         assertMockEndpointsSatisfied();
     }
-    
+
     @Test
     public void testOnExceptionSecondBean() throws Exception {
         getMockEndpoint("mock:error").expectedMessageCount(1);
@@ -47,27 +49,19 @@ public class OnExceptionWithTwoBeansTest extends ContextTestSupport {
         template.sendBody("direct:start", "handle");
         assertMockEndpointsSatisfied();
     }
-    
+
     @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                onException(IllegalArgumentException.class)
-                        .handled(true)
-                        .setBody().constant("Handled")
-                        .to("mock:error")
-                        .end();
-               
-                from("direct:start")
-                        .to("bean:checkin")
-                        .to("mock:bean")
-                        .to("bean:handler")
-                        .to("mock:result");
+                onException(IllegalArgumentException.class).handled(true).setBody().constant("Handled").to("mock:error").end();
+
+                from("direct:start").to("bean:checkin").to("mock:bean").to("bean:handler").to("mock:result");
             }
         };
     }
-    
+
     public class MyBean1 {
 
         public String checkin(String message) {
@@ -77,14 +71,14 @@ public class OnExceptionWithTwoBeansTest extends ContextTestSupport {
             return message;
         }
     }
-    
+
     public class MyBean2 {
         public String handle(String message) {
             if ("handle".equals(message)) {
                 throw new IllegalArgumentException();
             }
             return message;
-            
+
         }
     }
 

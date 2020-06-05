@@ -1,7 +1,17 @@
 [[dns-component]]
-== DNS Component
+= DNS Component
+//THIS FILE IS COPIED: EDIT THE SOURCE FILE:
+:page-source: components/camel-dns/src/main/docs/dns-component.adoc
+:docTitle: DNS
+:artifactId: camel-dns
+:description: Perform DNS queries using DNSJava.
+:since: 2.7
+:supportLevel: Stable
+:component-header: Only producer is supported
 
-*Available as of Camel version 2.7*
+*Since Camel {since}*
+
+*{component-header}*
 
 This is an additional component for Camel to run DNS queries, using
 DNSJava. The component is a thin layer on top of
@@ -36,7 +46,7 @@ for this component:
 </dependency>
 ----
 
-=== URI format
+== URI format
 
 The URI scheme for a DNS component is as follows
 
@@ -47,7 +57,7 @@ dns://operation[?options]
 
 This component only supports producers.
 
-=== Options
+== Options
 
 
 // component options: START
@@ -58,7 +68,7 @@ The DNS component supports 2 options, which are listed below.
 [width="100%",cols="2,5,^1,2",options="header"]
 |===
 | Name | Description | Default | Type
-| *resolveProperty Placeholders* (advanced) | Whether the component should resolve property placeholders on itself when starting. Only properties which are of String type can use property placeholders. | true | boolean
+| *lazyStartProducer* (producer) | Whether the producer should be started lazy (on the first message). By starting lazy you can use this to allow CamelContext and routes to startup in situations where a producer may otherwise fail during starting and cause the route to fail being started. By deferring this startup to be lazy then the startup failure can be handled during routing messages via Camel's routing error handlers. Beware that when the first message is processed then creating and starting the producer may take a little time and prolong the total processing time of the processing. | false | boolean
 | *basicPropertyBinding* (advanced) | Whether the component should use basic property binding (Camel 2.x) or the newer property binding with additional capabilities | false | boolean
 |===
 // component options: END
@@ -74,17 +84,17 @@ dns:dnsType
 
 with the following path and query parameters:
 
-==== Path Parameters (1 parameters):
+=== Path Parameters (1 parameters):
 
 
 [width="100%",cols="2,5,^1,2",options="header"]
 |===
 | Name | Description | Default | Type
-| *dnsType* | *Required* The type of the lookup. |  | DnsType
+| *dnsType* | *Required* The type of the lookup. The value can be one of: dig, ip, lookup, wikipedia |  | DnsType
 |===
 
 
-==== Query Parameters (3 parameters):
+=== Query Parameters (3 parameters):
 
 
 [width="100%",cols="2,5,^1,2",options="header"]
@@ -95,38 +105,10 @@ with the following path and query parameters:
 | *synchronous* (advanced) | Sets whether synchronous processing should be strictly used, or Camel is allowed to use asynchronous processing (if supported). | false | boolean
 |===
 // endpoint options: END
-// spring-boot-auto-configure options: START
-=== Spring Boot Auto-Configuration
-
-When using Spring Boot make sure to use the following Maven dependency to have support for auto configuration:
-
-[source,xml]
-----
-<dependency>
-  <groupId>org.apache.camel</groupId>
-  <artifactId>camel-dns-starter</artifactId>
-  <version>x.x.x</version>
-  <!-- use the same version as your Camel core version -->
-</dependency>
-----
-
-
-The component supports 3 options, which are listed below.
 
 
 
-[width="100%",cols="2,5,^1,2",options="header"]
-|===
-| Name | Description | Default | Type
-| *camel.component.dns.basic-property-binding* | Whether the component should use basic property binding (Camel 2.x) or the newer property binding with additional capabilities | false | Boolean
-| *camel.component.dns.enabled* | Enable dns component | true | Boolean
-| *camel.component.dns.resolve-property-placeholders* | Whether the component should resolve property placeholders on itself when starting. Only properties which are of String type can use property placeholders. | true | Boolean
-|===
-// spring-boot-auto-configure options: END
-
-
-
-=== Headers
+== Headers
 [width="100%",cols="10%,10%,10%,70%",options="header",]
 |===
 
@@ -148,9 +130,9 @@ Optional.
 one specified by the OS will be used. Optional.
 |===
 
-=== Examples
+== Examples
 
-==== IP lookup
+=== IP lookup
 
 [source,xml]
 ----
@@ -165,7 +147,7 @@ This looks up a domain's IP. For example, www.example.com resolves to
  The IP address to lookup must be provided in the header with key
 `"dns.domain"`.
 
-==== DNS lookup
+=== DNS lookup
 
 [source,xml]
 ----
@@ -179,7 +161,7 @@ This returns a set of DNS records associated with a domain. +
  The name to lookup must be provided in the header with key
 `"dns.name"`.
 
-==== DNS Dig
+=== DNS Dig
 
 Dig is a Unix command-line utility to run DNS queries.
 
@@ -194,7 +176,7 @@ Dig is a Unix command-line utility to run DNS queries.
 The query must be provided in the header with key `"dns.query"`.
 
 
-=== Dns Activation Policy
+== Dns Activation Policy
 
 DnsActivationPolicy can be used to dynamically start and stop routes based on dns state.
 
@@ -214,3 +196,5 @@ i.e. You may have an instance in NYC and an instance in SFO. You would configure
 	<route id="routeId" autoStartup="false" routePolicyRef="dnsActivationPolicy">
 	</route>
 ----
+
+include::camel-spring-boot::page$dns-starter.adoc[]

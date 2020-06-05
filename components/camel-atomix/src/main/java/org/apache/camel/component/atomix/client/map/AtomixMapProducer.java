@@ -21,9 +21,9 @@ import java.time.Duration;
 import io.atomix.collections.DistributedMap;
 import io.atomix.resource.ReadConsistency;
 import org.apache.camel.AsyncCallback;
-import org.apache.camel.InvokeOnHeader;
 import org.apache.camel.Message;
 import org.apache.camel.component.atomix.client.AbstractAtomixClientProducer;
+import org.apache.camel.spi.InvokeOnHeader;
 import org.apache.camel.util.ObjectHelper;
 
 import static org.apache.camel.component.atomix.client.AtomixClientConstants.RESOURCE_ACTION;
@@ -35,7 +35,7 @@ import static org.apache.camel.component.atomix.client.AtomixClientConstants.RES
 import static org.apache.camel.component.atomix.client.AtomixClientConstants.RESOURCE_TTL;
 import static org.apache.camel.component.atomix.client.AtomixClientConstants.RESOURCE_VALUE;
 
-final class AtomixMapProducer extends AbstractAtomixClientProducer<AtomixMapEndpoint, DistributedMap<Object, Object>> {
+public final class AtomixMapProducer extends AbstractAtomixClientProducer<AtomixMapEndpoint, DistributedMap<Object, Object>> {
     private final AtomixMapConfiguration configuration;
 
     protected AtomixMapProducer(AtomixMapEndpoint endpoint) {
@@ -47,12 +47,17 @@ final class AtomixMapProducer extends AbstractAtomixClientProducer<AtomixMapEndp
     // Handlers
     // *********************************
 
+    private long getResourceTtl(Message message) {
+        Duration ttl = message.getHeader(RESOURCE_TTL, configuration::getTtl, Duration.class);
+        return ttl != null ? ttl.toMillis() : 0;
+    }
+
     @InvokeOnHeader("PUT")
     boolean onPut(Message message, AsyncCallback callback) throws Exception {
         final DistributedMap<Object, Object> map = getResource(message);
         final Object key = message.getHeader(RESOURCE_KEY, configuration::getKey, Object.class);
         final Object val = message.getHeader(RESOURCE_VALUE, message::getBody, Object.class);
-        final long ttl = message.getHeader(RESOURCE_TTL, configuration::getTtl, long.class);
+        final long ttl = getResourceTtl(message);
 
         ObjectHelper.notNull(key, RESOURCE_KEY);
         ObjectHelper.notNull(val, RESOURCE_VALUE);
@@ -75,7 +80,7 @@ final class AtomixMapProducer extends AbstractAtomixClientProducer<AtomixMapEndp
         final DistributedMap<Object, Object> map = getResource(message);
         final Object key = message.getHeader(RESOURCE_KEY, configuration::getKey, Object.class);
         final Object val = message.getHeader(RESOURCE_VALUE, message::getBody, Object.class);
-        final long ttl = message.getHeader(RESOURCE_TTL, configuration::getTtl, long.class);
+        final long ttl = getResourceTtl(message);
 
         ObjectHelper.notNull(key, RESOURCE_KEY);
         ObjectHelper.notNull(val, RESOURCE_VALUE);
@@ -276,7 +281,7 @@ final class AtomixMapProducer extends AbstractAtomixClientProducer<AtomixMapEndp
     @InvokeOnHeader("REPLACE")
     boolean onReplace(Message message, AsyncCallback callback) throws Exception {
         final DistributedMap<Object, Object> map = getResource(message);
-        final long ttl = message.getHeader(RESOURCE_TTL, configuration::getTtl, long.class);
+        final long ttl = getResourceTtl(message);
         final Object key = message.getHeader(RESOURCE_KEY, configuration::getKey, Object.class);
         final Object newValue = message.getHeader(RESOURCE_VALUE, message::getBody, Object.class);
         final Object oldValue = message.getHeader(RESOURCE_OLD_VALUE, Object.class);

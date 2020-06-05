@@ -47,15 +47,17 @@ public class JmsNotIncludeAllJMSXPropertiesTest extends CamelTestSupport {
         assertMockEndpointsSatisfied();
     }
 
+    @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext camelContext = super.createCamelContext();
         ConnectionFactory connectionFactory = CamelJmsTestHelper.createConnectionFactory();
         JmsComponent jms = jmsComponentAutoAcknowledge(connectionFactory);
-        jms.setIncludeAllJMSXProperties(false);
+        jms.getConfiguration().setIncludeAllJMSXProperties(false);
         camelContext.addComponent("activemq", jms);
         return camelContext;
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {

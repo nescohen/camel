@@ -26,14 +26,17 @@ import org.apache.camel.spi.Metadata;
 import org.apache.camel.spi.annotations.Component;
 import org.apache.camel.support.CamelContextHelper;
 import org.apache.camel.support.HeaderFilterStrategyComponent;
-import org.apache.camel.support.IntrospectionSupport;
-import org.apache.cxf.message.Message;
+import org.apache.camel.util.PropertiesHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Defines the <a href="http://camel.apache.org/cxf.html">CXF Component</a>
  */
 @Component("cxf")
 public class CxfComponent extends HeaderFilterStrategyComponent implements SSLContextParametersAware {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CxfComponent.class);
 
     @Metadata(label = "advanced")
     private Boolean allowStreaming;
@@ -55,7 +58,7 @@ public class CxfComponent extends HeaderFilterStrategyComponent implements SSLCo
         this.allowStreaming = allowStreaming;
     }
 
-    public Boolean isAllowStreaming() {
+    public Boolean getAllowStreaming() {
         return allowStreaming;
     }
 
@@ -84,7 +87,7 @@ public class CxfComponent extends HeaderFilterStrategyComponent implements SSLCo
 
         Object value = parameters.remove("setDefaultBus");
         if (value != null) {
-            log.warn("The option setDefaultBus is @deprecated, use name defaultBus instead");
+            LOG.warn("The option setDefaultBus is @deprecated, use name defaultBus instead");
             if (!parameters.containsKey("defaultBus")) {
                 parameters.put("defaultBus", value);
             }
@@ -102,32 +105,20 @@ public class CxfComponent extends HeaderFilterStrategyComponent implements SSLCo
             }
 
             result = createCxfSpringEndpoint(beanId);
-            // need to check the CamelContext value
-            if (getCamelContext().equals(result.getCamelContext())) {
-                result.setCamelContext(getCamelContext());
-            }
             result.setBeanId(beanId);
 
         } else {
             // endpoint URI does not specify a bean
             result = createCxfEndpoint(remaining);
         }
-
-        if (result.getCamelContext() == null) {
-            result.setCamelContext(getCamelContext());
-        }
+        result.setComponent(this);
+        result.setCamelContext(getCamelContext());
         setEndpointHeaderFilterStrategy(result);
         setProperties(result, parameters);
 
         // extract the properties.xxx and set them as properties
-        Map<String, Object> properties = IntrospectionSupport.extractProperties(parameters, "properties.");
-        if (properties != null) {
-            result.setProperties(properties);
-        }
-        if (result.getProperties() != null) {
-            // set the properties of MTOM
-            result.setMtomEnabled(Boolean.valueOf((String) result.getProperties().get(Message.MTOM_ENABLED)));
-        }
+        Map<String, Object> properties = PropertiesHelper.extractProperties(parameters, "properties.");
+        result.setProperties(properties);
 
         // use global ssl config if set
         if (result.getSslContextParameters() == null) {

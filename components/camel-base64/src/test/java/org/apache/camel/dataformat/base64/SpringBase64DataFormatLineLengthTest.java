@@ -16,11 +16,10 @@
  */
 package org.apache.camel.dataformat.base64;
 
-
-
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+
 import static org.apache.camel.dataformat.base64.Base64TestConstants.DECODED;
 
 public class SpringBase64DataFormatLineLengthTest extends SpringBase64DataFormatTestBase {
@@ -48,12 +47,12 @@ public class SpringBase64DataFormatLineLengthTest extends SpringBase64DataFormat
             + "p6YptdCEK3P27QzZsSASAByd5jxHMiIBkdwGzj1501xZ7hFLJDXDTQ==\r\n";
 
     @Test
-    public void testEncode() throws Exception {
+    void testEncode() throws Exception {
         runEncoderTest(DECODED, ENCODED.getBytes());
     }
 
     @Test
-    public void testDecode() throws Exception {
+    void testDecode() throws Exception {
         runDecoderTest(ENCODED.getBytes(), DECODED);
     }
     

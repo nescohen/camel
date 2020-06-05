@@ -17,14 +17,13 @@
     limitations under the License.
 
 -->
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.apache.camel</groupId>
         <artifactId>components</artifactId>
-        <version>3.0.0-SNAPSHOT</version>
+        <version>3.4.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>camel-servlet</artifactId>
@@ -35,11 +34,12 @@
 
     <properties>
         <camel.osgi.import.before.defaults>
+            javax.activation.*;version="${javax-activation-version-range}",
             javax.servlet.*;version="${servlet-version-range}"
         </camel.osgi.import.before.defaults>
 
         <!-- used for testing -->
-        <tomcat.version>8.5.0</tomcat.version>
+        <tomcat.version>9.0.35</tomcat.version>
     </properties>
 
     <dependencyManagement>
@@ -64,14 +64,9 @@
             <artifactId>camel-http-common</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>osgi.cmpn</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
-            <version>${javax.servlet-api-version}</version>
+            <version>${javax-servlet-api-version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -83,22 +78,22 @@
         </dependency>
         <dependency>
             <groupId>org.apache.camel</groupId>
+            <artifactId>camel-management</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.camel</groupId>
             <artifactId>camel-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-mock</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -139,6 +134,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-swagger-java</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
             <version>${rest-assured-version}</version>
@@ -150,55 +150,16 @@
             <version>${arquillian-version}</version>
             <scope>test</scope>
         </dependency>
-        <!--jetty-->
-        <!--https://github.com/GoogleCloudPlatform/appengine-java-vm-runtime/issues/23-->
-        <!--Still not fixed in 9.3.8.v20160314 and 9.3.9.M1, produce 404 NOT FOUND or a 500 if we remove the async-supported flag :-(-->
-        <!--<dependency>
-          <groupId>org.jboss.arquillian.container</groupId>
-          <artifactId>arquillian-jetty-embedded-9</artifactId>
-          <version>1.0.0.CR3</version>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.eclipse.jetty</groupId>
-          <artifactId>jetty-webapp</artifactId>
-          <version>${jetty-version}</version>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.eclipse.jetty</groupId>
-          <artifactId>jetty-deploy</artifactId>
-          <version>${jetty-version}</version>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.eclipse.jetty</groupId>
-          <artifactId>jetty-annotations</artifactId>
-          <version>${jetty-version}</version>
-          <scope>test</scope>
-        </dependency>-->
         <!--tomcat-->
         <dependency>
             <groupId>org.jboss.arquillian.container</groupId>
-            <artifactId>arquillian-tomcat-embedded-8</artifactId>
-            <version>1.0.0.CR7</version>
+            <artifactId>arquillian-tomcat-embedded-9</artifactId>
+            <version>1.1.0.Final</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-core</artifactId>
-            <version>${tomcat.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.tomcat.embed</groupId>
-            <artifactId>tomcat-embed-jasper</artifactId>
-            <version>${tomcat.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.tomcat.embed</groupId>
-            <artifactId>tomcat-embed-logging-juli</artifactId>
             <version>${tomcat.version}</version>
             <scope>test</scope>
         </dependency>

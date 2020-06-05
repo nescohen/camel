@@ -21,10 +21,11 @@ import com.couchbase.client.protocol.views.Query;
 import com.couchbase.client.protocol.views.View;
 import com.couchbase.client.protocol.views.ViewResponse;
 import com.couchbase.client.protocol.views.ViewRow;
-
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.support.DefaultScheduledPollConsumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.camel.component.couchbase.CouchbaseConstants.HEADER_DESIGN_DOCUMENT_NAME;
 import static org.apache.camel.component.couchbase.CouchbaseConstants.HEADER_ID;
@@ -32,6 +33,8 @@ import static org.apache.camel.component.couchbase.CouchbaseConstants.HEADER_KEY
 import static org.apache.camel.component.couchbase.CouchbaseConstants.HEADER_VIEWNAME;
 
 public class CouchbaseConsumer extends DefaultScheduledPollConsumer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CouchbaseConsumer.class);
 
     private final CouchbaseEndpoint endpoint;
     private final CouchbaseClient client;
@@ -48,6 +51,7 @@ public class CouchbaseConsumer extends DefaultScheduledPollConsumer {
         init();
     }
 
+    @Override
     protected void doInit() {
 
         query.setIncludeDocs(true);
@@ -75,13 +79,13 @@ public class CouchbaseConsumer extends DefaultScheduledPollConsumer {
 
     @Override
     protected void doStart() throws Exception {
-        log.info("Starting Couchbase consumer");
+        LOG.info("Starting Couchbase consumer");
         super.doStart();
     }
 
     @Override
     protected void doStop() throws Exception {
-        log.info("Stopping Couchbase consumer");
+        LOG.info("Stopping Couchbase consumer");
         super.doStop();
         if (client != null) {
             client.shutdown();
@@ -91,10 +95,10 @@ public class CouchbaseConsumer extends DefaultScheduledPollConsumer {
     @Override
     protected synchronized int poll() throws Exception {
         ViewResponse result = client.query(view, query);
-        log.info("Received result set from Couchbase");
+        LOG.info("Received result set from Couchbase");
 
-        if (log.isTraceEnabled()) {
-            log.trace("ViewResponse = {}", result);
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("ViewResponse = {}", result);
         }
 
         String consumerProcessedStrategy = endpoint.getConsumerProcessedStrategy();
@@ -116,17 +120,17 @@ public class CouchbaseConsumer extends DefaultScheduledPollConsumer {
             exchange.getIn().setHeader(HEADER_VIEWNAME, viewName);
 
             if ("delete".equalsIgnoreCase(consumerProcessedStrategy)) {
-                if (log.isTraceEnabled()) {
-                    log.trace("Deleting doc with ID {}", id);
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Deleting doc with ID {}", id);
                 }
                 client.delete(id);
             } else if ("filter".equalsIgnoreCase(consumerProcessedStrategy)) {
-                if (log.isTraceEnabled()) {
-                    log.trace("Filtering out ID {}", id);
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Filtering out ID {}", id);
                 }
                 // add filter for already processed docs
             } else {
-                log.trace("No strategy set for already processed docs, beware of duplicates!");
+                LOG.trace("No strategy set for already processed docs, beware of duplicates!");
             }
 
             logDetails(id, doc, key, designDocumentName, viewName, exchange);
@@ -143,14 +147,14 @@ public class CouchbaseConsumer extends DefaultScheduledPollConsumer {
 
     private void logDetails(String id, Object doc, String key, String designDocumentName, String viewName, Exchange exchange) {
 
-        if (log.isTraceEnabled()) {
-            log.trace("Created exchange = {}", exchange);
-            log.trace("Added Document in body = {}", doc);
-            log.trace("Adding to Header");
-            log.trace("ID = {}", id);
-            log.trace("Key = {}", key);
-            log.trace("Design Document Name = {}", designDocumentName);
-            log.trace("View Name = {}", viewName);
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Created exchange = {}", exchange);
+            LOG.trace("Added Document in body = {}", doc);
+            LOG.trace("Adding to Header");
+            LOG.trace("ID = {}", id);
+            LOG.trace("Key = {}", key);
+            LOG.trace("Design Document Name = {}", designDocumentName);
+            LOG.trace("View Name = {}", viewName);
         }
 
     }

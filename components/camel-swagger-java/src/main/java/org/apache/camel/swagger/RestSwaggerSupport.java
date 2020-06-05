@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import javax.management.AttributeNotFoundException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -47,14 +48,13 @@ import io.swagger.util.Json;
 import io.swagger.util.Yaml;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.model.Model;
-import org.apache.camel.model.ModelHelper;
 import org.apache.camel.model.rest.RestDefinition;
 import org.apache.camel.model.rest.RestsDefinition;
 import org.apache.camel.spi.ClassResolver;
 import org.apache.camel.spi.RestConfiguration;
 import org.apache.camel.support.PatternHelper;
-import org.apache.camel.util.CamelVersionHelper;
 import org.apache.camel.util.ObjectHelper;
 import org.apache.camel.util.URISupport;
 import org.apache.camel.util.xml.XmlLineNumberParser;
@@ -66,7 +66,7 @@ import static org.apache.camel.swagger.SwaggerHelper.clearVendorExtensions;
 /**
  * A support class for that allows SPI to plugin
  * and offer Swagger API service listings as part of the Camel component. This allows rest-dsl components
- * such as servlet/jetty/netty4-http to offer Swagger API listings with minimal effort.
+ * such as servlet/jetty/netty-http to offer Swagger API listings with minimal effort.
  */
 public class RestSwaggerSupport {
 
@@ -154,7 +154,8 @@ public class RestSwaggerSupport {
         // use a routes definition to dump the rests
         RestsDefinition def = new RestsDefinition();
         def.setRests(rests);
-        String xml = ModelHelper.dumpModelAsXml(camelContext, def);
+        ExtendedCamelContext ecc = camelContext.adapt(ExtendedCamelContext.class);
+        String xml = ecc.getModelToXMLDumper().dumpModelAsXml(camelContext, def);
 
         // if resolving placeholders we parse the xml, and resolve the property placeholders during parsing
         final AtomicBoolean changed = new AtomicBoolean();
@@ -177,7 +178,8 @@ public class RestSwaggerSupport {
         // okay there were some property placeholder replaced so re-create the model
         if (changed.get()) {
             xml = camelContext.getTypeConverter().mandatoryConvertTo(String.class, dom);
-            def = ModelHelper.createModelFromXml(camelContext, xml, RestsDefinition.class);
+            InputStream isxml = camelContext.getTypeConverter().convertTo(InputStream.class, xml);
+            def = (RestsDefinition) ecc.getXMLRoutesDefinitionLoader().loadRestsDefinition(camelContext, isxml);
             if (def != null) {
                 return def.getRests();
             }
@@ -186,9 +188,8 @@ public class RestSwaggerSupport {
         return rests;
     }
 
-    public List<RestDefinition> getRestDefinitions(String camelId) throws Exception {
+    public List<RestDefinition> getRestDefinitions(CamelContext camelContext, String camelId) throws Exception {
         ObjectName found = null;
-        boolean supportResolvePlaceholder = false;
 
         MBeanServer server = ManagementFactory.getPlatformMBeanServer();
         Set<ObjectName> names = server.queryNames(new ObjectName("org.apache.camel:type=context,*"), null);
@@ -198,27 +199,17 @@ public class RestSwaggerSupport {
                 id = id.substring(1, id.length() - 1);
             }
             if (camelId == null || camelId.equals(id)) {
-                // filter out older Camel versions as this requires Camel 2.15 or better (rest-dsl)
-                String version = (String) server.getAttribute(on, "CamelVersion");
-                if (CamelVersionHelper.isGE("2.15.0", version)) {
-                    found = on;
-                }
-                if (CamelVersionHelper.isGE("2.15.3", version)) {
-                    supportResolvePlaceholder = true;
-                }
+                found = on;
             }
         }
 
         if (found != null) {
-            String xml;
-            if (supportResolvePlaceholder) {
-                xml = (String) server.invoke(found, "dumpRestsAsXml", new Object[]{true}, new String[]{"boolean"});
-            } else {
-                xml = (String) server.invoke(found, "dumpRestsAsXml", null, null);
-            }
+            String xml = (String) server.invoke(found, "dumpRestsAsXml", new Object[]{true}, new String[]{"boolean"});
             if (xml != null) {
                 LOG.debug("DumpRestAsXml:\n{}", xml);
-                RestsDefinition rests = ModelHelper.createModelFromXml(null, xml, RestsDefinition.class);
+                InputStream isxml = camelContext.getTypeConverter().convertTo(InputStream.class, xml);
+                ExtendedCamelContext ecc = camelContext.adapt(ExtendedCamelContext.class);
+                RestsDefinition rests = (RestsDefinition) ecc.getXMLRoutesDefinitionLoader().loadRestsDefinition(camelContext, isxml);
                 if (rests != null) {
                     return rests.getRests();
                 }
@@ -239,16 +230,7 @@ public class RestSwaggerSupport {
             if (id.startsWith("\"") && id.endsWith("\"")) {
                 id = id.substring(1, id.length() - 1);
             }
-
-            // filter out older Camel versions as this requires Camel 2.15 or better (rest-dsl)
-            try {
-                String version = (String) server.getAttribute(on, "CamelVersion");
-                if (CamelVersionHelper.isGE("2.15.0", version)) {
-                    answer.add(id);
-                }
-            } catch (AttributeNotFoundException ex) {
-                // ignore
-            }
+            answer.add(id);
         }
         return answer;
     }
@@ -265,11 +247,11 @@ public class RestSwaggerSupport {
             setupCorsHeaders(response, configuration.getCorsHeaders());
         }
 
-        List<RestDefinition> rests = null;
-        if (camelContext != null && camelContext.getName().equals(contextId)) {
+        List<RestDefinition> rests;
+        if (camelContext.getName().equals(contextId)) {
             rests = getRestDefinitions(camelContext);
         } else {
-            rests = getRestDefinitions(contextId);
+            rests = getRestDefinitions(camelContext, contextId);
         }
 
         if (rests != null) {

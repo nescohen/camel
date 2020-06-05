@@ -1,7 +1,15 @@
 [[aws-sdb-component]]
-== AWS SimpleDB Component
+= AWS SimpleDB Component
+:docTitle: AWS SimpleDB
+:artifactId: camel-aws-sdb
+:description: Store and Retrieve data from/to AWS SDB service.
+:since: 2.9
+:supportLevel: Stable
+:component-header: Only producer is supported
 
-*Available as of Camel version 2.9*
+*Since Camel {since}*
+
+*{component-header}*
 
 The sdb component supports storing and retrieving data from/to
 https://aws.amazon.com/sdb[Amazon's SDB] service.
@@ -12,7 +20,7 @@ You must have a valid Amazon Web Services developer account, and be
 signed up to use Amazon SDB. More information is available at
 https://aws.amazon.com/sdb[Amazon SDB].
 
-### URI Format
+== URI Format
 
 [source,java]
 ------------------------------
@@ -22,7 +30,7 @@ aws-sdb://domainName[?options]
 You can append query options to the URI in the following format,
 ?options=value&option2=value&...
 
-### URI Options
+== URI Options
 
 
 // component options: START
@@ -33,7 +41,7 @@ The AWS SimpleDB component supports 2 options, which are listed below.
 [width="100%",cols="2,5,^1,2",options="header"]
 |===
 | Name | Description | Default | Type
-| *resolveProperty Placeholders* (advanced) | Whether the component should resolve property placeholders on itself when starting. Only properties which are of String type can use property placeholders. | true | boolean
+| *lazyStartProducer* (producer) | Whether the producer should be started lazy (on the first message). By starting lazy you can use this to allow CamelContext and routes to startup in situations where a producer may otherwise fail during starting and cause the route to fail being started. By deferring this startup to be lazy then the startup failure can be handled during routing messages via Camel's routing error handlers. Beware that when the first message is processed then creating and starting the producer may take a little time and prolong the total processing time of the processing. | false | boolean
 | *basicPropertyBinding* (advanced) | Whether the component should use basic property binding (Camel 2.x) or the newer property binding with additional capabilities | false | boolean
 |===
 // component options: END
@@ -50,7 +58,7 @@ aws-sdb:domainName
 
 with the following path and query parameters:
 
-==== Path Parameters (1 parameters):
+=== Path Parameters (1 parameters):
 
 
 [width="100%",cols="2,5,^1,2",options="header"]
@@ -60,7 +68,7 @@ with the following path and query parameters:
 |===
 
 
-==== Query Parameters (12 parameters):
+=== Query Parameters (13 parameters):
 
 
 [width="100%",cols="2,5,^1,2",options="header"]
@@ -71,43 +79,16 @@ with the following path and query parameters:
 | *consistentRead* (producer) | Determines whether or not strong consistency should be enforced when data is read. | false | boolean
 | *lazyStartProducer* (producer) | Whether the producer should be started lazy (on the first message). By starting lazy you can use this to allow CamelContext and routes to startup in situations where a producer may otherwise fail during starting and cause the route to fail being started. By deferring this startup to be lazy then the startup failure can be handled during routing messages via Camel's routing error handlers. Beware that when the first message is processed then creating and starting the producer may take a little time and prolong the total processing time of the processing. | false | boolean
 | *maxNumberOfDomains* (producer) | The maximum number of domain names you want returned. The range is 1 to 100. |  | Integer
-| *operation* (producer) | Operation to perform | PutAttributes | SdbOperations
+| *operation* (producer) | Operation to perform. The value can be one of: BatchDeleteAttributes, BatchPutAttributes, DeleteAttributes, DeleteDomain, DomainMetadata, GetAttributes, ListDomains, PutAttributes, Select | PutAttributes | SdbOperations
 | *proxyHost* (producer) | To define a proxy host when instantiating the SDB client |  | String
 | *proxyPort* (producer) | To define a proxy port when instantiating the SDB client |  | Integer
+| *proxyProtocol* (producer) | To define a proxy protocol when instantiating the SDB client. The value can be one of: HTTP, HTTPS | HTTPS | Protocol
 | *region* (producer) | The region in which SDB client needs to work. When using this parameter, the configuration will expect the capitalized name of the region (for example AP_EAST_1) You'll need to use the name Regions.EU_WEST_1.name() |  | String
 | *secretKey* (producer) | Amazon AWS Secret Key |  | String
 | *basicPropertyBinding* (advanced) | Whether the endpoint should use basic property binding (Camel 2.x) or the newer property binding with additional capabilities | false | boolean
 | *synchronous* (advanced) | Sets whether synchronous processing should be strictly used, or Camel is allowed to use asynchronous processing (if supported). | false | boolean
 |===
 // endpoint options: END
-// spring-boot-auto-configure options: START
-=== Spring Boot Auto-Configuration
-
-When using Spring Boot make sure to use the following Maven dependency to have support for auto configuration:
-
-[source,xml]
-----
-<dependency>
-  <groupId>org.apache.camel</groupId>
-  <artifactId>camel-aws-sdb-starter</artifactId>
-  <version>x.x.x</version>
-  <!-- use the same version as your Camel core version -->
-</dependency>
-----
-
-
-The component supports 3 options, which are listed below.
-
-
-
-[width="100%",cols="2,5,^1,2",options="header"]
-|===
-| Name | Description | Default | Type
-| *camel.component.aws-sdb.basic-property-binding* | Whether the component should use basic property binding (Camel 2.x) or the newer property binding with additional capabilities | false | Boolean
-| *camel.component.aws-sdb.enabled* | Whether to enable auto configuration of the aws-sdb component. This is enabled by default. |  | Boolean
-| *camel.component.aws-sdb.resolve-property-placeholders* | Whether the component should resolve property placeholders on itself when starting. Only properties which are of String type can use property placeholders. | true | Boolean
-|===
-// spring-boot-auto-configure options: END
 
 
 
@@ -118,9 +99,9 @@ You have to provide the amazonSDBClient in the
 Registry or your accessKey and secretKey to access
 the https://aws.amazon.com/sdb[Amazon's SDB].
 
-### Usage
+== Usage
 
-#### Message headers evaluated by the SDB producer
+=== Message headers evaluated by the SDB producer
 
 [width="100%",cols="10%,10%,80%",options="header",]
 |=======================================================================
@@ -156,7 +137,7 @@ to 100.
 specified attributes will be updated/deleted or not.
 |=======================================================================
 
-#### Message headers set during DomainMetadata operation
+=== Message headers set during DomainMetadata operation
 
 [width="100%",cols="10%,10%,80%",options="header",]
 |=======================================================================
@@ -177,7 +158,7 @@ specified attributes will be updated/deleted or not.
 |`CamelAwsSdbItemNameSize` |`Long` |The total size of all item names in the domain, in bytes.
 |=======================================================================
 
-#### Message headers set during GetAttributes operation
+=== Message headers set during GetAttributes operation
 
 [width="100%",cols="10%,10%,80%",options="header",]
 |=======================================================================
@@ -186,7 +167,7 @@ specified attributes will be updated/deleted or not.
 |`CamelAwsSdbAttributes` |`List<Attribute>` |The list of attributes returned by the operation.
 |=======================================================================
 
-#### Message headers set during ListDomains operation
+=== Message headers set during ListDomains operation
 
 [width="100%",cols="10%,10%,80%",options="header",]
 |=======================================================================
@@ -198,7 +179,7 @@ specified attributes will be updated/deleted or not.
 specified MaxNumberOfDomains still available.
 |=======================================================================
 
-#### Message headers set during Select operation
+=== Message headers set during Select operation
 
 [width="100%",cols="10%,10%,80%",options="header",]
 |=======================================================================
@@ -211,7 +192,7 @@ matched, the response size exceeded 1 megabyte, or the execution time
 exceeded 5 seconds.
 |=======================================================================
 
-#### Advanced AmazonSimpleDB configuration
+=== Advanced AmazonSimpleDB configuration
 
 If you need more control over the `AmazonSimpleDB` instance
 configuration you can create your own instance and refer to it from the
@@ -240,7 +221,21 @@ AmazonSimpleDB client = new AmazonSimpleDBClient(awsCredentials, clientConfigura
 registry.bind("client", client);
 --------------------------------------------------------------------------------------
 
-### Dependencies
+=== SDB Producer operations
+
+Camel-AWS SDB component provides the following operation on the producer side:
+
+- BatchDeleteAttributes
+- BatchPutAttributes
+- DeleteAttributes
+- DeleteDomain
+- DomainMetadata
+- GetAttributes
+- ListDomains
+- PutAttributes
+- Select
+
+== Dependencies
 
 Maven users will need to add the following dependency to their pom.xml.
 
@@ -255,13 +250,7 @@ Maven users will need to add the following dependency to their pom.xml.
 </dependency>
 ---------------------------------------
 
-where `\${camel-version}` must be replaced by the actual version of Camel.
+where `$\{camel-version\}` must be replaced by the actual version of Camel.
 
-### See Also
 
-* Configuring Camel
-* Component
-* Endpoint
-* Getting Started
-
-* AWS Component
+include::camel-spring-boot::page$aws-sdb-starter.adoc[]

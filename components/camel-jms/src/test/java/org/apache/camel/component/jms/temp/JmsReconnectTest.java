@@ -40,6 +40,7 @@ public class JmsReconnectTest {
 
     private static final class EchoServiceImpl implements MyService {
 
+        @Override
         public String echo(String st) {
             return st;
         }
@@ -79,9 +80,9 @@ public class JmsReconnectTest {
         // TibjmsConnectionFactory connectionFactory = new TibjmsConnectionFactory();
         // connectionFactory.setReconnAttemptCount(1);
 
-        jmsComponent.setConnectionFactory(connectionFactory);
-        jmsComponent.setRequestTimeout(1000);
-        jmsComponent.setReceiveTimeout(1000);
+        jmsComponent.getConfiguration().setConnectionFactory(connectionFactory);
+        jmsComponent.getConfiguration().setRequestTimeout(1000);
+        jmsComponent.getConfiguration().setReceiveTimeout(1000);
         context.addComponent("jms", jmsComponent);
         context.addRoutes(new RouteBuilder() {
 

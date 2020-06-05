@@ -17,7 +17,9 @@
 package org.apache.camel.component.file.remote;
 
 import org.apache.camel.Exchange;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  *
@@ -34,7 +36,7 @@ public class ConsumerTemplateFtpShutdownTest extends FtpServerTestSupport {
 
         Exchange exchange = consumer.receive(getFtpUrl() + "&fileName=hello.txt", 5000);
         assertNotNull(exchange);
-        
+
         consumer.doneUoW(exchange);
         consumer.stop();
     }

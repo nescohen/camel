@@ -22,7 +22,7 @@ import java.util.List;
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class SplitterMethodCallTest extends ContextTestSupport {
@@ -36,20 +36,20 @@ public class SplitterMethodCallTest extends ContextTestSupport {
 
         assertMockEndpointsSatisfied();
     }
-    
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+
+    @Override
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("splitterBean", new SplitWordsBean());
         return jndi;
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
                 // START SNIPPET: e1
-                from("direct:start")
-                    .split().method("splitterBean", "splitWords")
-                    .to("mock:result");
+                from("direct:start").split().method("splitterBean", "splitWords").to("mock:result");
                 // END SNIPPET: e1
             }
         };

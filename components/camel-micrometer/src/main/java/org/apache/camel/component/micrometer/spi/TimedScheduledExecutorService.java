@@ -20,6 +20,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
@@ -31,7 +32,7 @@ public class TimedScheduledExecutorService extends TimedExecutorService implemen
     private final MeterRegistry registry;
 
     public TimedScheduledExecutorService(MeterRegistry registry, ScheduledExecutorService delegate, String executorServiceName, Iterable<Tag> tags) {
-        super(registry, delegate, executorServiceName, tags);
+        super(registry, delegate, executorServiceName, "", tags);
         this.registry = registry;
         this.delegate = delegate;
     }

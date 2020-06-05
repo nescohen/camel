@@ -32,7 +32,6 @@ import org.apache.camel.model.dataformat.BindyType;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Test;
 
-
 /**
  * This test validates that fixed length records can be defined and processed using ordinal 'pos' values, and 
  * lengths declared for each field.  Strict position calculations in FixedLength records is not necessary.  The
@@ -112,7 +111,7 @@ public class BindySimpleFixedLengthOrdinalPosTest extends CamelTestSupport {
                 BindyDataFormat bindy = new BindyDataFormat();
                 bindy.setClassType(BindySimpleFixedLengthOrdinalPosTest.Order.class);
                 bindy.setLocale("en");
-                bindy.setType(BindyType.Fixed);
+                bindy.type(BindyType.Fixed);
 
                 from(URI_DIRECT_MARSHALL)
                     .marshal(bindy)

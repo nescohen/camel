@@ -15,12 +15,13 @@
  * limitations under the License.
  */
 package org.apache.camel.processor;
+
 import org.apache.camel.CamelExecutionException;
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Endpoint;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.support.processor.validation.PredicateValidationException;
+import org.apache.camel.support.processor.PredicateValidationException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -57,20 +58,18 @@ public class ValidateSimpleTest extends ContextTestSupport {
         } catch (CamelExecutionException e) {
             // expected
             assertIsInstanceOf(PredicateValidationException.class, e.getCause());
-            String s = "Validation failed for Predicate[Simple: ${body} contains 'Camel'].";
-            assertTrue(e.getCause().getMessage().startsWith(s));
+            String s = "Validation failed for Predicate[${body} contains 'Camel'].";
+            assertStringContains(e.getCause().getMessage(), s);
         }
 
         assertMockEndpointsSatisfied();
     }
 
-
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
-                from("direct:start")
-                    .validate().simple("${body} contains 'Camel'")
-                    .to("mock:result");
+                from("direct:start").validate().simple("${body} contains 'Camel'").to("mock:result");
             }
         };
     }

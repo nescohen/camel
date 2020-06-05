@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.component.google.pubsub.integration;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -32,7 +33,6 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.google.pubsub.PubsubTestSupport;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.support.DefaultExchange;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class BodyTypesTest extends PubsubTestSupport {
@@ -49,7 +49,7 @@ public class BodyTypesTest extends PubsubTestSupport {
     @EndpointInject("mock:sendResult")
     private MockEndpoint sendResult;
 
-    @EndpointInject("google-pubsub:{{project.id}}:" + SUBSCRIPTION_NAME)
+    @EndpointInject("google-pubsub:{{project.id}}:" + SUBSCRIPTION_NAME + "?synchronousPull=true")
     private Endpoint pubsubSubscription;
 
     @EndpointInject("mock:receiveResult")
@@ -58,8 +58,8 @@ public class BodyTypesTest extends PubsubTestSupport {
     @Produce("direct:from")
     private ProducerTemplate producer;
 
-    @BeforeClass
-    public static void createTopicSubscription() throws Exception {
+    @Override
+    public void createTopicSubscription() {
         createTopicSubscriptionPair(TOPIC_NAME, SUBSCRIPTION_NAME);
     }
 
@@ -67,17 +67,11 @@ public class BodyTypesTest extends PubsubTestSupport {
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() {
-                from(directIn)
-                        .routeId("Single_Send")
-                        .to(pubsubTopic)
-                        .to(sendResult);
+                from(directIn).routeId("Single_Send").to(pubsubTopic).to(sendResult);
 
-                from(pubsubSubscription)
-                        .routeId("Single_Receive")
-                        .to("direct:one");
+                from(pubsubSubscription).routeId("Single_Receive").to("direct:one");
 
-                from("direct:one")
-                        .to(receiveResult);
+                from("direct:one").to(receiveResult);
             }
         };
     }
@@ -100,11 +94,9 @@ public class BodyTypesTest extends PubsubTestSupport {
 
         Exchange sentExchange = sentExchanges.get(0);
 
-        assertTrue("Sent body type is byte[]",
-                   sentExchange.getIn().getBody() instanceof byte[]);
+        assertTrue("Sent body type is byte[]", sentExchange.getIn().getBody() instanceof byte[]);
 
-        assertTrue("Sent body type is the one sent",
-                   sentExchange.getIn().getBody() == body);
+        assertTrue("Sent body type is the one sent", sentExchange.getIn().getBody() == body);
 
         receiveResult.assertIsSatisfied(5000);
 
@@ -114,11 +106,9 @@ public class BodyTypesTest extends PubsubTestSupport {
 
         Exchange receivedExchange = receivedExchanges.get(0);
 
-        assertTrue("Received body is of byte[] type",
-                   receivedExchange.getIn().getBody() instanceof byte[]);
+        assertTrue("Received body is of byte[] type", receivedExchange.getIn().getBody() instanceof byte[]);
 
-        assertTrue("Received body equals sent",
-                   Arrays.equals(body, (byte[]) receivedExchange.getIn().getBody()));
+        assertTrue("Received body equals sent", Arrays.equals(body, (byte[]) receivedExchange.getIn().getBody()));
 
     }
 
@@ -141,8 +131,7 @@ public class BodyTypesTest extends PubsubTestSupport {
 
         Exchange sentExchange = sentExchanges.get(0);
 
-        assertTrue("Sent body type is byte[]",
-                   sentExchange.getIn().getBody() instanceof Map);
+        assertTrue("Sent body type is byte[]", sentExchange.getIn().getBody() instanceof Map);
 
         receiveResult.assertIsSatisfied(5000);
 
@@ -152,13 +141,11 @@ public class BodyTypesTest extends PubsubTestSupport {
 
         Exchange receivedExchange = receivedExchanges.get(0);
 
-        assertTrue("Received body is of byte[] type",
-                   receivedExchange.getIn().getBody() instanceof byte[]);
+        assertTrue("Received body is of byte[] type", receivedExchange.getIn().getBody() instanceof byte[]);
 
         Object bodyReceived = deserialize((byte[]) receivedExchange.getIn().getBody());
 
-        assertTrue("Received body is a Map ",
-                   ((Map) bodyReceived).get("KEY").equals("VALUE1212"));
+        assertTrue("Received body is a Map ", ((Map) bodyReceived).get("KEY").equals("VALUE1212"));
 
     }
 

@@ -31,9 +31,7 @@ public class OptionalPropertiesDslInvalidSyntaxTest extends ContextTestSupport {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start")
-                    .multicast().placeholder("stopOnException", "xxx")
-                        .to("mock:a").throwException(new IllegalAccessException("Damn")).to("mock:b");
+                from("direct:start").multicast().stopOnException("{{xxx}}").to("mock:a").throwException(new IllegalAccessException("Damn")).to("mock:b");
             }
         });
         try {
@@ -45,25 +43,6 @@ public class OptionalPropertiesDslInvalidSyntaxTest extends ContextTestSupport {
         }
     }
 
-    @Test
-    public void testPlaceholderDslSetterNotFoundTest() throws Exception {
-        context.addRoutes(new RouteBuilder() {
-            @Override
-            public void configure() throws Exception {
-                from("direct:start")
-                    .multicast().placeholder("xxx", "stop")
-                        .to("mock:a").throwException(new IllegalAccessException("Damn")).to("mock:b");
-            }
-        });
-        try {
-            context.start();
-            fail("Should have thrown exception");
-        } catch (Exception e) {
-            IllegalArgumentException cause = assertIsInstanceOf(IllegalArgumentException.class, e.getCause());
-            assertEquals("No setter to set property: xxx to: true on: Multicast[[To[mock:a], ThrowException[java.lang.IllegalAccessException], To[mock:b]]]", cause.getMessage());
-        }
-    }
-
     @Override
     public boolean isUseRouteBuilder() {
         return false;
@@ -72,9 +51,7 @@ public class OptionalPropertiesDslInvalidSyntaxTest extends ContextTestSupport {
     @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext context = super.createCamelContext();
-        PropertiesComponent pc = new PropertiesComponent();
-        pc.setLocation("classpath:org/apache/camel/component/properties/myproperties.properties");
-        context.addComponent("properties", pc);
+        context.getPropertiesComponent().setLocation("classpath:org/apache/camel/component/properties/myproperties.properties");
         return context;
     }
 

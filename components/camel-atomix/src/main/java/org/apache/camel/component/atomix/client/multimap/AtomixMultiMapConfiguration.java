@@ -27,7 +27,7 @@ public class AtomixMultiMapConfiguration extends AtomixClientConfiguration {
     private AtomixMultiMap.Action defaultAction = AtomixMultiMap.Action.PUT;
     @UriParam
     private Object key;
-    @UriParam
+    @UriParam(javaType = "java.time.Duration")
     private long ttl;
 
     // ****************************************
@@ -72,6 +72,7 @@ public class AtomixMultiMapConfiguration extends AtomixClientConfiguration {
     // Copy
     // ****************************************
 
+    @Override
     public AtomixMultiMapConfiguration copy() {
         try {
             return (AtomixMultiMapConfiguration) super.clone();

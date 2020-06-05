@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.impl;
+
 import java.io.File;
 import java.util.concurrent.TimeUnit;
 
@@ -320,7 +321,7 @@ public class DefaultConsumerTemplateTest extends ContextTestSupport {
     @Test
     public void testReceiveOut() throws Exception {
         Exchange exchange = new DefaultExchange(context);
-        exchange.getOut().setBody("Bye World");
+        exchange.getMessage().setBody("Bye World");
         template.send("seda:foo", exchange);
 
         String out = consumer.receiveBody("seda:foo", String.class);
@@ -335,15 +336,18 @@ public class DefaultConsumerTemplateTest extends ContextTestSupport {
 
         assertEquals("Size should be 0", 0, template.getCurrentCacheSize());
 
-        // test that we cache at most 500 consumers to avoid it eating to much memory
+        // test that we cache at most 500 consumers to avoid it eating to much
+        // memory
         for (int i = 0; i < 503; i++) {
             Endpoint e = context.getEndpoint("direct:queue:" + i);
             template.receiveNoWait(e);
         }
 
-        // the eviction is async so force cleanup
-        template.cleanUp();
-
+        await().atMost(3, TimeUnit.SECONDS).until(() -> {
+            // the eviction is async so force cleanup
+            template.cleanUp();
+            return template.getCurrentCacheSize() == 500;
+        });
         assertEquals("Size should be 500", 500, template.getCurrentCacheSize());
         template.stop();
 
@@ -357,15 +361,18 @@ public class DefaultConsumerTemplateTest extends ContextTestSupport {
 
         assertEquals("Size should be 0", 0, template.getCurrentCacheSize());
 
-        // test that we cache at most 500 consumers to avoid it eating to much memory
+        // test that we cache at most 500 consumers to avoid it eating to much
+        // memory
         for (int i = 0; i < 503; i++) {
             Endpoint e = context.getEndpoint("direct:queue:" + i);
             template.receiveNoWait(e);
         }
 
-        // the eviction is async so force cleanup
-        template.cleanUp();
-
+        await().atMost(3, TimeUnit.SECONDS).until(() -> {
+            // the eviction is async so force cleanup
+            template.cleanUp();
+            return template.getCurrentCacheSize() == 500;
+        });
         assertEquals("Size should be 500", 500, template.getCurrentCacheSize());
         template.stop();
 
@@ -391,5 +398,4 @@ public class DefaultConsumerTemplateTest extends ContextTestSupport {
 
         assertFalse("File should have been deleted " + file, file.exists());
     }
-
 }

@@ -31,7 +31,9 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.ExceptionHandler;
 import org.apache.camel.AsyncEndpoint;
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
@@ -41,7 +43,7 @@ import org.apache.camel.spi.UriEndpoint;
 import org.apache.camel.spi.UriParam;
 import org.apache.camel.spi.UriPath;
 import org.apache.camel.support.DefaultEndpoint;
-import org.apache.camel.support.IntrospectionSupport;
+import org.apache.camel.util.PropertiesHelper;
 import org.apache.camel.util.URISupport;
 
 import static org.apache.camel.component.rabbitmq.RabbitMQComponent.BINDING_ARG_PREFIX;
@@ -49,10 +51,9 @@ import static org.apache.camel.component.rabbitmq.RabbitMQComponent.EXCHANGE_ARG
 import static org.apache.camel.component.rabbitmq.RabbitMQComponent.QUEUE_ARG_PREFIX;
 
 /**
- * The rabbitmq component allows you produce and consume messages from
- * <a href="http://www.rabbitmq.com/">RabbitMQ</a> instances.
+ * Send and receive messages from <a href="http://www.rabbitmq.com/">RabbitMQ</a> instances.
  */
-@UriEndpoint(firstVersion = "2.12.0", scheme = "rabbitmq", title = "RabbitMQ", syntax = "rabbitmq:exchangeName", label = "messaging")
+@UriEndpoint(firstVersion = "2.12.0", scheme = "rabbitmq", title = "RabbitMQ", syntax = "rabbitmq:exchangeName", category = {Category.MESSAGING})
 public class RabbitMQEndpoint extends DefaultEndpoint implements AsyncEndpoint {
     // header to indicate that the message body needs to be de-serialized
     public static final String SERIALIZE_HEADER = "CamelSerialize";
@@ -101,7 +102,9 @@ public class RabbitMQEndpoint extends DefaultEndpoint implements AsyncEndpoint {
     @UriParam(label = "common")
     private boolean skipExchangeDeclare;
     @UriParam(label = "common")
-    private Address[] addresses;
+    private String addresses;
+    @UriParam(label = "common", defaultValue = "true")
+    private Boolean automaticRecoveryEnabled = Boolean.TRUE;
     @UriParam(label = "advanced", defaultValue = "" + ConnectionFactory.DEFAULT_CONNECTION_TIMEOUT)
     private int connectionTimeout = ConnectionFactory.DEFAULT_CONNECTION_TIMEOUT;
     @UriParam(label = "advanced", defaultValue = "" + ConnectionFactory.DEFAULT_CHANNEL_MAX)
@@ -116,8 +119,6 @@ public class RabbitMQEndpoint extends DefaultEndpoint implements AsyncEndpoint {
     private TrustManager trustManager;
     @UriParam(label = "advanced")
     private Map<String, Object> clientProperties;
-    @UriParam(label = "advanced")
-    private Boolean automaticRecoveryEnabled;
     @UriParam(label = "advanced", defaultValue = "5000")
     private Integer networkRecoveryInterval = 5000;
     @UriParam(label = "advanced")
@@ -166,11 +167,23 @@ public class RabbitMQEndpoint extends DefaultEndpoint implements AsyncEndpoint {
     private boolean guaranteedDeliveries;
     @UriParam(label = "producer")
     private boolean allowNullHeaders;
-    // camel-jms supports this setting but it is not currently configurable in camel-rabbitmq
+    @UriParam(label = "producer")
+    private boolean allowCustomHeaders = true;
+    @UriParam(label = "consumer")
+    private String consumerTag = "";
+    @UriParam(label = "advanced")
+    private ExceptionHandler connectionFactoryExceptionHandler;
+    @UriParam(label = "allowMessageBodySerialization", defaultValue = "false")
+    private boolean allowMessageBodySerialization;
+
+    // camel-jms supports this setting but it is not currently configurable in
+    // camel-rabbitmq
     private boolean useMessageIDAsCorrelationID = true;
-    // camel-jms supports this setting but it is not currently configurable in camel-rabbitmq
+    // camel-jms supports this setting but it is not currently configurable in
+    // camel-rabbitmq
     private String replyToType = ReplyToType.Temporary.name();
-    // camel-jms supports this setting but it is not currently configurable in camel-rabbitmq
+    // camel-jms supports this setting but it is not currently configurable in
+    // camel-rabbitmq
     private String replyTo;
 
     private final RabbitMQMessageConverter messageConverter = new RabbitMQMessageConverter();
@@ -191,7 +204,7 @@ public class RabbitMQEndpoint extends DefaultEndpoint implements AsyncEndpoint {
 
     public Exchange createRabbitExchange(Envelope envelope, AMQP.BasicProperties properties, byte[] body) {
         Exchange exchange = super.createExchange();
-        messageConverter.populateRabbitExchange(exchange, envelope, properties, body, false);
+        messageConverter.populateRabbitExchange(exchange, envelope, properties, body, false, allowMessageBodySerialization);
         return exchange;
     }
 
@@ -220,7 +233,7 @@ public class RabbitMQEndpoint extends DefaultEndpoint implements AsyncEndpoint {
         if (getAddresses() == null) {
             return getOrCreateConnectionFactory().newConnection(executor);
         } else {
-            return getOrCreateConnectionFactory().newConnection(executor, getAddresses());
+            return getOrCreateConnectionFactory().newConnection(executor, parseAddresses());
         }
     }
 
@@ -452,23 +465,19 @@ public class RabbitMQEndpoint extends DefaultEndpoint implements AsyncEndpoint {
      * looks like "server1:12345, server2:12345"
      */
     public void setAddresses(String addresses) {
-        Address[] addressArray = Address.parseAddresses(addresses);
-        if (addressArray.length > 0) {
-            this.addresses = addressArray;
-        }
-    }
-
-    /**
-     * If this option is set, camel-rabbitmq will try to create connection based
-     * on the setting of option addresses. The addresses value is a string which
-     * looks like "server1:12345, server2:12345"
-     */
-    public void setAddresses(Address[] addresses) {
         this.addresses = addresses;
     }
 
-    public Address[] getAddresses() {
+    public String getAddresses() {
         return addresses;
+    }
+
+    public Address[] parseAddresses() {
+        if (addresses != null) {
+            return Address.parseAddresses(getAddresses());
+        } else {
+            return null;
+        }
     }
 
     public int getConnectionTimeout() {
@@ -544,7 +553,8 @@ public class RabbitMQEndpoint extends DefaultEndpoint implements AsyncEndpoint {
     }
 
     /**
-     * Configure SSL trust manager, SSL should be enabled for this option to be effective
+     * Configure SSL trust manager, SSL should be enabled for this option to be
+     * effective
      */
     public void setTrustManager(TrustManager trustManager) {
         this.trustManager = trustManager;
@@ -555,7 +565,8 @@ public class RabbitMQEndpoint extends DefaultEndpoint implements AsyncEndpoint {
     }
 
     /**
-     * Connection client properties (client info used in negotiating with the server)
+     * Connection client properties (client info used in negotiating with the
+     * server)
      */
     public void setClientProperties(Map<String, Object> clientProperties) {
         this.clientProperties = clientProperties;
@@ -567,11 +578,27 @@ public class RabbitMQEndpoint extends DefaultEndpoint implements AsyncEndpoint {
 
     /**
      * Enables connection automatic recovery (uses connection implementation
-     * that performs automatic recovery when connection shutdown is not
-     * initiated by the application)
+     * that performs automatic recovery when existing connection has failures)
      */
     public void setAutomaticRecoveryEnabled(Boolean automaticRecoveryEnabled) {
         this.automaticRecoveryEnabled = automaticRecoveryEnabled;
+    }
+
+    public boolean isAllowMessageBodySerialization() {
+        return allowMessageBodySerialization;
+    }
+
+    /**
+     * Whether to allow Java serialization of the message body or not. If this value is true, the message body
+     * will be serialized on the producer side using Java serialization, if no type converter can handle the
+     * message body. On the consumer side, it will deserialize the message body if this value is true and the
+     * message contains a CamelSerialize header.
+     *
+     * Setting this value to true may introduce a security vulnerability as it allows an attacker to attempt to
+     * deserialize to a gadget object which could result in a RCE or other security vulnerability.
+     */
+    public void setAllowMessageBodySerialization(boolean allowMessageBodySerialization) {
+        this.allowMessageBodySerialization = allowMessageBodySerialization;
     }
 
     public Integer getNetworkRecoveryInterval() {
@@ -795,18 +822,18 @@ public class RabbitMQEndpoint extends DefaultEndpoint implements AsyncEndpoint {
     }
 
     public Map<String, Object> getExchangeArgs() {
-        return IntrospectionSupport.extractProperties(args, EXCHANGE_ARG_PREFIX);
+        return PropertiesHelper.extractProperties(args, EXCHANGE_ARG_PREFIX, false);
     }
 
     public Map<String, Object> getQueueArgs() {
-        return IntrospectionSupport.extractProperties(args, QUEUE_ARG_PREFIX);
+        return PropertiesHelper.extractProperties(args, QUEUE_ARG_PREFIX, false);
     }
 
     public Map<String, Object> getBindingArgs() {
-        return IntrospectionSupport.extractProperties(args, BINDING_ARG_PREFIX);
+        return PropertiesHelper.extractProperties(args, BINDING_ARG_PREFIX, false);
     }
 
-     /**
+    /**
      * Set timeout for waiting for a reply when using the InOut Exchange Pattern
      * (in milliseconds)
      */
@@ -850,7 +877,8 @@ public class RabbitMQEndpoint extends DefaultEndpoint implements AsyncEndpoint {
 
     /**
      * When true, the message will be published with
-     * <a href="https://www.rabbitmq.com/confirms.html">publisher acknowledgements</a> turned on
+     * <a href="https://www.rabbitmq.com/confirms.html">publisher
+     * acknowledgements</a> turned on
      */
     public boolean isPublisherAcknowledgements() {
         return publisherAcknowledgements;
@@ -875,9 +903,9 @@ public class RabbitMQEndpoint extends DefaultEndpoint implements AsyncEndpoint {
     /**
      * When true, an exception will be thrown when the message cannot be
      * delivered (basic.return) and the message is marked as mandatory.
-     * PublisherAcknowledgement will also be activated in this case.
-     * See also <a href=https://www.rabbitmq.com/confirms.html">publisher acknowledgements</a>
-     * - When will messages be confirmed.
+     * PublisherAcknowledgement will also be activated in this case. See also <a
+     * href=https://www.rabbitmq.com/confirms.html">publisher
+     * acknowledgements</a> - When will messages be confirmed.
      */
     public boolean isGuaranteedDeliveries() {
         return guaranteedDeliveries;
@@ -918,8 +946,9 @@ public class RabbitMQEndpoint extends DefaultEndpoint implements AsyncEndpoint {
     }
 
     /**
-     * Request exclusive access to the queue (meaning only this consumer can access the queue). This is useful
-     * when you want a long-lived shared queue to be temporarily accessible by just one consumer.
+     * Request exclusive access to the queue (meaning only this consumer can
+     * access the queue). This is useful when you want a long-lived shared queue
+     * to be temporarily accessible by just one consumer.
      */
     public void setExclusiveConsumer(boolean exclusiveConsumer) {
         this.exclusiveConsumer = exclusiveConsumer;
@@ -947,4 +976,38 @@ public class RabbitMQEndpoint extends DefaultEndpoint implements AsyncEndpoint {
         this.passive = passive;
     }
 
+    public String getConsumerTag() {
+        return consumerTag;
+    }
+
+    /**
+     * Specify a client-generated consumer tag to establish context when
+     * invoking the consume operation
+     */
+    public void setConsumerTag(String consumerTag) {
+        this.consumerTag = consumerTag;
+    }
+
+    public boolean isAllowCustomHeaders() {
+        return allowCustomHeaders;
+    }
+
+    /**
+     * Allow pass custom values to header
+     */
+    public void setAllowCustomHeaders(boolean allowCustomHeaders) {
+        this.allowCustomHeaders = allowCustomHeaders;
+    }
+
+
+    public ExceptionHandler getConnectionFactoryExceptionHandler() {
+        return connectionFactoryExceptionHandler;
+    }
+
+    /**
+     * Custom rabbitmq ExceptionHandler for ConnectionFactory
+     */
+    public void setConnectionFactoryExceptionHandler(ExceptionHandler connectionFactoryExceptionHandler) {
+        this.connectionFactoryExceptionHandler = connectionFactoryExceptionHandler;
+    }
 }

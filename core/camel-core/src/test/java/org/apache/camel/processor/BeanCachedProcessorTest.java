@@ -23,35 +23,34 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
+import org.apache.camel.support.DefaultRegistry;
+import org.apache.camel.support.jndi.JndiBeanRepository;
 import org.junit.Test;
 
 public class BeanCachedProcessorTest extends ContextTestSupport {
 
     private Context context;
 
-    private JndiRegistry registry;
+    private Registry registry;
 
     @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             @Override
             public void configure() {
-                from("direct:noCache")
-                        .to("bean:something?cache=false");
-                from("direct:cached")
-                        .to("bean:something?cache=true");
+                from("direct:noCache").to("bean:something?cache=false");
+                from("direct:cached").to("bean:something?cache=true");
 
             }
         };
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry registry = super.createRegistry();
-        registry.bind("something", new MyBean());
-        this.context = registry.getContext();
-        this.registry = registry;
+    protected Registry createRegistry() throws Exception {
+        context = createJndiContext();
+        context.bind("something", new MyBean());
+        registry = new DefaultRegistry(new JndiBeanRepository(context));
         return registry;
     }
 
@@ -85,10 +84,10 @@ public class BeanCachedProcessorTest extends ContextTestSupport {
         }
     }
 
-
     public static class MyBean implements Processor {
         private boolean invoked;
 
+        @Override
         public void process(Exchange exchange) throws Exception {
             if (invoked) {
                 throw new IllegalStateException("This bean is not supported to be invoked again!");

@@ -29,12 +29,20 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.spi.ClassResolver;
+import org.apache.camel.util.AntPathMatcher;
 import org.apache.camel.util.FileUtil;
+import org.apache.camel.util.ObjectHelper;
 import org.apache.camel.util.StringHelper;
 import org.apache.camel.util.URISupport;
 import org.slf4j.Logger;
@@ -73,7 +81,7 @@ public final class ResourceHelper {
      */
     public static String getScheme(String uri) {
         if (hasScheme(uri)) {
-            return uri.substring(0, uri.indexOf(":") + 1);
+            return uri.substring(0, uri.indexOf(':') + 1);
         } else {
             return null;
         }
@@ -242,13 +250,26 @@ public final class ResourceHelper {
     }
 
     /**
+     * Is the given uri a classpath uri?
+     *
+     * @param uri the uri
+     * @return <tt>true</tt> if the uri starts with <tt>classpath:</tt> or has no scheme and therefore would otherwise be loaded from classpath by default.
+     */
+    public static boolean isClasspathUri(String uri) {
+        if (ObjectHelper.isEmpty(uri)) {
+            return false;
+        }
+        return uri.startsWith("classpath:") || uri.indexOf(':') == -1;
+    }
+
+    /**
      * Is the given uri a http uri?
      *
      * @param uri the uri
      * @return <tt>true</tt> if the uri starts with <tt>http:</tt> or <tt>https:</tt>
      */
     public static boolean isHttpUri(String uri) {
-        if (uri == null) {
+        if (ObjectHelper.isEmpty(uri)) {
             return false;
         }
         return uri.startsWith("http:") || uri.startsWith("https:");
@@ -305,4 +326,25 @@ public final class ResourceHelper {
         return uri;
     }
 
+    /**
+     * Find resources from the file system using Ant-style path patterns.
+     *
+     * @param root the starting file
+     * @param pattern the Ant pattern
+     * @return a list of files matching the given pattern
+     * @throws Exception
+     */
+    public static Set<Path> findInFileSystem(Path root, String pattern) throws Exception {
+        try (Stream<Path> path = Files.walk(root)) {
+            return path
+                .filter(Files::isRegularFile)
+                .filter(entry -> {
+                    Path relative = root.relativize(entry);
+                    boolean match = AntPathMatcher.INSTANCE.match(pattern, relative.toString());
+                    LOG.debug("Found resource: {} matching pattern: {} -> {}", entry, pattern, match);
+                    return match;
+                })
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        }
+    }
 }

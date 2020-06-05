@@ -16,13 +16,11 @@
  */
 package org.apache.camel.component.bean;
 
-import javax.naming.Context;
-
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.support.jndi.JndiContext;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 /**
@@ -42,23 +40,20 @@ public class BeanWithHeaderTest extends ContextTestSupport {
         mock.assertIsSatisfied();
     }
 
-    protected Context createJndiContext() throws Exception {
-        JndiContext answer = new JndiContext();
+    @Override
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
         answer.bind("myBean", new MyBean());
         return answer;
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {
-                from("direct:in")
-                    .setHeader("foo", constant("bar"))
-                    .to("bean:myBean")
-                    .to("seda:a");
+                from("direct:in").setHeader("foo", constant("bar")).to("bean:myBean").to("seda:a");
 
-                from("seda:a")
-                    .to("bean:myBean")
-                    .to("mock:result");
+                from("seda:a").to("bean:myBean").to("mock:result");
             }
         };
     }

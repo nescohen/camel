@@ -16,15 +16,13 @@
  */
 package org.apache.camel.processor;
 
-import javax.naming.Context;
-
 import org.apache.camel.AggregationStrategy;
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.RecipientList;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.support.jndi.JndiContext;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class BeanRecipientListTimeoutTest extends ContextTestSupport {
@@ -51,13 +49,14 @@ public class BeanRecipientListTimeoutTest extends ContextTestSupport {
     }
 
     @Override
-    protected Context createJndiContext() throws Exception {
-        JndiContext answer = new JndiContext();
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
         answer.bind("myBean", new MyBean());
         answer.bind("myStrategy", new MyAggregationStrategy());
         return answer;
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
@@ -82,11 +81,16 @@ public class BeanRecipientListTimeoutTest extends ContextTestSupport {
 
     private class MyAggregationStrategy implements AggregationStrategy {
 
+        @Override
         public void timeout(Exchange oldExchange, int index, int total, long timeout) {
-            // we can't assert on the expected values here as the contract of this method doesn't
-            // allow to throw any Throwable (including AssertionError) so that we assert
-            // about the expected values directly inside the test method itself. other than that
-            // asserting inside a thread other than the main thread dosen't make much sense as
+            // we can't assert on the expected values here as the contract of
+            // this method doesn't
+            // allow to throw any Throwable (including AssertionError) so that
+            // we assert
+            // about the expected values directly inside the test method itself.
+            // other than that
+            // asserting inside a thread other than the main thread dosen't make
+            // much sense as
             // junit would not realize the failed assertion!
             receivedExchange = oldExchange;
             receivedIndex = index;
@@ -94,6 +98,7 @@ public class BeanRecipientListTimeoutTest extends ContextTestSupport {
             receivedTimeout = timeout;
         }
 
+        @Override
         public Exchange aggregate(Exchange oldExchange, Exchange newExchange) {
             if (oldExchange == null) {
                 return newExchange;

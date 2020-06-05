@@ -23,7 +23,6 @@ import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.dataformat.protobuf.generated.AddressBookProtos;
 import org.apache.camel.dataformat.protobuf.generated.AddressBookProtos.Person;
 import org.apache.camel.test.spring.CamelSpringTestSupport;
-
 import org.junit.Test;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
@@ -61,7 +60,6 @@ public class ProtobufMarshalAndUnmarshalSpringTest extends CamelSpringTestSuppor
             fail("Expect the exception here");
         } catch (Exception ex) {
             assertTrue("Expect FailedToCreateRouteException", ex instanceof FailedToCreateRouteException);
-            assertTrue("Get a wrong reason", ex.getCause() instanceof IllegalArgumentException);
         }
     }
 

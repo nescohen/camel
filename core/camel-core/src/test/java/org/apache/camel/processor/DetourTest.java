@@ -19,18 +19,18 @@ package org.apache.camel.processor;
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class DetourTest extends ContextTestSupport {
-    
+
     private static final String BODY = "<order custId=\"123\"/>";
     private ControlBean controlBean;
 
     @Test
     public void testDetourSet() throws Exception {
         controlBean.setDetour(true);
-        
+
         MockEndpoint resultEndpoint = getMockEndpoint("mock:result");
         resultEndpoint.expectedMessageCount(1);
         resultEndpoint.message(0).body().isEqualTo(BODY);
@@ -38,49 +38,49 @@ public class DetourTest extends ContextTestSupport {
         MockEndpoint detourEndpoint = getMockEndpoint("mock:detour");
         detourEndpoint.expectedMessageCount(1);
         detourEndpoint.message(0).body().isEqualTo(BODY);
-        
+
         template.sendBody("direct:start", BODY);
-                
-        assertMockEndpointsSatisfied();        
+
+        assertMockEndpointsSatisfied();
     }
 
     @Test
-    public void testDetourNotSet() throws Exception {      
+    public void testDetourNotSet() throws Exception {
         controlBean.setDetour(false);
-        
+
         MockEndpoint resultEndpoint = getMockEndpoint("mock:result");
         resultEndpoint.expectedMessageCount(1);
         resultEndpoint.message(0).body().isEqualTo(BODY);
 
         MockEndpoint detourEndpoint = getMockEndpoint("mock:detour");
         detourEndpoint.expectedMessageCount(0);
-        
+
         template.sendBody("direct:start", BODY);
-                
-        assertMockEndpointsSatisfied();        
-    }    
-    
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+
+        assertMockEndpointsSatisfied();
+    }
+
+    @Override
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         controlBean = new ControlBean();
         jndi.bind("controlBean", controlBean);
         return jndi;
-    }    
+    }
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
-                // START SNIPPET: e1  
-                from("direct:start").choice()
-                    .when().method("controlBean", "isDetour").to("mock:detour").end()
-                    .to("mock:result");                
-                // END SNIPPET: e1  
+                // START SNIPPET: e1
+                from("direct:start").choice().when().method("controlBean", "isDetour").to("mock:detour").end().to("mock:result");
+                // END SNIPPET: e1
             }
         };
     }
-    
+
     public final class ControlBean {
-        private boolean detour;  
+        private boolean detour;
 
         public void setDetour(boolean detour) {
             this.detour = detour;
@@ -89,5 +89,5 @@ public class DetourTest extends ContextTestSupport {
         public boolean isDetour() {
             return detour;
         }
-    }    
+    }
 }

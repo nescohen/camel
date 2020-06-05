@@ -41,8 +41,8 @@ public class FreemarkerTest extends CamelTestSupport {
             }
         });
 
-        assertEquals("Dear Christian. You ordered item 7 on Monday.", exchange.getOut().getBody());
-        assertEquals("Christian", exchange.getOut().getHeader("name"));
+        assertEquals("Dear Christian. You ordered item 7 on Monday.", exchange.getMessage().getBody());
+        assertEquals("Christian", exchange.getMessage().getHeader("name"));
     }
     
     @Test
@@ -63,16 +63,17 @@ public class FreemarkerTest extends CamelTestSupport {
             }
         });
 
-        assertEquals("Dear Willem. You ordered item 7 on Monday.", exchange.getOut().getBody());
-        assertEquals("Christian", exchange.getOut().getHeader("name"));
+        assertEquals("Dear Willem. You ordered item 7 on Monday.", exchange.getMessage().getBody());
+        assertEquals("Christian", exchange.getMessage().getHeader("name"));
     }
     
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
                 // START SNIPPET: example
                 from("direct:a").
-                        to("freemarker:org/apache/camel/component/freemarker/example.ftl");
+                        to("freemarker:org/apache/camel/component/freemarker/example.ftl?allowTemplateFromHeader=true&allowContextMapAll=true");
                 // END SNIPPET: example
             }
         };

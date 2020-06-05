@@ -25,14 +25,15 @@ import java.util.List;
 import javax.xml.transform.Source;
 import javax.xml.transform.Templates;
 import javax.xml.transform.sax.SAXSource;
+
 import org.w3c.dom.Document;
 
 import org.xml.sax.InputSource;
 
-
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.ExpectedBodyTypeException;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.component.xslt.StreamResultHandlerFactory;
 import org.apache.camel.component.xslt.XsltBuilder;
 import org.apache.camel.converter.jaxp.XmlConverter;
@@ -94,7 +95,7 @@ public class XsltBuilderTest extends ContextTestSupport {
 
         assertEquals("<?xml version=\"1.0\" encoding=\"UTF-8\"?><goodbye>world!</goodbye>", exchange.getOut().getBody());
     }
-    
+
     @Test
     public void testXsltTransformerFile() throws Exception {
         File styleSheet = new File("src/test/resources/org/apache/camel/builder/xml/example.xsl");
@@ -257,7 +258,7 @@ public class XsltBuilderTest extends ContextTestSupport {
         assertTrue(body.endsWith("<goodbye>world!</goodbye>"));
 
         // now done the exchange
-        List<Synchronization> onCompletions = exchange.handoverCompletions();
+        List<Synchronization> onCompletions = exchange.adapt(ExtendedExchange.class).handoverCompletions();
         UnitOfWorkHelper.doneSynchronizations(exchange, onCompletions, log);
 
         // the file should be deleted

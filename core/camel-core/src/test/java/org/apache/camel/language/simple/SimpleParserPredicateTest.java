@@ -23,7 +23,7 @@ import java.util.Map;
 
 import org.apache.camel.ExchangeTestSupport;
 import org.apache.camel.Predicate;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 /**
@@ -248,8 +248,9 @@ public class SimpleParserPredicateTest extends ExchangeTestSupport {
         assertFalse("Should not match", pre.matches(exchange));
     }
 
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    @Override
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
 
         List<String> list = new ArrayList<>();
         list.add("foo");

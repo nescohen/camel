@@ -17,7 +17,6 @@
 package org.apache.camel.component.sjms.producer;
 
 import org.apache.camel.CamelContext;
-import org.apache.camel.FailedToCreateProducerException;
 import org.apache.camel.FailedToStartRouteException;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.impl.DefaultCamelContext;
@@ -70,7 +69,6 @@ public class NoConnectionFactoryTest {
             context.start();
         } catch (Throwable t) {
             Assert.assertEquals(FailedToStartRouteException.class, t.getClass());
-            Assert.assertEquals(FailedToCreateProducerException.class, t.getCause().getClass());
             Assert.assertEquals(IllegalArgumentException.class, t.getCause().getCause().getClass());
             LOG.info("Expected exception was thrown", t);
             return;
@@ -86,7 +84,6 @@ public class NoConnectionFactoryTest {
             context.start();
         } catch (Throwable t) {
             Assert.assertEquals(FailedToStartRouteException.class, t.getClass());
-            Assert.assertEquals(FailedToCreateProducerException.class, t.getCause().getClass());
             Assert.assertEquals(IllegalArgumentException.class, t.getCause().getCause().getClass());
             LOG.info("Expected exception was thrown", t);
             return;

@@ -23,8 +23,6 @@ import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
 import org.apache.camel.CamelContext;
-import org.apache.camel.Exchange;
-import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.test.junit4.CamelTestSupport;
@@ -32,7 +30,6 @@ import org.apache.camel.util.xml.StringSource;
 import org.junit.Test;
 
 import static org.apache.camel.component.jms.JmsComponent.jmsComponentAutoAcknowledge;
-
 
 /**
  * For unit testing with XML streams that can be troublesome with the StreamCache
@@ -183,6 +180,7 @@ public class JmsXMLRouteTest extends CamelTestSupport {
         assertMockEndpointsSatisfied();
     }
 
+    @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext camelContext = super.createCamelContext();
 
@@ -212,21 +210,17 @@ public class JmsXMLRouteTest extends CamelTestSupport {
                 from("direct:default").to("activemq:queue:default");
 
                 from("activemq:queue:object")
-                    .process(new Processor() {
-                        public void process(Exchange exchange) throws Exception {
-                            Object body = exchange.getIn().getBody();
-                            // should preserve the object as Source
-                            assertIsInstanceOf(Source.class, body);
-                        }
+                    .process(exchange -> {
+                        Object body = exchange.getIn().getBody();
+                        // should preserve the object as Source
+                        assertIsInstanceOf(Source.class, body);
                     }).to("seda:choice");
 
                 from("activemq:queue:bytes")
-                    .process(new Processor() {
-                        public void process(Exchange exchange) throws Exception {
-                            Object body = exchange.getIn().getBody();
-                            // should be a byte array by default
-                            assertIsInstanceOf(byte[].class, body);
-                        }
+                    .process(exchange -> {
+                        Object body = exchange.getIn().getBody();
+                        // should be a byte array by default
+                        assertIsInstanceOf(byte[].class, body);
                     }).to("seda:choice");
 
                 from("activemq:queue:default")

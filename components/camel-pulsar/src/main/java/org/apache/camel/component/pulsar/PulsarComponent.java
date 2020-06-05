@@ -20,7 +20,6 @@ import java.util.Map;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.Endpoint;
-import org.apache.camel.component.pulsar.configuration.PulsarConfiguration;
 import org.apache.camel.component.pulsar.utils.AutoConfiguration;
 import org.apache.camel.component.pulsar.utils.PulsarPath;
 import org.apache.camel.spi.Metadata;
@@ -35,6 +34,10 @@ public class PulsarComponent extends DefaultComponent {
     private AutoConfiguration autoConfiguration;
     @Metadata(label = "advanced")
     private PulsarClient pulsarClient;
+    @Metadata(label = "consumer,advanced")
+    private PulsarMessageReceiptFactory pulsarMessageReceiptFactory = new DefaultPulsarMessageReceiptFactory();
+    @Metadata
+    private PulsarConfiguration configuration = new PulsarConfiguration();
 
     public PulsarComponent() {
     }
@@ -45,17 +48,14 @@ public class PulsarComponent extends DefaultComponent {
 
     @Override
     protected Endpoint createEndpoint(final String uri, final String path, final Map<String, Object> parameters) throws Exception {
-        final PulsarConfiguration configuration = new PulsarConfiguration();
-        setProperties(configuration, parameters);
-        if (autoConfiguration != null) {
-            setProperties(autoConfiguration, parameters);
-            if (autoConfiguration.isAutoConfigurable()) {
-                autoConfiguration.ensureNameSpaceAndTenant(path);
-            }
+        if (autoConfiguration != null && autoConfiguration.isAutoConfigurable()) {
+            autoConfiguration.ensureNameSpaceAndTenant(path);
         }
 
+        final PulsarConfiguration copy = configuration.copy();
+
         PulsarEndpoint answer = new PulsarEndpoint(uri, this);
-        answer.setPulsarConfiguration(configuration);
+        answer.setPulsarConfiguration(copy);
         answer.setPulsarClient(pulsarClient);
         setProperties(answer, parameters);
 
@@ -70,6 +70,18 @@ public class PulsarComponent extends DefaultComponent {
         }
 
         return answer;
+    }
+
+    public PulsarConfiguration getConfiguration() {
+        return configuration;
+    }
+
+    /**
+     * Allows to pre-configure the Pulsar component with common options that the
+     * endpoints will reuse.
+     */
+    public void setConfiguration(PulsarConfiguration configuration) {
+        this.configuration = configuration;
     }
 
     public AutoConfiguration getAutoConfiguration() {
@@ -92,5 +104,17 @@ public class PulsarComponent extends DefaultComponent {
      */
     public void setPulsarClient(PulsarClient pulsarClient) {
         this.pulsarClient = pulsarClient;
+    }
+
+    public PulsarMessageReceiptFactory getPulsarMessageReceiptFactory() {
+        return pulsarMessageReceiptFactory;
+    }
+
+    /**
+     * Provide a factory to create an alternate implementation of
+     * {@link PulsarMessageReceipt}.
+     */
+    public void setPulsarMessageReceiptFactory(PulsarMessageReceiptFactory pulsarMessageReceiptFactory) {
+        this.pulsarMessageReceiptFactory = pulsarMessageReceiptFactory;
     }
 }

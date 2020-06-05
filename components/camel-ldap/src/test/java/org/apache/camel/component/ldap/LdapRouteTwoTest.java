@@ -18,6 +18,7 @@ package org.apache.camel.component.ldap;
 
 import java.util.Collection;
 import java.util.Hashtable;
+
 import javax.naming.directory.SearchResult;
 
 import org.apache.camel.CamelContext;
@@ -114,9 +115,9 @@ public class LdapRouteTwoTest extends AbstractLdapTestUnit {
     private Collection<SearchResult> defaultLdapModuleOutAssertions(Exchange out) {
         // assertions of the response
         assertNotNull(out);
-        assertNotNull(out.getOut());
-        Collection<SearchResult> data = out.getOut().getBody(Collection.class);
-        assertNotNull("out body could not be converted to a Collection - was: " + out.getOut().getBody(), data);
+        assertNotNull(out.getMessage());
+        Collection<SearchResult> data = out.getMessage().getBody(Collection.class);
+        assertNotNull("out body could not be converted to a Collection - was: " + out.getMessage().getBody(), data);
         return data;
     }
 

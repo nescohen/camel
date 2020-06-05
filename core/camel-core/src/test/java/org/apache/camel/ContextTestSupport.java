@@ -24,9 +24,11 @@ import org.apache.camel.builder.NotifyBuilder;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.impl.DefaultCamelContext;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.impl.lw.LightweightCamelContext;
 import org.apache.camel.model.ModelCamelContext;
 import org.apache.camel.spi.Language;
+import org.apache.camel.spi.Registry;
+import org.apache.camel.support.DefaultRegistry;
 import org.apache.camel.support.jndi.JndiTest;
 import org.junit.After;
 import org.junit.Before;
@@ -36,19 +38,21 @@ import org.junit.Before;
  * along with a {@link ProducerTemplate} for use in the test case
  */
 public abstract class ContextTestSupport extends TestSupport {
-    
+
     protected volatile ModelCamelContext context;
     protected volatile ProducerTemplate template;
     protected volatile ConsumerTemplate consumer;
     protected volatile NotifyBuilder oneExchangeDone;
     private boolean useRouteBuilder = true;
+    private boolean useLightweightContext;
     private Service camelContextService;
-    
+
     /**
      * Use the RouteBuilder or not
-     * @return 
-     *  If the return value is true, the camel context will be started in the setup method.
-     *  If the return value is false, the camel context will not be started in the setup method.
+     * 
+     * @return If the return value is true, the camel context will be started in
+     *         the setup method. If the return value is false, the camel context
+     *         will not be started in the setup method.
      */
     public boolean isUseRouteBuilder() {
         return useRouteBuilder;
@@ -56,6 +60,14 @@ public abstract class ContextTestSupport extends TestSupport {
 
     public void setUseRouteBuilder(boolean useRouteBuilder) {
         this.useRouteBuilder = useRouteBuilder;
+    }
+
+    public boolean isUseLightweightContext() {
+        return useLightweightContext;
+    }
+
+    public void setUseLightweightContext(boolean useLightweightContext) {
+        this.useLightweightContext = useLightweightContext;
     }
 
     public Service getCamelContextService() {
@@ -72,12 +84,14 @@ public abstract class ContextTestSupport extends TestSupport {
     }
 
     /**
-     * Convenient api to create a NotifyBuilder to be notified of a specific event
+     * Convenient api to create a NotifyBuilder to be notified of a specific
+     * event
      */
     protected NotifyBuilder event() {
         return new NotifyBuilder(context);
     }
-    
+
+    @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
@@ -92,18 +106,11 @@ public abstract class ContextTestSupport extends TestSupport {
             throw new Exception("Context must be a ModelCamelContext");
         }
         assertValidContext(context);
-        context.init();
 
-        // reduce default shutdown timeout to avoid waiting for 300 seconds
-        context.getShutdownStrategy().setTimeout(10);
+        context.build();
 
         template = context.createProducerTemplate();
-        template.start();
         consumer = context.createConsumerTemplate();
-        consumer.start();
-
-        // create a default notifier when 1 exchange is done which is the most common case
-        oneExchangeDone = event().whenDone(1).create();
 
         if (isUseRouteBuilder()) {
             RouteBuilder[] builders = createRouteBuilders();
@@ -111,13 +118,26 @@ public abstract class ContextTestSupport extends TestSupport {
                 log.debug("Using created route builder: {}", builder);
                 context.addRoutes(builder);
             }
-            startCamelContext();
         } else {
             log.debug("isUseRouteBuilder() is false");
         }
-        
+
+        template.start();
+        consumer.start();
+
+        // create a default notifier when 1 exchange is done which is the most
+        // common case
+        oneExchangeDone = event().whenDone(1).create();
+
+        if (isUseRouteBuilder()) {
+            startCamelContext();
+        }
+
+        // reduce default shutdown timeout to avoid waiting for 300 seconds
+        context.getShutdownStrategy().setTimeout(10);
     }
 
+    @Override
     @After
     public void tearDown() throws Exception {
         log.debug("tearDown test: {}", getName());
@@ -156,7 +176,7 @@ public abstract class ContextTestSupport extends TestSupport {
         } else {
             if (context != null) {
                 context.stop();
-            }    
+            }
         }
     }
 
@@ -164,29 +184,30 @@ public abstract class ContextTestSupport extends TestSupport {
         if (camelContextService != null) {
             camelContextService.start();
         } else {
-            if (context instanceof DefaultCamelContext) {
-                DefaultCamelContext defaultCamelContext = (DefaultCamelContext)context;
-                if (!defaultCamelContext.isStarted()) {
-                    defaultCamelContext.start();
-                }
-            } else {
-                context.start();
-            }
+            context.start();
         }
     }
 
     protected CamelContext createCamelContext() throws Exception {
-        DefaultCamelContext context = new DefaultCamelContext(false);
+        CamelContext context;
+        if (useLightweightContext) {
+            LightweightCamelContext ctx = new LightweightCamelContext();
+            ctx.setRegistry(createRegistry());
+            context = ctx;
+        } else {
+            DefaultCamelContext ctx = new DefaultCamelContext(true);
+            ctx.setRegistry(createRegistry());
+            context = ctx;
+        }
         if (!useJmx()) {
             context.disableJMX();
         }
-        context.setRegistry(createRegistry());
         context.setLoadTypeConverters(isLoadTypeConverters());
         return context;
     }
 
-    protected JndiRegistry createRegistry() throws Exception {
-        return new JndiRegistry(createJndiContext());
+    protected Registry createRegistry() throws Exception {
+        return new DefaultRegistry();
     }
 
     protected Context createJndiContext() throws Exception {
@@ -194,8 +215,8 @@ public abstract class ContextTestSupport extends TestSupport {
     }
 
     /**
-     * Factory method which derived classes can use to create a {@link RouteBuilder}
-     * to define the routes for testing
+     * Factory method which derived classes can use to create a
+     * {@link RouteBuilder} to define the routes for testing
      */
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
@@ -218,7 +239,8 @@ public abstract class ContextTestSupport extends TestSupport {
     /**
      * Resolves a mandatory endpoint for the given URI or an exception is thrown
      *
-     * @param uri the Camel <a href="">URI</a> to use to create or resolve an endpoint
+     * @param uri the Camel <a href="">URI</a> to use to create or resolve an
+     *            endpoint
      * @return the endpoint
      */
     protected Endpoint resolveMandatoryEndpoint(String uri) {
@@ -226,9 +248,11 @@ public abstract class ContextTestSupport extends TestSupport {
     }
 
     /**
-     * Resolves a mandatory endpoint for the given URI and expected type or an exception is thrown
+     * Resolves a mandatory endpoint for the given URI and expected type or an
+     * exception is thrown
      *
-     * @param uri the Camel <a href="">URI</a> to use to create or resolve an endpoint
+     * @param uri the Camel <a href="">URI</a> to use to create or resolve an
+     *            endpoint
      * @return the endpoint
      */
     protected <T extends Endpoint> T resolveMandatoryEndpoint(String uri, Class<T> endpointType) {
@@ -236,10 +260,12 @@ public abstract class ContextTestSupport extends TestSupport {
     }
 
     /**
-     * Resolves the mandatory Mock endpoint using a URI of the form <code>mock:someName</code>
+     * Resolves the mandatory Mock endpoint using a URI of the form
+     * <code>mock:someName</code>
      *
      * @param uri the URI which typically starts with "mock:" and has some name
-     * @return the mandatory mock endpoint or an exception is thrown if it could not be resolved
+     * @return the mandatory mock endpoint or an exception is thrown if it could
+     *         not be resolved
      */
     protected MockEndpoint getMockEndpoint(String uri) {
         return resolveMandatoryEndpoint(uri, MockEndpoint.class);
@@ -249,7 +275,7 @@ public abstract class ContextTestSupport extends TestSupport {
      * Sends a message to the given endpoint URI with the body value
      *
      * @param endpointUri the URI of the endpoint to send to
-     * @param body        the body for the message
+     * @param body the body for the message
      */
     protected void sendBody(String endpointUri, final Object body) {
         template.send(endpointUri, new Processor() {
@@ -262,11 +288,12 @@ public abstract class ContextTestSupport extends TestSupport {
     }
 
     /**
-     * Sends a message to the given endpoint URI with the body value and specified headers
+     * Sends a message to the given endpoint URI with the body value and
+     * specified headers
      *
      * @param endpointUri the URI of the endpoint to send to
-     * @param body        the body for the message
-     * @param headers     any headers to set on the message
+     * @param body the body for the message
+     * @param headers any headers to set on the message
      */
     protected void sendBody(String endpointUri, final Object body, final Map<String, Object> headers) {
         template.send(endpointUri, new Processor() {
@@ -285,7 +312,7 @@ public abstract class ContextTestSupport extends TestSupport {
      * Sends messages to the given endpoint for each of the specified bodies
      *
      * @param endpointUri the endpoint URI to send to
-     * @param bodies      the bodies to send, one per message
+     * @param bodies the bodies to send, one per message
      */
     protected void sendBodies(String endpointUri, Object... bodies) {
         for (Object body : bodies) {

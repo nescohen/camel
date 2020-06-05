@@ -44,7 +44,7 @@ import org.apache.camel.spi.UriPath;
 import org.apache.camel.support.DefaultEndpoint;
 
 /**
- * The sjms-batch component is a specialized for highly performant, transactional batch consumption from a JMS queue.
+ * Highly performant and transactional batch consumption of messages from a JMS queue.
  */
 @UriEndpoint(firstVersion = "2.16.0", scheme = "sjms-batch", title = "Simple JMS Batch", syntax = "sjms-batch:destinationName",
         label = "messaging", consumerOnly = true)
@@ -334,6 +334,7 @@ public class SjmsBatchEndpoint extends DefaultEndpoint implements HeaderFilterSt
         this.jmsKeyFormatStrategy = jmsKeyFormatStrategy;
     }
 
+    @Override
     public HeaderFilterStrategy getHeaderFilterStrategy() {
         if (headerFilterStrategy == null) {
             headerFilterStrategy = new SjmsHeaderFilterStrategy(isIncludeAllJMSXProperties());
@@ -344,6 +345,7 @@ public class SjmsBatchEndpoint extends DefaultEndpoint implements HeaderFilterSt
     /**
      * To use a custom HeaderFilterStrategy to filter header to and from Camel message.
      */
+    @Override
     public void setHeaderFilterStrategy(HeaderFilterStrategy strategy) {
         this.headerFilterStrategy = strategy;
     }

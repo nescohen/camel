@@ -36,6 +36,7 @@ public class SpringBatchIntegrationTest extends CamelSpringTestSupport {
 
     String[] inputMessages = new String[]{"foo", "bar", "baz", null};
 
+    @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
@@ -67,7 +68,7 @@ public class SpringBatchIntegrationTest extends CamelSpringTestSupport {
     public void testMessageHeader() throws Exception {
         headerEndpoint.expectedHeaderReceived("header", 1);
         
-        template.sendBodyAndHeader(null, "header", "1");
+        template.sendBodyAndHeader("direct:header", null, "header", "1");
         
         headerEndpoint.assertIsSatisfied();
     }

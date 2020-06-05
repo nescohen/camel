@@ -24,7 +24,7 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder;
-
+import org.apache.camel.Category;
 import org.apache.camel.Component;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
@@ -35,9 +35,9 @@ import org.apache.camel.support.DefaultEndpoint;
 import org.apache.camel.util.ObjectHelper;
 
 /**
- * The aws-ses component is used for sending emails with Amazon's SES service.
+ * Send e-mails through AWS SES service.
  */
-@UriEndpoint(firstVersion = "2.9.0", scheme = "aws-ses", title = "AWS Simple Email Service", syntax = "aws-ses:from", producerOnly = true, label = "cloud,mail")
+@UriEndpoint(firstVersion = "2.9.0", scheme = "aws-ses", title = "AWS Simple Email Service (SES)", syntax = "aws-ses:from", producerOnly = true, category = {Category.CLOUD, Category.MAIL})
 public class SesEndpoint extends DefaultEndpoint {
 
     private AmazonSimpleEmailService sesClient;
@@ -49,7 +49,7 @@ public class SesEndpoint extends DefaultEndpoint {
         super(uri, component);
         this.configuration = configuration;
     }
-    
+
     @Override
     public void doStart() throws Exception {
         super.doStart();
@@ -57,7 +57,7 @@ public class SesEndpoint extends DefaultEndpoint {
             ? configuration.getAmazonSESClient()
             : createSESClient();
     }
-    
+
     @Override
     public void doStop() throws Exception {
         if (ObjectHelper.isEmpty(configuration.getAmazonSESClient())) {
@@ -68,10 +68,12 @@ public class SesEndpoint extends DefaultEndpoint {
         super.doStop();
     }
 
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         throw new UnsupportedOperationException("You cannot receive messages from this endpoint");
     }
 
+    @Override
     public Producer createProducer() throws Exception {
         return new SesProducer(this);
     }
@@ -91,6 +93,7 @@ public class SesEndpoint extends DefaultEndpoint {
         boolean isClientConfigFound = false;
         if (ObjectHelper.isNotEmpty(configuration.getProxyHost()) && ObjectHelper.isNotEmpty(configuration.getProxyPort())) {
             clientConfiguration = new ClientConfiguration();
+            clientConfiguration.setProxyProtocol(configuration.getProxyProtocol());
             clientConfiguration.setProxyHost(configuration.getProxyHost());
             clientConfiguration.setProxyPort(configuration.getProxyPort());
             isClientConfigFound = true;

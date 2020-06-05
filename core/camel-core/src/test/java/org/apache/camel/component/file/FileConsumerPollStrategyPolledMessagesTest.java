@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.component.file;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -24,8 +25,8 @@ import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
 import org.apache.camel.spi.PollingConsumerPollStrategy;
+import org.apache.camel.spi.Registry;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,11 +38,11 @@ public class FileConsumerPollStrategyPolledMessagesTest extends ContextTestSuppo
     private static int maxPolls;
     private final CountDownLatch latch = new CountDownLatch(1);
 
-    private String fileUrl = "file://target/data/pollstrategy/?consumer.pollStrategy=#myPoll&initialDelay=0&delay=10";
+    private String fileUrl = "file://target/data/pollstrategy/?pollStrategy=#myPoll&initialDelay=0&delay=10";
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("myPoll", new MyPollStrategy());
         return jndi;
     }
@@ -72,21 +73,23 @@ public class FileConsumerPollStrategyPolledMessagesTest extends ContextTestSuppo
         assertEquals(2, maxPolls);
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {
-                from(fileUrl).routeId("foo").noAutoStartup()
-                    .convertBodyTo(String.class).to("mock:result");
+                from(fileUrl).routeId("foo").noAutoStartup().convertBodyTo(String.class).to("mock:result");
             }
         };
     }
 
     private class MyPollStrategy implements PollingConsumerPollStrategy {
 
+        @Override
         public boolean begin(Consumer consumer, Endpoint endpoint) {
             return true;
         }
 
+        @Override
         public void commit(Consumer consumer, Endpoint endpoint, int polledMessages) {
             if (polledMessages > maxPolls) {
                 maxPolls = polledMessages;
@@ -94,6 +97,7 @@ public class FileConsumerPollStrategyPolledMessagesTest extends ContextTestSuppo
             latch.countDown();
         }
 
+        @Override
         public boolean rollback(Consumer consumer, Endpoint endpoint, int retryCounter, Exception cause) throws Exception {
             return false;
         }

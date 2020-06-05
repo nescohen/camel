@@ -15,26 +15,27 @@
  * limitations under the License.
  */
 package org.apache.camel.component.file;
+
 import java.util.Comparator;
 
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Unit test for  the file sorter ref option
+ * Unit test for the file sorter ref option
  */
 public class FileSorterRefTest extends ContextTestSupport {
 
     private String fileUrl = "file://target/data/filesorter/?initialDelay=0&delay=10&sorter=#mySorter";
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("mySorter", new MyFileSorter<>());
         return jndi;
     }
@@ -49,14 +50,11 @@ public class FileSorterRefTest extends ContextTestSupport {
 
     @Test
     public void testSortFiles() throws Exception {
-        template.sendBodyAndHeader("file:target/data/filesorter/", "Hello Paris",
-                Exchange.FILE_NAME, "paris.txt");
+        template.sendBodyAndHeader("file:target/data/filesorter/", "Hello Paris", Exchange.FILE_NAME, "paris.txt");
 
-        template.sendBodyAndHeader("file:target/data/filesorter/", "Hello London",
-                Exchange.FILE_NAME, "london.txt");
+        template.sendBodyAndHeader("file:target/data/filesorter/", "Hello London", Exchange.FILE_NAME, "london.txt");
 
-        template.sendBodyAndHeader("file:target/data/filesorter/", "Hello Copenhagen",
-                Exchange.FILE_NAME, "copenhagen.txt");
+        template.sendBodyAndHeader("file:target/data/filesorter/", "Hello Copenhagen", Exchange.FILE_NAME, "copenhagen.txt");
 
         context.addRoutes(new RouteBuilder() {
             @Override
@@ -72,6 +70,7 @@ public class FileSorterRefTest extends ContextTestSupport {
 
     // START SNIPPET: e1
     public class MyFileSorter<T> implements Comparator<GenericFile<T>> {
+        @Override
         public int compare(GenericFile<T> o1, GenericFile<T> o2) {
             return o1.getFileName().compareToIgnoreCase(o2.getFileName());
         }

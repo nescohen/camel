@@ -21,6 +21,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.Expression;
 import org.apache.camel.ExpressionFactory;
@@ -38,6 +39,8 @@ import org.apache.camel.support.ExpressionToPredicateAdapter;
  */
 public class MockExpressionClause<T> implements Expression, Predicate {
     private MockExpressionClauseSupport<T> delegate;
+
+    private volatile Expression expr;
 
     public MockExpressionClause(T result) {
         this.delegate = new MockExpressionClauseSupport<>(result);
@@ -111,13 +114,6 @@ public class MockExpressionClause<T> implements Expression, Predicate {
                 return function.apply(exchange.getIn());
             }
         });
-    }
-
-    /**
-     * An expression of an outbound message
-     */
-    public T outMessage() {
-        return delegate.outMessage();
     }
 
     /**
@@ -205,13 +201,6 @@ public class MockExpressionClause<T> implements Expression, Predicate {
     }
 
     /**
-     * An expression of an outbound message body
-     */
-    public T outBody() {
-        return delegate.outBody();
-    }
-
-    /**
      * A functional expression of an outbound message body
      */
     public T outBody(final Function<Object, Object> function) {
@@ -233,13 +222,6 @@ public class MockExpressionClause<T> implements Expression, Predicate {
                     exchange.getOut().getHeaders());
             }
         });
-    }
-
-    /**
-     * An expression of an outbound message body converted to the expected type
-     */
-    public T outBody(Class<?> expectedType) {
-        return delegate.outBody(expectedType);
     }
 
     /**
@@ -278,27 +260,6 @@ public class MockExpressionClause<T> implements Expression, Predicate {
      */
     public T headers() {
         return delegate.headers();
-    }
-
-    /**
-     * An expression of an outbound message header of the given name
-     */
-    public T outHeader(String name) {
-        return delegate.outHeader(name);
-    }
-
-    /**
-     * An expression of the outbound headers
-     */
-    public T outHeaders() {
-        return delegate.outHeaders();
-    }
-
-    /**
-     * An expression of the inbound message attachments
-     */
-    public T attachments() {
-        return delegate.attachments();
     }
 
     /**
@@ -468,22 +429,30 @@ public class MockExpressionClause<T> implements Expression, Predicate {
     }
 
     @Override
-    public <T> T evaluate(Exchange exchange, Class<T> type) {
-        if (getExpressionValue() != null) {
-            return getExpressionValue().evaluate(exchange, type);
-        } else {
-            Expression exp = delegate.getExpressionType().createExpression(exchange.getContext());
-            return exp.evaluate(exchange, type);
+    public void init(CamelContext context) {
+        if (expr == null) {
+            synchronized (this) {
+                if (expr == null) {
+                    Expression newExpression = getExpressionValue();
+                    if (newExpression == null) {
+                        newExpression = getExpressionType().createExpression(context);
+                    }
+                    newExpression.init(context);
+                    expr = newExpression;
+                }
+            }
         }
     }
 
     @Override
+    public <T> T evaluate(Exchange exchange, Class<T> type) {
+        init(exchange.getContext());
+        return expr.evaluate(exchange, type);
+    }
+
+    @Override
     public boolean matches(Exchange exchange) {
-        if (getExpressionValue() != null) {
-            return new ExpressionToPredicateAdapter(getExpressionValue()).matches(exchange);
-        } else {
-            Expression exp = delegate.getExpressionType().createExpression(exchange.getContext());
-            return new ExpressionToPredicateAdapter(exp).matches(exchange);
-        }
+        init(exchange.getContext());
+        return new ExpressionToPredicateAdapter(expr).matches(exchange);
     }
 }

@@ -16,15 +16,13 @@
  */
 package org.apache.camel.component.bean;
 
-import javax.naming.Context;
-
 import org.apache.camel.CamelExecutionException;
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.ExchangePattern;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.support.jndi.JndiContext;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class BeanWithMethodHeaderTest extends ContextTestSupport {
@@ -35,14 +33,13 @@ public class BeanWithMethodHeaderTest extends ContextTestSupport {
     public void testEcho() throws Exception {
         MockEndpoint mock = getMockEndpoint("mock:result");
         mock.expectedBodiesReceived("echo Hello World");
-        
+
         template.sendBody("direct:echo", "Hello World");
 
         assertMockEndpointsSatisfied();
-        assertNull("There should no Bean_METHOD_NAME header",
-                   mock.getExchanges().get(0).getIn().getHeader(Exchange.BEAN_METHOD_NAME));
+        assertNull("There should no Bean_METHOD_NAME header", mock.getExchanges().get(0).getIn().getHeader(Exchange.BEAN_METHOD_NAME));
     }
-    
+
     @Test
     public void testEchoWithMethodHeaderHi() throws Exception {
         MockEndpoint mock = getMockEndpoint("mock:result");
@@ -50,12 +47,13 @@ public class BeanWithMethodHeaderTest extends ContextTestSupport {
         // header should be removed after usage
         mock.message(0).header(Exchange.BEAN_METHOD_NAME).isNull();
 
-        // header overrule endpoint configuration, so we should invoke the hi method
+        // header overrule endpoint configuration, so we should invoke the hi
+        // method
         template.sendBodyAndHeader("direct:echo", ExchangePattern.InOut, "Hello World", Exchange.BEAN_METHOD_NAME, "hi");
 
         assertMockEndpointsSatisfied();
     }
-    
+
     @Test
     public void testMixedBeanEndpoints() throws Exception {
         MockEndpoint mock = getMockEndpoint("mock:result");
@@ -63,7 +61,8 @@ public class BeanWithMethodHeaderTest extends ContextTestSupport {
         // header should be removed after usage
         mock.message(0).header(Exchange.BEAN_METHOD_NAME).isNull();
 
-        // header overrule endpoint configuration, so we should invoke the hi method
+        // header overrule endpoint configuration, so we should invoke the hi
+        // method
         template.sendBodyAndHeader("direct:mixed", ExchangePattern.InOut, "Hello World", Exchange.BEAN_METHOD_NAME, "hi");
 
         assertMockEndpointsSatisfied();
@@ -86,7 +85,7 @@ public class BeanWithMethodHeaderTest extends ContextTestSupport {
             fail("Should throw an exception");
         } catch (CamelExecutionException e) {
             assertIsInstanceOf(AmbiguousMethodCallException.class, e.getCause());
-            AmbiguousMethodCallException ace = (AmbiguousMethodCallException) e.getCause();
+            AmbiguousMethodCallException ace = (AmbiguousMethodCallException)e.getCause();
             assertEquals(2, ace.getMethods().size());
         }
     }
@@ -126,8 +125,9 @@ public class BeanWithMethodHeaderTest extends ContextTestSupport {
         }
     }
 
-    protected Context createJndiContext() throws Exception {
-        JndiContext answer = new JndiContext();
+    @Override
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
         bean = new MyBean();
         answer.bind("myBean", bean);
         return answer;
@@ -141,7 +141,7 @@ public class BeanWithMethodHeaderTest extends ContextTestSupport {
                 from("direct:echo").bean("myBean", "echo").to("mock:result");
 
                 from("direct:hi").bean("myBean", "hi").to("mock:result");
-                
+
                 from("direct:mixed").bean("myBean", "echo").bean("myBean", "hi").to("mock:result");
 
                 from("direct:fail").bean("myBean").to("mock:result");

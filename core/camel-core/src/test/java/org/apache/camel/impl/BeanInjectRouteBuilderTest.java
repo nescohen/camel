@@ -24,6 +24,7 @@ import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.spi.CamelBeanPostProcessor;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class BeanInjectRouteBuilderTest extends ContextTestSupport {
@@ -32,17 +33,18 @@ public class BeanInjectRouteBuilderTest extends ContextTestSupport {
     private FooBar foo;
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
-        jndi.bind("foo", new FooBar());
-        return jndi;
+    protected Registry createRegistry() throws Exception {
+        Registry registry = super.createRegistry();
+        registry.bind("foo", new FooBar());
+        return registry;
     }
 
     @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext context = super.createCamelContext();
 
-        // manual post process us as ContextTestSupport in camel-core doesn't do that out of the box
+        // manual post process us as ContextTestSupport in camel-core doesn't do
+        // that out of the box
         CamelBeanPostProcessor post = context.adapt(ExtendedCamelContext.class).getBeanPostProcessor();
         post.postProcessBeforeInitialization(this, "MyRoute");
         post.postProcessAfterInitialization(this, "MyRoute");
@@ -63,14 +65,13 @@ public class BeanInjectRouteBuilderTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start")
-                    .process(new Processor() {
-                        @Override
-                        public void process(Exchange exchange) throws Exception {
-                            String out = foo.hello(exchange.getIn().getBody(String.class));
-                            exchange.getIn().setBody(out);
-                        }
-                    }).to("mock:result");
+                from("direct:start").process(new Processor() {
+                    @Override
+                    public void process(Exchange exchange) throws Exception {
+                        String out = foo.hello(exchange.getIn().getBody(String.class));
+                        exchange.getIn().setBody(out);
+                    }
+                }).to("mock:result");
             }
         };
     }

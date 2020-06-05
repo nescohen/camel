@@ -23,6 +23,7 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.spi.DataFormat;
+import org.apache.camel.spi.Registry;
 import org.apache.camel.support.service.ServiceSupport;
 import org.junit.Test;
 
@@ -32,10 +33,10 @@ import org.junit.Test;
 public class RefDataFormatTest extends ContextTestSupport {
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
-        jndi.bind("reverse", new MyReverseDataFormat());
-        return jndi;
+    protected Registry createRegistry() throws Exception {
+        Registry registry = super.createRegistry();
+        registry.bind("reverse", new MyReverseDataFormat());
+        return registry;
     }
 
     @Test
@@ -62,13 +63,9 @@ public class RefDataFormatTest extends ContextTestSupport {
             @Override
             public void configure() throws Exception {
                 // START SNIPPET: e1
-                from("direct:a")
-                    .marshal().custom("reverse")
-                    .to("mock:a");
+                from("direct:a").marshal().custom("reverse").to("mock:a");
 
-                from("direct:b")
-                    .unmarshal().custom("reverse")
-                    .to("mock:b");
+                from("direct:b").unmarshal().custom("reverse").to("mock:b");
                 // END SNIPPET: e1
             }
         };
@@ -77,12 +74,14 @@ public class RefDataFormatTest extends ContextTestSupport {
     // START SNIPPET: e2
     public static final class MyReverseDataFormat extends ServiceSupport implements DataFormat {
 
+        @Override
         public void marshal(Exchange exchange, Object graph, OutputStream stream) throws Exception {
             byte[] bytes = exchange.getContext().getTypeConverter().mandatoryConvertTo(byte[].class, graph);
             String body = reverseBytes(bytes);
             stream.write(body.getBytes());
         }
 
+        @Override
         public Object unmarshal(Exchange exchange, InputStream stream) throws Exception {
             byte[] bytes = exchange.getContext().getTypeConverter().mandatoryConvertTo(byte[].class, stream);
             String body = reverseBytes(bytes);
@@ -92,7 +91,7 @@ public class RefDataFormatTest extends ContextTestSupport {
         private String reverseBytes(byte[] data) {
             StringBuilder sb = new StringBuilder(data.length);
             for (int i = data.length - 1; i >= 0; i--) {
-                char ch = (char) data[i];
+                char ch = (char)data[i];
                 sb.append(ch);
             }
             return sb.toString();

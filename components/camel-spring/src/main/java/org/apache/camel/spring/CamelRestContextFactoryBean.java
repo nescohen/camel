@@ -37,17 +37,20 @@ import org.springframework.beans.factory.FactoryBean;
 @XmlAccessorType(XmlAccessType.FIELD)
 public class CamelRestContextFactoryBean extends IdentifiedType implements FactoryBean<List<RestDefinition>> {
 
-    @XmlElement(name = "rest", required = true)
+    @XmlElement(name = "rest", required = true) @Metadata(description = "Rest services")
     private List<RestDefinition> rests = new ArrayList<>();
 
+    @Override
     public List<RestDefinition> getObject() throws Exception {
         return rests;
     }
 
+    @Override
     public Class<?> getObjectType() {
         return rests.getClass();
     }
 
+    @Override
     public boolean isSingleton() {
         return true;
     }

@@ -48,10 +48,12 @@ public class RabbitMQProducerTest {
 
     @Before
     public void before() throws IOException, TimeoutException {
+        RabbitMQMessageConverter converter = new RabbitMQMessageConverter();
+        converter.setAllowCustomHeaders(true);
         Mockito.when(exchange.getIn()).thenReturn(message);
         Mockito.when(endpoint.connect(any(ExecutorService.class))).thenReturn(conn);
         Mockito.when(conn.createChannel()).thenReturn(null);
-        Mockito.when(endpoint.getMessageConverter()).thenReturn(new RabbitMQMessageConverter());
+        Mockito.when(endpoint.getMessageConverter()).thenReturn(converter);
     }
 
     @Test
@@ -151,6 +153,14 @@ public class RabbitMQProducerTest {
     }
 
     @Test
+    public void testPropertiesOverrideNameHeader() throws IOException {
+        RabbitMQProducer producer = new RabbitMQProducer(endpoint);
+        message.setHeader(RabbitMQConstants.EXCHANGE_OVERRIDE_NAME, "qweeqwe");
+        AMQP.BasicProperties props = producer.buildProperties(exchange).build();
+        assertNull(props.getHeaders().get(RabbitMQConstants.EXCHANGE_OVERRIDE_NAME));
+    }
+
+    @Test
     public void testPropertiesUsesTimestampHeaderAsLongValue() throws IOException {
         RabbitMQProducer producer = new RabbitMQProducer(endpoint);
         message.setHeader(RabbitMQConstants.TIMESTAMP, "12345123");
@@ -187,7 +197,7 @@ public class RabbitMQProducerTest {
         assertEquals(42.24, props.getHeaders().get("doubleHeader"));
         assertEquals(true, props.getHeaders().get("booleanHeader"));
         assertEquals(new Date(0), props.getHeaders().get("dateHeader"));
-        assertArrayEquals("foo".getBytes(), (byte[]) props.getHeaders().get("byteArrayHeader"));
+        assertArrayEquals("foo".getBytes(), (byte[])props.getHeaders().get("byteArrayHeader"));
         assertNull(props.getHeaders().get("invalidHeader"));
     }
 

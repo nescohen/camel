@@ -16,14 +16,10 @@
  */
 package org.apache.camel.component.jms;
 
-
 import java.util.Arrays;
 
 import javax.jms.BytesMessage;
 import javax.jms.ConnectionFactory;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.Session;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
@@ -34,10 +30,8 @@ import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.core.MessageCreator;
 
 import static org.apache.camel.component.jms.JmsComponent.jmsComponentAutoAcknowledge;
-
 
 public class ConsumeJmsBytesMessageTest extends CamelTestSupport {
     protected JmsTemplate jmsTemplate;
@@ -48,14 +42,12 @@ public class ConsumeJmsBytesMessageTest extends CamelTestSupport {
         endpoint.expectedMessageCount(1);
 
         jmsTemplate.setPubSubDomain(false);
-        jmsTemplate.send("test.bytes", new MessageCreator() {
-            public Message createMessage(Session session) throws JMSException {
-                BytesMessage bytesMessage = session.createBytesMessage();
-                bytesMessage.writeByte((byte) 1);
-                bytesMessage.writeByte((byte) 2);
-                bytesMessage.writeByte((byte) 3);
-                return bytesMessage;
-            }
+        jmsTemplate.send("test.bytes", session -> {
+            BytesMessage bytesMessage = session.createBytesMessage();
+            bytesMessage.writeByte((byte) 1);
+            bytesMessage.writeByte((byte) 2);
+            bytesMessage.writeByte((byte) 3);
+            return bytesMessage;
         });
 
         endpoint.assertIsSatisfied();
@@ -99,6 +91,7 @@ public class ConsumeJmsBytesMessageTest extends CamelTestSupport {
         endpoint = getMockEndpoint("mock:result");
     }
 
+    @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext camelContext = super.createCamelContext();
 
@@ -109,6 +102,7 @@ public class ConsumeJmsBytesMessageTest extends CamelTestSupport {
         return camelContext;
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {

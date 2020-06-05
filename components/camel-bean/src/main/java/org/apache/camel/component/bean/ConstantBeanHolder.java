@@ -16,9 +16,13 @@
  */
 package org.apache.camel.component.bean;
 
+import java.util.Map;
+
 import org.apache.camel.CamelContext;
+import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.support.CamelContextHelper;
+import org.apache.camel.support.PropertyBindingSupport;
 import org.apache.camel.util.ObjectHelper;
 
 /**
@@ -28,6 +32,7 @@ public class ConstantBeanHolder implements BeanHolder {
     private final Object bean;
     private final BeanInfo beanInfo;
     private Processor processor;
+    private Map<String, Object> options;
 
     public ConstantBeanHolder(Object bean, BeanInfo beanInfo) {
         ObjectHelper.notNull(bean, "bean");
@@ -44,11 +49,24 @@ public class ConstantBeanHolder implements BeanHolder {
         this.beanInfo = new BeanInfo(context, bean.getClass());
     }
 
-    public ConstantBeanHolder(Object bean, CamelContext context, ParameterMappingStrategy parameterMappingStrategy) {
-        ObjectHelper.notNull(bean, "bean");
+    @Override
+    public Map<String, Object> getOptions() {
+        return options;
+    }
 
-        this.bean = bean;
-        this.beanInfo = new BeanInfo(context, bean.getClass(), parameterMappingStrategy);
+    @Override
+    public void setOptions(Map<String, Object> options) {
+        this.options = options;
+
+        // since its a constant we can set the options immediately on the bean
+        if (options != null && !options.isEmpty()) {
+            PropertyBindingSupport.build()
+                    .withRemoveParameters(false)
+                    .withCamelContext(getBeanInfo().getCamelContext())
+                    .withProperties(options)
+                    .withTarget(bean)
+                    .bind();
+        }
     }
 
     @Override
@@ -57,10 +75,12 @@ public class ConstantBeanHolder implements BeanHolder {
         return ObjectHelper.className(bean) + "(" + ObjectHelper.getIdentityHashCode(bean) + ")";
     }
 
-    public Object getBean()  {
+    @Override
+    public Object getBean(Exchange exchange)  {
         return bean;
     }
 
+    @Override
     public Processor getProcessor() {
         if (this.processor == null) {
             this.processor = CamelContextHelper.convertTo(beanInfo.getCamelContext(), Processor.class, bean);
@@ -68,14 +88,17 @@ public class ConstantBeanHolder implements BeanHolder {
         return this.processor;
     }
 
+    @Override
     public boolean supportProcessor() {
         return true;
     }
 
+    @Override
     public BeanInfo getBeanInfo() {
         return beanInfo;
     }
 
+    @Override
     public BeanInfo getBeanInfo(Object bean) {
         return null;
     }

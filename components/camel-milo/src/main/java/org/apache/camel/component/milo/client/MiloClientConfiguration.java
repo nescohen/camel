@@ -17,8 +17,6 @@
 package org.apache.camel.component.milo.client;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.util.HashSet;
 import java.util.Set;
@@ -45,6 +43,8 @@ public class MiloClientConfiguration implements Cloneable {
     private static final String DEFAULT_APPLICATION_NAME = "Apache Camel adapter for Eclipse Milo";
 
     private static final String DEFAULT_PRODUCT_URI = "http://camel.apache.org/EclipseMilo";
+
+    private static final Double DEFAULT_REQUESTED_PUBLISHING_INTERVAL = 1_000.0;
 
     @XmlTransient // to not be included in component docs
     private String endpointUri;
@@ -86,7 +86,7 @@ public class MiloClientConfiguration implements Cloneable {
     private Long maxResponseMessageSize;
 
     @UriParam(label = "client")
-    private URL keyStoreUrl;
+    private String keyStoreUrl;
 
     @UriParam(label = "client")
     private String keyStoreType = KeyStoreLoader.DEFAULT_KEY_STORE_TYPE;
@@ -105,6 +105,9 @@ public class MiloClientConfiguration implements Cloneable {
 
     @UriParam(label = "client")
     private boolean overrideHost;
+
+    @UriParam(label = "client", defaultValue = "1_000.0")
+    private Double requestedPublishingInterval = DEFAULT_REQUESTED_PUBLISHING_INTERVAL;
 
     public MiloClientConfiguration() {
     }
@@ -129,6 +132,7 @@ public class MiloClientConfiguration implements Cloneable {
         this.keyPassword = other.keyPassword;
         this.allowedSecurityPolicies = allowedSecurityPolicies != null ? new HashSet<>(other.allowedSecurityPolicies) : null;
         this.overrideHost = other.overrideHost;
+        this.requestedPublishingInterval = other.requestedPublishingInterval;
     }
 
     /**
@@ -277,11 +281,11 @@ public class MiloClientConfiguration implements Cloneable {
     /**
      * The URL where the key should be loaded from
      */
-    public void setKeyStoreUrl(final String keyStoreUrl) throws MalformedURLException {
-        this.keyStoreUrl = keyStoreUrl != null ? new URL(keyStoreUrl) : null;
+    public void setKeyStoreUrl(String keyStoreUrl) {
+        this.keyStoreUrl = keyStoreUrl;
     }
 
-    public URL getKeyStoreUrl() {
+    public String getKeyStoreUrl() {
         return this.keyStoreUrl;
     }
 
@@ -355,12 +359,12 @@ public class MiloClientConfiguration implements Cloneable {
 
             String adding = null;
             try {
-                adding = SecurityPolicy.fromUri(policy).getSecurityPolicyUri();
+                adding = SecurityPolicy.fromUri(policy).getUri();
             } catch (Exception e) {
             }
             if (adding == null) {
                 try {
-                    adding = SecurityPolicy.valueOf(policy).getSecurityPolicyUri();
+                    adding = SecurityPolicy.valueOf(policy).getUri();
                 } catch (Exception e) {
                 }
             }
@@ -388,6 +392,17 @@ public class MiloClientConfiguration implements Cloneable {
 
     public boolean isOverrideHost() {
         return overrideHost;
+    }
+
+    /**
+     * The requested publishing interval in milliseconds
+     */
+    public void setRequestedPublishingInterval(Double requestedPublishingInterval) {
+        this.requestedPublishingInterval = requestedPublishingInterval;
+    }
+
+    public Double getRequestedPublishingInterval() {
+        return requestedPublishingInterval;
     }
 
     @Override

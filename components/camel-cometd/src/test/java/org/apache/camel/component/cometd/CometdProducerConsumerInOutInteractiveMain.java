@@ -16,8 +16,8 @@
  */
 package org.apache.camel.component.cometd;
 
-import java.io.File;
 import java.net.URI;
+import java.net.URISyntaxException;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
@@ -27,9 +27,9 @@ import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.camel.support.DefaultMessage;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 
-@Ignore("Run this test manually")
+@Disabled("Run this test manually")
 public class CometdProducerConsumerInOutInteractiveMain {
 
     private static final String URI = "cometd://127.0.0.1:9091/service/test?baseResource=file:./src/test/resources/webapp&"
@@ -55,12 +55,11 @@ public class CometdProducerConsumerInOutInteractiveMain {
 
     private RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
-            public void configure() {
+            public void configure() throws URISyntaxException {
                 CometdComponent component = (CometdComponent) context.getComponent("cometds");
                 component.setSslPassword(pwd);
                 component.setSslKeyPassword(pwd);
-                File file = new File("./src/test/resources/jsse/localhost.ks");
-                URI keyStoreUrl = file.toURI();
+                URI keyStoreUrl = CometdProducerConsumerInOutInteractiveMain.class.getResource("/jsse/localhost.p12").toURI();
                 component.setSslKeystore(keyStoreUrl.getPath());
 
                 from(URI).setExchangePattern(ExchangePattern.InOut).process(new Processor() {

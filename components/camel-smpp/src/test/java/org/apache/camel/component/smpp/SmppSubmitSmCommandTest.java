@@ -15,7 +15,9 @@
  * limitations under the License.
  */
 package org.apache.camel.component.smpp;
+
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -96,8 +98,8 @@ public class SmppSubmitSmCommandTest {
 
         command.execute(exchange);
 
-        assertEquals(Arrays.asList("1"), exchange.getOut().getHeader(SmppConstants.ID));
-        assertEquals(1, exchange.getOut().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
+        assertEquals(Collections.singletonList("1"), exchange.getMessage().getHeader(SmppConstants.ID));
+        assertEquals(1, exchange.getMessage().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
     }
 
     @Test
@@ -126,8 +128,8 @@ public class SmppSubmitSmCommandTest {
 
         command.execute(exchange);
 
-        assertEquals(Arrays.asList("1", "2"), exchange.getOut().getHeader(SmppConstants.ID));
-        assertEquals(2, exchange.getOut().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
+        assertEquals(Arrays.asList("1", "2"), exchange.getMessage().getHeader(SmppConstants.ID));
+        assertEquals(2, exchange.getMessage().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
     }
 
     @Test(expected = SmppException.class)
@@ -156,8 +158,8 @@ public class SmppSubmitSmCommandTest {
 
         command.execute(exchange);
 
-        assertEquals(Arrays.asList("1", "2"), exchange.getOut().getHeader(SmppConstants.ID));
-        assertEquals(2, exchange.getOut().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
+        assertEquals(Arrays.asList("1", "2"), exchange.getMessage().getHeader(SmppConstants.ID));
+        assertEquals(2, exchange.getMessage().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
     }
 
     @Test
@@ -180,8 +182,8 @@ public class SmppSubmitSmCommandTest {
 
         command.execute(exchange);
 
-        assertEquals(Arrays.asList("1"), exchange.getOut().getHeader(SmppConstants.ID));
-        assertEquals(1, exchange.getOut().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
+        assertEquals(Collections.singletonList("1"), exchange.getMessage().getHeader(SmppConstants.ID));
+        assertEquals(1, exchange.getMessage().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
     }
 
     @Test
@@ -210,8 +212,8 @@ public class SmppSubmitSmCommandTest {
 
         command.execute(exchange);
 
-        assertEquals(Arrays.asList("1"), exchange.getOut().getHeader(SmppConstants.ID));
-        assertEquals(1, exchange.getOut().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
+        assertEquals(Collections.singletonList("1"), exchange.getMessage().getHeader(SmppConstants.ID));
+        assertEquals(1, exchange.getMessage().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
     }
 
     @Test
@@ -252,8 +254,8 @@ public class SmppSubmitSmCommandTest {
 
         command.execute(exchange);
 
-        assertEquals(Arrays.asList("1"), exchange.getOut().getHeader(SmppConstants.ID));
-        assertEquals(1, exchange.getOut().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
+        assertEquals(Collections.singletonList("1"), exchange.getMessage().getHeader(SmppConstants.ID));
+        assertEquals(1, exchange.getMessage().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
     }
 
     @Test
@@ -276,19 +278,19 @@ public class SmppSubmitSmCommandTest {
         exchange.getIn().setBody("short message body");
         Map<Short, Object> optionalParameters = new LinkedHashMap<>();
         // standard optional parameter
-        optionalParameters.put(Short.valueOf((short) 0x0202), "1292".getBytes("UTF-8"));
-        optionalParameters.put(Short.valueOf((short) 0x001D), "urgent");
-        optionalParameters.put(Short.valueOf((short) 0x0005), Byte.valueOf("4"));
-        optionalParameters.put(Short.valueOf((short) 0x0008), Short.valueOf((short) 2));
-        optionalParameters.put(Short.valueOf((short) 0x0017), Integer.valueOf(3600000));
-        optionalParameters.put(Short.valueOf((short) 0x130C), null);
+        optionalParameters.put((short) 0x0202, "1292".getBytes("UTF-8"));
+        optionalParameters.put((short) 0x001D, "urgent");
+        optionalParameters.put((short) 0x0005, Byte.valueOf("4"));
+        optionalParameters.put((short) 0x0008, (short) 2);
+        optionalParameters.put((short) 0x0017, 3600000);
+        optionalParameters.put((short) 0x130C, null);
         // vendor specific optional parameter
-        optionalParameters.put(Short.valueOf((short) 0x2150), "0815".getBytes("UTF-8"));
-        optionalParameters.put(Short.valueOf((short) 0x2151), "0816");
-        optionalParameters.put(Short.valueOf((short) 0x2152), Byte.valueOf("6"));
-        optionalParameters.put(Short.valueOf((short) 0x2153), Short.valueOf((short) 9));
-        optionalParameters.put(Short.valueOf((short) 0x2154), Integer.valueOf(7400000));
-        optionalParameters.put(Short.valueOf((short) 0x2155), null);
+        optionalParameters.put((short) 0x2150, "0815".getBytes("UTF-8"));
+        optionalParameters.put((short) 0x2151, "0816");
+        optionalParameters.put((short) 0x2152, Byte.valueOf("6"));
+        optionalParameters.put((short) 0x2153, (short) 9);
+        optionalParameters.put((short) 0x2154, 7400000);
+        optionalParameters.put((short) 0x2155, null);
         exchange.getIn().setHeader(SmppConstants.OPTIONAL_PARAMETER, optionalParameters);
         when(session.submitShortMessage(eq("CMT"), eq(TypeOfNumber.NATIONAL), eq(NumberingPlanIndicator.NATIONAL), eq("1818"),
                 eq(TypeOfNumber.INTERNATIONAL), eq(NumberingPlanIndicator.INTERNET), eq("1919"),
@@ -311,8 +313,8 @@ public class SmppSubmitSmCommandTest {
 
         command.execute(exchange);
 
-        assertEquals(Arrays.asList("1"), exchange.getOut().getHeader(SmppConstants.ID));
-        assertEquals(1, exchange.getOut().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
+        assertEquals(Collections.singletonList("1"), exchange.getMessage().getHeader(SmppConstants.ID));
+        assertEquals(1, exchange.getMessage().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
     }
 
     @Test
@@ -341,8 +343,8 @@ public class SmppSubmitSmCommandTest {
 
         command.execute(exchange);
 
-        assertEquals(Arrays.asList("1"), exchange.getOut().getHeader(SmppConstants.ID));
-        assertEquals(1, exchange.getOut().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
+        assertEquals(Arrays.asList("1"), exchange.getMessage().getHeader(SmppConstants.ID));
+        assertEquals(1, exchange.getMessage().getHeader(SmppConstants.SENT_MESSAGE_COUNT));
     }
 
     @Test
@@ -361,7 +363,7 @@ public class SmppSubmitSmCommandTest {
 
         command.execute(exchange);
 
-        assertEquals(Arrays.asList("1"), exchange.getOut().getHeader(SmppConstants.ID));
+        assertEquals(Arrays.asList("1"), exchange.getMessage().getHeader(SmppConstants.ID));
     }
 
     @Test
@@ -395,7 +397,7 @@ public class SmppSubmitSmCommandTest {
 
         command.execute(exchange);
 
-        assertEquals(Arrays.asList("1"), exchange.getOut().getHeader(SmppConstants.ID));
+        assertEquals(Arrays.asList("1"), exchange.getMessage().getHeader(SmppConstants.ID));
     }
 
     @Test
@@ -429,7 +431,7 @@ public class SmppSubmitSmCommandTest {
 
         command.execute(exchange);
 
-        assertEquals(Arrays.asList("1"), exchange.getOut().getHeader(SmppConstants.ID));
+        assertEquals(Collections.singletonList("1"), exchange.getMessage().getHeader(SmppConstants.ID));
     }
 
     @Test
@@ -462,7 +464,7 @@ public class SmppSubmitSmCommandTest {
 
         command.execute(exchange);
 
-        assertEquals(Arrays.asList("1"), exchange.getOut().getHeader(SmppConstants.ID));
+        assertEquals(Collections.singletonList("1"), exchange.getMessage().getHeader(SmppConstants.ID));
     }
 
     @Test
@@ -495,7 +497,7 @@ public class SmppSubmitSmCommandTest {
 
         command.execute(exchange);
 
-        assertEquals(Arrays.asList("1"), exchange.getOut().getHeader(SmppConstants.ID));
+        assertEquals(Collections.singletonList("1"), exchange.getMessage().getHeader(SmppConstants.ID));
     }
 
     @Test
@@ -529,7 +531,7 @@ public class SmppSubmitSmCommandTest {
 
         command.execute(exchange);
 
-        assertEquals(Arrays.asList("1"), exchange.getOut().getHeader(SmppConstants.ID));
+        assertEquals(Collections.singletonList("1"), exchange.getMessage().getHeader(SmppConstants.ID));
     }
 
     @Test
@@ -564,6 +566,6 @@ public class SmppSubmitSmCommandTest {
 
         command.execute(exchange);
 
-        assertEquals(Arrays.asList("1"), exchange.getOut().getHeader(SmppConstants.ID));
+        assertEquals(Collections.singletonList("1"), exchange.getMessage().getHeader(SmppConstants.ID));
     }
 }

@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +39,7 @@ public class WireTapShutdownBeanTest extends ContextTestSupport {
 
     @Test
     public void testWireTapShutdown() throws Exception {
-        final MyTapBean tapBean = (MyTapBean) context.getRegistry().lookupByName("tap");
+        final MyTapBean tapBean = (MyTapBean)context.getRegistry().lookupByName("tap");
 
         getMockEndpoint("mock:result").expectedBodiesReceived("Hello World");
 
@@ -49,7 +49,8 @@ public class WireTapShutdownBeanTest extends ContextTestSupport {
 
         EXCHANGER.exchange(null);
 
-        // shutdown Camel which should let the inflight wire-tap message route to completion
+        // shutdown Camel which should let the inflight wire-tap message route
+        // to completion
         context.stop();
 
         // should allow to shutdown nicely
@@ -59,18 +60,17 @@ public class WireTapShutdownBeanTest extends ContextTestSupport {
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("tap", new MyTapBean());
         return jndi;
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
-                from("direct:start")
-                    .wireTap("bean:tap").dynamicUri(false)
-                    .to("mock:result");
+                from("direct:start").wireTap("bean:tap").dynamicUri(false).to("mock:result");
             }
         };
     }

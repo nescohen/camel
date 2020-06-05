@@ -53,7 +53,6 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
 import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.model.UploadPartRequest;
-
 import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
@@ -92,29 +91,32 @@ public class S3Producer extends DefaultProducer {
             }
         } else {
             switch (operation) {
-            case copyObject:
-                copyObject(getEndpoint().getS3Client(), exchange);
-                break;
-            case deleteObject:
-                deleteObject(getEndpoint().getS3Client(), exchange);
-                break;
-            case listBuckets:
-                listBuckets(getEndpoint().getS3Client(), exchange);
-                break;
-            case deleteBucket:
-                deleteBucket(getEndpoint().getS3Client(), exchange);
-                break;
-            case downloadLink:
-                createDownloadLink(getEndpoint().getS3Client(), exchange);
-                break;
-            case listObjects:
-                listObjects(getEndpoint().getS3Client(), exchange);
-                break;
-            case getObject:
-                getObject(getEndpoint().getS3Client(), exchange);
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported operation");
+                case copyObject:
+                    copyObject(getEndpoint().getS3Client(), exchange);
+                    break;
+                case deleteObject:
+                    deleteObject(getEndpoint().getS3Client(), exchange);
+                    break;
+                case listBuckets:
+                    listBuckets(getEndpoint().getS3Client(), exchange);
+                    break;
+                case deleteBucket:
+                    deleteBucket(getEndpoint().getS3Client(), exchange);
+                    break;
+                case downloadLink:
+                    createDownloadLink(getEndpoint().getS3Client(), exchange);
+                    break;
+                case listObjects:
+                    listObjects(getEndpoint().getS3Client(), exchange);
+                    break;
+                case getObject:
+                    getObject(getEndpoint().getS3Client(), exchange);
+                    break;
+                case getObjectRange:
+                    getObjectRange(getEndpoint().getS3Client(), exchange);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported operation");
             }
         }
     }
@@ -206,7 +208,7 @@ public class S3Producer extends DefaultProducer {
             message.setHeader(S3Constants.VERSION_ID, uploadResult.getVersionId());
         }
 
-        if (getConfiguration().isDeleteAfterWrite() && filePayload != null) {
+        if (getConfiguration().isDeleteAfterWrite()) {
             FileUtil.deleteFile(filePayload);
         }
     }
@@ -230,7 +232,7 @@ public class S3Producer extends DefaultProducer {
         } else {
             is = exchange.getIn().getMandatoryBody(InputStream.class);
             if (objectMetadata.getContentLength() == 0 && ObjectHelper.isEmpty(exchange.getProperty(Exchange.CONTENT_LENGTH))) {
-                log.debug("The content length is not defined. It needs to be determined by reading the data into memory");
+                LOG.debug("The content length is not defined. It needs to be determined by reading the data into memory");
                 baos = determineLengthInputStream(is);
                 objectMetadata.setContentLength(baos.size());
                 is = new ByteArrayInputStream(baos.toByteArray());
@@ -365,6 +367,23 @@ public class S3Producer extends DefaultProducer {
         final String sourceKey = determineKey(exchange);
 
         GetObjectRequest req = new GetObjectRequest(bucketName, sourceKey);
+        S3Object res = s3Client.getObject(req);
+
+        Message message = getMessageForResponse(exchange);
+        message.setBody(res);
+    }
+
+    private void getObjectRange(AmazonS3 s3Client, Exchange exchange) {
+        final String bucketName = determineBucketName(exchange);
+        final String sourceKey = determineKey(exchange);
+        final String rangeStart = exchange.getIn().getHeader(S3Constants.RANGE_START, String.class);
+        final String rangeEnd = exchange.getIn().getHeader(S3Constants.RANGE_END, String.class);
+
+        if (ObjectHelper.isEmpty(rangeStart) || ObjectHelper.isEmpty(rangeEnd)) {
+            throw new IllegalArgumentException("A Range start and range end header must be configured to perform a range get operation.");
+        }
+
+        GetObjectRequest req = new GetObjectRequest(bucketName, sourceKey).withRange(Long.parseLong(rangeStart), Long.parseLong(rangeEnd));
         S3Object res = s3Client.getObject(req);
 
         Message message = getMessageForResponse(exchange);
@@ -547,12 +566,7 @@ public class S3Producer extends DefaultProducer {
     }
 
     public static Message getMessageForResponse(final Exchange exchange) {
-        if (exchange.getPattern().isOutCapable()) {
-            Message out = exchange.getOut();
-            out.copyFrom(exchange.getIn());
-            return out;
-        }
-        return exchange.getIn();
+        return exchange.getMessage();
     }
 
 }

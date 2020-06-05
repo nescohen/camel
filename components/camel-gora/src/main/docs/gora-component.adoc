@@ -1,7 +1,15 @@
 [[gora-component]]
-== Gora Component
+= Gora Component
+:docTitle: Gora
+:artifactId: camel-gora
+:description: Access NoSQL databases using the Apache Gora framework.
+:since: 2.14
+:supportLevel: Stable
+:component-header: Both producer and consumer are supported
 
-*Available as of Camel version 2.14*
+*Since Camel {since}*
+
+*{component-header}*
 
 *Camel-Gora* is an http://camel.apache.org/[Apache Camel] component that
 allows you to work with NoSQL databases using the
@@ -13,14 +21,14 @@ for this component:
 [source,xml]
 ---------------------------------------------------------
 <dependency>
- <groupId>org.apache.camel</groupId>
- <artifactId>camel-gora</artifactId>
+ <groupId>org.apache.camel</groupId>
+ <artifactId>camel-gora</artifactId>
  <!-- use the same version as your Camel core version -->
- <version>x.x.x</version>
+ <version>x.x.x</version>
 </dependency>
 ---------------------------------------------------------
 
-### Apache Gora Overview
+== Apache Gora Overview
 
 The http://gora.apache.org/[Apache Gora] open source framework provides
 an in-memory data model and persistence for big data. Gora supports
@@ -38,7 +46,7 @@ http://accumulo.apache.org/[Apache Accumulo],
 https://aws.amazon.com/dynamodb/[Amazon DynamoDB] and SQL databases such
 as http://hsqldb.org/[hsqldb], http://www.mysql.com/[MySQL] and more.
 
-### URI format
+== URI format
 
 [source,text]
 ---------------------------
@@ -61,7 +69,7 @@ _Java DSL_
 to("gora:foobar?keyClass=java.lang.Long&valueClass=org.apache.camel.component.gora.generated.Pageview&dataStoreClass=org.apache.gora.hbase.store.HBaseStore")
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-### Configuratiion
+== Configuratiion
 
 Using camel-gora needs some configuration. This mainly involve to
 configure the _AvroStore_ through the _gora.properties_ file and to
@@ -72,18 +80,19 @@ Extensive information for this configuration can be found in the apache
 http://gora.apache.org/current/index.html[gora documentation] and the
 http://gora.apache.org/current/gora-conf.html[gora-conf] page.
 
-### Options
+== Options
 
 
 // component options: START
-The Gora component supports 2 options, which are listed below.
+The Gora component supports 3 options, which are listed below.
 
 
 
 [width="100%",cols="2,5,^1,2",options="header"]
 |===
 | Name | Description | Default | Type
-| *resolveProperty Placeholders* (advanced) | Whether the component should resolve property placeholders on itself when starting. Only properties which are of String type can use property placeholders. | true | boolean
+| *bridgeErrorHandler* (consumer) | Allows for bridging the consumer to the Camel routing Error Handler, which mean any exceptions occurred while the consumer is trying to pickup incoming messages, or the likes, will now be processed as a message and handled by the routing Error Handler. By default the consumer will use the org.apache.camel.spi.ExceptionHandler to deal with exceptions, that will be logged at WARN or ERROR level and ignored. | false | boolean
+| *lazyStartProducer* (producer) | Whether the producer should be started lazy (on the first message). By starting lazy you can use this to allow CamelContext and routes to startup in situations where a producer may otherwise fail during starting and cause the route to fail being started. By deferring this startup to be lazy then the startup failure can be handled during routing messages via Camel's routing error handlers. Beware that when the first message is processed then creating and starting the producer may take a little time and prolong the total processing time of the processing. | false | boolean
 | *basicPropertyBinding* (advanced) | Whether the component should use basic property binding (Camel 2.x) or the newer property binding with additional capabilities | false | boolean
 |===
 // component options: END
@@ -101,7 +110,7 @@ gora:name
 
 with the following path and query parameters:
 
-==== Path Parameters (1 parameters):
+=== Path Parameters (1 parameters):
 
 
 [width="100%",cols="2,5,^1,2",options="header"]
@@ -111,7 +120,7 @@ with the following path and query parameters:
 |===
 
 
-==== Query Parameters (23 parameters):
+=== Query Parameters (23 parameters):
 
 
 [width="100%",cols="2,5,^1,2",options="header"]
@@ -134,7 +143,7 @@ with the following path and query parameters:
 | *timeRangeTo* (consumer) | The Time Range To |  | long
 | *timestamp* (consumer) | The Timestamp |  | long
 | *exceptionHandler* (consumer) | To let the consumer use a custom ExceptionHandler. Notice if the option bridgeErrorHandler is enabled then this option is not in use. By default the consumer will deal with exceptions, that will be logged at WARN or ERROR level and ignored. |  | ExceptionHandler
-| *exchangePattern* (consumer) | Sets the exchange pattern when the consumer creates an exchange. |  | ExchangePattern
+| *exchangePattern* (consumer) | Sets the exchange pattern when the consumer creates an exchange. The value can be one of: InOnly, InOut, InOptionalOut |  | ExchangePattern
 | *flushOnEveryOperation* (producer) | Flush on every operation | true | boolean
 | *lazyStartProducer* (producer) | Whether the producer should be started lazy (on the first message). By starting lazy you can use this to allow CamelContext and routes to startup in situations where a producer may otherwise fail during starting and cause the route to fail being started. By deferring this startup to be lazy then the startup failure can be handled during routing messages via Camel's routing error handlers. Beware that when the first message is processed then creating and starting the producer may take a little time and prolong the total processing time of the processing. | false | boolean
 | *basicPropertyBinding* (advanced) | Whether the endpoint should use basic property binding (Camel 2.x) or the newer property binding with additional capabilities | false | boolean
@@ -142,40 +151,12 @@ with the following path and query parameters:
 | *synchronous* (advanced) | Sets whether synchronous processing should be strictly used, or Camel is allowed to use asynchronous processing (if supported). | false | boolean
 |===
 // endpoint options: END
-// spring-boot-auto-configure options: START
-=== Spring Boot Auto-Configuration
-
-When using Spring Boot make sure to use the following Maven dependency to have support for auto configuration:
-
-[source,xml]
-----
-<dependency>
-  <groupId>org.apache.camel</groupId>
-  <artifactId>camel-gora-starter</artifactId>
-  <version>x.x.x</version>
-  <!-- use the same version as your Camel core version -->
-</dependency>
-----
-
-
-The component supports 3 options, which are listed below.
-
-
-
-[width="100%",cols="2,5,^1,2",options="header"]
-|===
-| Name | Description | Default | Type
-| *camel.component.gora.basic-property-binding* | Whether the component should use basic property binding (Camel 2.x) or the newer property binding with additional capabilities | false | Boolean
-| *camel.component.gora.enabled* | Enable gora component | true | Boolean
-| *camel.component.gora.resolve-property-placeholders* | Whether the component should resolve property placeholders on itself when starting. Only properties which are of String type can use property placeholders. | true | Boolean
-|===
-// spring-boot-auto-configure options: END
 
 
 
 
 
-### Supported Gora Operations
+== Supported Gora Operations
 
 Supported operations include : *put*, *get*, *delete*, *getSchemaName*,
 *deleteSchema*, *createSchema*, *query*, *deleteByQuery*,
@@ -213,7 +194,7 @@ hold the objects._
 datastore._
 |=======================================================================
 
-### Gora Headers
+== Gora Headers
 
 [width="100%",cols="20%,80%",options="header",]
 |=======================================================================
@@ -224,14 +205,14 @@ datastore._
 |GoraKey | _Used in order to define the datum key for the operations need it._
 |=======================================================================
 
-### Usage examples
+== Usage examples
 
 *Create Schema* _(XML DSL)_:
 
 [source,xml]
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 <setHeader name="GoraOperation">
- <constant>CreateSchema</constant>
+ <constant>CreateSchema</constant>
 </setHeader>
 <to uri="gora:foobar?keyClass=java.lang.Long&amp;valueClass=org.apache.camel.component.gora.generated.Pageview&amp;dataStoreClass=org.apache.gora.hbase.store.HBaseStore"/>
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -241,9 +222,9 @@ datastore._
 [source,xml]
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 <setHeader name="GoraOperation">
- <constant>SchemaExists</constant>
+ <constant>SchemaExists</constant>
 </setHeader>
- <to uri="gora:foobar?keyClass=java.lang.Long&amp;valueClass=org.apache.camel.component.gora.generated.Pageview&amp;dataStoreClass=org.apache.gora.hbase.store.HBaseStore"/>
+ <to uri="gora:foobar?keyClass=java.lang.Long&amp;valueClass=org.apache.camel.component.gora.generated.Pageview&amp;dataStoreClass=org.apache.gora.hbase.store.HBaseStore"/>
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 *Put* _(XML DSL)_:
@@ -251,10 +232,10 @@ datastore._
 [source,xml]
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 <setHeader name="GoraOperation">
- <constant>put</constant>
+ <constant>put</constant>
 </setHeader>
 <setHeader name="GoraKey">
- <constant>22222</constant>
+ <constant>22222</constant>
 </setHeader>
 <to uri="gora:foo?keyClass=java.lang.Long&amp;valueClass=org.apache.camel.component.gora.generated.Pageview&amp;dataStoreClass=org.apache.gora.hbase.store.HBaseStore"/>
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -264,10 +245,10 @@ datastore._
 [source,xml]
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 <setHeader name="GoraOperation">
- <constant>GET</constant>
+ <constant>GET</constant>
 </setHeader>
 <setHeader name="GoraKey">
- <constant>10101</constant>
+ <constant>10101</constant>
 </setHeader>
 <to uri="gora:bar?keyClass=java.lang.Long&amp;valueClass=org.apache.camel.component.gora.generated.Pageview&amp;dataStoreClass=org.apache.gora.hbase.store.HBaseStore"/>
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -277,10 +258,10 @@ datastore._
 [source,xml]
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 <setHeader name="GoraOperation">
- <constant>DELETE</constant>
+ <constant>DELETE</constant>
 </setHeader>
 <setHeader name="GoraKey">
- <constant>22222</constant>
+ <constant>22222</constant>
 </setHeader>
 <to uri="gora:bar?keyClass=java.lang.Long&amp;valueClass=org.apache.camel.component.gora.generated.Pageview&amp;dataStoreClass=org.apache.gora.hbase.store.HBaseStore"/>
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -296,9 +277,11 @@ The full usage examples in the form of integration tests can be found at
 https://github.com/ipolyzos/camel-gora-examples/[camel-gora-examples]
 repository.
 
-### More resources
+== More resources
 
 For more please information and in depth configuration refer to the
 http://gora.apache.org/current/overview.html[Apache Gora Documentation]
 and the http://gora.apache.org/current/tutorial.html[Apache Gora
 Tutorial].
+
+include::camel-spring-boot::page$gora-starter.adoc[]

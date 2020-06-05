@@ -52,18 +52,20 @@ public class JmsRouteTimeoutCheckerIntervalTest extends CamelTestSupport {
         assertEquals("Bye World", out);
     }
 
+    @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext camelContext = super.createCamelContext();
 
         ConnectionFactory connectionFactory = CamelJmsTestHelper.createConnectionFactory();
         JmsComponent activmq = jmsComponentAutoAcknowledge(connectionFactory);
         // check 4 times per second
-        activmq.setRequestTimeoutCheckerInterval(250);
+        activmq.getConfiguration().setRequestTimeoutCheckerInterval(250);
         camelContext.addComponent("activemq", activmq);
 
         return camelContext;
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {

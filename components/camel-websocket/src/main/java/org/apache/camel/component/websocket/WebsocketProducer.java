@@ -28,8 +28,12 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.camel.support.DefaultProducer;
 import org.apache.camel.util.StopWatch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WebsocketProducer extends DefaultProducer implements WebsocketProducerConsumer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(WebsocketProducer.class);
 
     private WebsocketStore store;
     private final Boolean sendToAll;
@@ -59,7 +63,7 @@ public class WebsocketProducer extends DefaultProducer implements WebsocketProdu
                     pathSpec = WebsocketComponent.createPathSpec(endpoint.getResourceUri());
                 }
                 DefaultWebsocket websocket = store.get(connectionKey + pathSpec);
-                log.debug("Sending to connection key {} -> {}", connectionKey, message);
+                LOG.debug("Sending to connection key {} -> {}", connectionKey, message);
                 Future<Void> future = sendMessage(websocket, message);
                 if (future != null) {
                     int timeout = endpoint.getSendTimeout();
@@ -74,6 +78,7 @@ public class WebsocketProducer extends DefaultProducer implements WebsocketProdu
         }
     }
 
+    @Override
     public WebsocketEndpoint getEndpoint() {
         return endpoint;
     }
@@ -97,7 +102,7 @@ public class WebsocketProducer extends DefaultProducer implements WebsocketProdu
     }
 
     void sendToAll(WebsocketStore store, Object message, Exchange exchange) throws Exception {
-        log.debug("Sending to all {}", message);
+        LOG.debug("Sending to all {}", message);
         Collection<DefaultWebsocket> websockets = store.getAll();
         Exception exception = null;
 
@@ -128,22 +133,17 @@ public class WebsocketProducer extends DefaultProducer implements WebsocketProdu
         int timeout = endpoint.getSendTimeout();
         while (!futures.isEmpty() && watch.taken() < timeout) {
             // remove all that are done/cancelled
-            for (Future future : futures) {
-                if (future.isDone() || future.isCancelled()) {
-                    futures.remove(future);
-                }
-                // if there are still more then we need to wait a little bit before checking again, to avoid burning cpu cycles in the while loop
-                if (!futures.isEmpty()) {
-                    long interval = Math.min(1000, timeout);
-                    log.debug("Sleeping {} millis waiting for sendToAll to complete sending with timeout {} millis", interval, timeout);
-                    try {
-                        Thread.sleep(interval);
-                    } catch (InterruptedException e) {
-                        handleSleepInterruptedException(e, exchange);
-                    }
+            futures.removeIf(future -> future.isDone() || future.isCancelled());
+            // if there are still more then we need to wait a little bit before checking again, to avoid burning cpu cycles in the while loop
+            if (!futures.isEmpty()) {
+                long interval = Math.min(1000, timeout);
+                LOG.debug("Sleeping {} millis waiting for sendToAll to complete sending with timeout {} millis", interval, timeout);
+                try {
+                    Thread.sleep(interval);
+                } catch (InterruptedException e) {
+                    handleSleepInterruptedException(e, exchange);
                 }
             }
-
         }
         if (!futures.isEmpty()) {
             exception = new WebsocketSendException("Failed to deliver message within " + endpoint.getSendTimeout() + " millis to one or more recipients.", exchange);
@@ -158,7 +158,7 @@ public class WebsocketProducer extends DefaultProducer implements WebsocketProdu
         Future<Void> future = null;
         // in case there is web socket and socket connection is open - send message
         if (websocket != null && websocket.getSession().isOpen()) {
-            log.trace("Sending to websocket {} -> {}", websocket.getConnectionKey(), message);
+            LOG.trace("Sending to websocket {} -> {}", websocket.getConnectionKey(), message);
             if (message instanceof String) {
                 future = websocket.getSession().getRemote().sendStringByFuture((String) message);
             } else if (message instanceof byte[]) {
@@ -178,8 +178,8 @@ public class WebsocketProducer extends DefaultProducer implements WebsocketProdu
      * Called when a sleep is interrupted; allows derived classes to handle this case differently
      */
     protected void handleSleepInterruptedException(InterruptedException e, Exchange exchange) throws InterruptedException {
-        if (log.isDebugEnabled()) {
-            log.debug("Sleep interrupted, are we stopping? {}", isStopping() || isStopped());
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Sleep interrupted, are we stopping? {}", isStopping() || isStopped());
         }
         Thread.currentThread().interrupt();
         throw e;

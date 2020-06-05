@@ -19,8 +19,8 @@ package org.apache.camel.component.file.remote;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class FtpConsumerMaxMessagesPerPollTest extends FtpServerTestSupport {
 
@@ -29,7 +29,7 @@ public class FtpConsumerMaxMessagesPerPollTest extends FtpServerTestSupport {
     }
 
     @Override
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         prepareFtpServer();
@@ -53,13 +53,14 @@ public class FtpConsumerMaxMessagesPerPollTest extends FtpServerTestSupport {
 
         assertMockEndpointsSatisfied();
     }
-    
+
     private void prepareFtpServer() throws Exception {
         sendFile(getFtpUrl(), "Bye World", "bye.txt");
         sendFile(getFtpUrl(), "Hello World", "hello.txt");
         sendFile(getFtpUrl(), "Godday World", "godday.txt");
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {

@@ -21,14 +21,16 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Expression;
 import org.apache.camel.Traceable;
 import org.apache.camel.spi.IdAware;
+import org.apache.camel.spi.RouteIdAware;
 import org.apache.camel.support.AsyncProcessorSupport;
 import org.apache.camel.util.ObjectHelper;
 
 /**
  * A processor which sets the property on the exchange with an {@link org.apache.camel.Expression}
  */
-public class SetPropertyProcessor extends AsyncProcessorSupport implements Traceable, IdAware {
+public class SetPropertyProcessor extends AsyncProcessorSupport implements Traceable, IdAware, RouteIdAware {
     private String id;
+    private String routeId;
     private final Expression propertyName;
     private final Expression expression;
 
@@ -62,19 +64,32 @@ public class SetPropertyProcessor extends AsyncProcessorSupport implements Trace
 
     @Override
     public String toString() {
-        return "SetProperty(" + propertyName + ", " + expression + ")";
+        return id;
     }
 
+    @Override
     public String getTraceLabel() {
         return "setProperty[" + propertyName + ", " + expression + "]";
     }
 
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public void setId(String id) {
         this.id = id;
+    }
+
+    @Override
+    public String getRouteId() {
+        return routeId;
+    }
+
+    @Override
+    public void setRouteId(String routeId) {
+        this.routeId = routeId;
     }
 
     public String getPropertyName() {

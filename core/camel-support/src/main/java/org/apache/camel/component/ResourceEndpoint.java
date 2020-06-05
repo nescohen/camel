@@ -54,6 +54,11 @@ public abstract class ResourceEndpoint extends ProcessorEndpoint implements Mana
     private String resourceUri;
     @UriParam(defaultValue = "false", description = "Sets whether to use resource content cache or not")
     private boolean contentCache;
+    @UriParam(defaultValue = "false", description = "Sets whether the context map should allow access to all details."
+            + " By default only the message body and headers can be accessed."
+            + " This option can be enabled for full access to the current Exchange and CamelContext."
+            + " Doing so impose a potential security risk as this opens access to the full power of CamelContext API.")
+    private boolean allowContextMapAll;
 
     public ResourceEndpoint() {
     }
@@ -107,11 +112,13 @@ public abstract class ResourceEndpoint extends ProcessorEndpoint implements Mana
         return ResourceHelper.resolveMandatoryResourceAsInputStream(getCamelContext(), uri);
     }
 
+    @Override
     @ManagedAttribute(description = "Whether the resource is cached")
     public boolean isContentCache() {
         return contentCache;
     }
 
+    @Override
     @ManagedOperation(description = "Clears the cached resource, forcing to re-load the resource on next request")
     public void clearContentCache() {
         log.debug("Clearing resource: {} from the content cache", resourceUri);
@@ -122,16 +129,34 @@ public abstract class ResourceEndpoint extends ProcessorEndpoint implements Mana
         return buffer == null;
     }
 
+    @ManagedAttribute(description = "Whether the context map is limited to only include the message body and headers")
+    public boolean isAllowContextMapAll() {
+        return allowContextMapAll;
+    }
+
+    /**
+     * Sets whether the context map should allow access to all details.
+     * By default only the message body and headers can be accessed.
+     * This option can be enabled for full access to the current Exchange and CamelContext.
+     * Doing so impose a potential security risk as this opens access to the full power of CamelContext API.
+     */
+    public void setAllowContextMapAll(boolean allowContextMapAll) {
+        this.allowContextMapAll = allowContextMapAll;
+    }
+
+    @Override
     @ManagedAttribute(description = "Camel context ID")
     public String getCamelId() {
         return getCamelContext().getName();
     }
 
+    @Override
     @ManagedAttribute(description = "Camel ManagementName")
     public String getCamelManagementName() {
         return getCamelContext().getManagementName();
     }
 
+    @Override
     @ManagedAttribute(description = "Endpoint service state")
     public String getState() {
         return getStatus().name();
@@ -140,6 +165,7 @@ public abstract class ResourceEndpoint extends ProcessorEndpoint implements Mana
     /**
      * Sets whether to use resource content cache or not.
      */
+    @Override
     public void setContentCache(boolean contentCache) {
         this.contentCache = contentCache;
     }

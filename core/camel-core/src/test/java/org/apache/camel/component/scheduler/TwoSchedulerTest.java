@@ -28,6 +28,11 @@ public class TwoSchedulerTest extends ContextTestSupport {
         getMockEndpoint("mock:b").expectedMinimumMessageCount(2);
 
         assertMockEndpointsSatisfied();
+
+        // should use same thread as they share the same scheduler
+        String tn1 = getMockEndpoint("mock:a").getReceivedExchanges().get(0).getMessage().getHeader("tn", String.class);
+        String tn2 = getMockEndpoint("mock:b").getReceivedExchanges().get(0).getMessage().getHeader("tn", String.class);
+        assertSame(tn1, tn2);
     }
 
     @Override
@@ -35,10 +40,12 @@ public class TwoSchedulerTest extends ContextTestSupport {
         return new RouteBuilder() {
             public void configure() {
                 from("scheduler://foo?delay=100")
-                    .to("mock:a");
+                        .setHeader("tn", simple("${threadName}"))
+                        .to("mock:a");
 
                 from("scheduler://foo?delay=200")
-                    .to("mock:b");
+                        .setHeader("tn", simple("${threadName}"))
+                        .to("mock:b");
             }
         };
     }

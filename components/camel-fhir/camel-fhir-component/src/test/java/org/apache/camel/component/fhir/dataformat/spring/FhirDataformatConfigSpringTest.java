@@ -19,6 +19,7 @@ package org.apache.camel.component.fhir.dataformat.spring;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+
 import ca.uhn.fhir.context.FhirVersionEnum;
 import ca.uhn.fhir.context.ParserOptions;
 import ca.uhn.fhir.parser.LenientErrorHandler;
@@ -31,10 +32,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class FhirDataformatConfigSpringTest extends CamelSpringTestSupport {
 
@@ -86,7 +83,7 @@ public class FhirDataformatConfigSpringTest extends CamelSpringTestSupport {
 
     private FhirDataFormat getDataformat(String name) {
         CamelContext camelContext = context();
-        return (FhirDataFormat) DataFormatReifier.getDataFormat(camelContext, null, name);
+        return (FhirDataFormat) DataFormatReifier.getDataFormat(camelContext, name);
     }
 
     @Override

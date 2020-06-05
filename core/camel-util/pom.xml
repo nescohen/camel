@@ -17,14 +17,13 @@
     limitations under the License.
 
 -->
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.apache.camel</groupId>
         <artifactId>core</artifactId>
-        <version>3.0.0-SNAPSHOT</version>
+        <version>3.4.0-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
 
@@ -47,34 +46,18 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.hamcrest</groupId>
-                    <artifactId>hamcrest-core</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>java-hamcrest</artifactId>
-            <version>${hamcrest-version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.awaitility</groupId>
-            <artifactId>awaitility</artifactId>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.hamcrest</groupId>
-                    <artifactId>hamcrest-core</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <version>${assertj-version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- logging -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -90,6 +73,7 @@
                         <link>http://download.oracle.com/javase/7/docs/api/</link>
                         <link>http://download.oracle.com/javaee/7/api/</link>
                     </links>
+                    <isOffline>${camel.javadoc.offline}</isOffline>
                     <linksource>true</linksource>
                     <maxmemory>256m</maxmemory>
                     <groups>
@@ -153,6 +137,21 @@
         </plugins>
     </reporting>
 
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- needed for testing the properties component -->
+                    <environmentVariables>
+                        <FOO_SERVICE_HOST>myserver</FOO_SERVICE_HOST>
+                        <FOO_SERVICE_PORT>8081</FOO_SERVICE_PORT>
+                    </environmentVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
     <profiles>
         <profile>
             <id>release</id>
@@ -177,6 +176,7 @@
                             </links>
                             <linksource>true</linksource>
                             <maxmemory>256m</maxmemory>
+                            <isOffline>${camel.javadoc.offline}</isOffline>
                             <groups>
                                 <group>
                                     <title>Camel API</title>
@@ -234,55 +234,6 @@
                                 </group>
                             </groups>
                         </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <id>jdk9+-build</id>
-            <activation>
-                <jdk>[9,)</jdk>
-            </activation>
-            <dependencies>
-                <!-- enable the APT processor -->
-                <dependency>
-                    <groupId>org.apache.camel</groupId>
-                    <artifactId>apt</artifactId>
-                    <scope>provided</scope>
-                </dependency>
-            </dependencies>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <configuration>
-                            <!-- skip file stress tests as they are intended to run manually -->
-                            <excludes>
-                                <exclude>org/apache/camel/component/file/stress/**.java</exclude>
-                                <exclude>**/DistributedCompletionIntervalTest.java</exclude>
-                                <exclude>**/DistributedConcurrentPerCorrelationKeyTest.java</exclude>
-                                <exclude>${platform.skip.tests}</exclude>
-                            </excludes>
-                            <forkedProcessTimeoutInSeconds>3000</forkedProcessTimeoutInSeconds>
-                            <!-- needed for testing the properties component -->
-                            <environmentVariables>
-                                <FOO_SERVICE_HOST>myserver</FOO_SERVICE_HOST>
-                                <FOO_SERVICE_PORT>8081</FOO_SERVICE_PORT>
-                            </environmentVariables>
-                        </configuration>
-                        <dependencies>
-                            <dependency>
-                                <groupId>jakarta.xml.bind</groupId>
-                                <artifactId>jakarta.xml.bind-api</artifactId>
-                                <version>${jakarta-jaxb-version}</version>
-                            </dependency>
-                            <dependency>
-                                <groupId>org.glassfish.jaxb</groupId>
-                                <artifactId>jaxb-runtime</artifactId>
-                                <version>${glassfish-jaxb-runtime-version}</version>
-                            </dependency>
-                        </dependencies>
                     </plugin>
                 </plugins>
             </build>

@@ -34,27 +34,28 @@ public class DigitalOceanKeysProducer extends DigitalOceanProducer {
         super(endpoint, configuration);
     }
 
+    @Override
     public void process(Exchange exchange) throws Exception {
 
         switch (determineOperation(exchange)) {
 
-        case list:
-            getKeys(exchange);
-            break;
-        case create:
-            createKey(exchange);
-            break;
-        case get:
-            getKey(exchange);
-            break;
-        case update:
-            updateKey(exchange);
-            break;
-        case delete:
-            deleteKey(exchange);
-            break;
-        default:
-            throw new IllegalArgumentException("Unsupported operation");
+            case list:
+                getKeys(exchange);
+                break;
+            case create:
+                createKey(exchange);
+                break;
+            case get:
+                getKey(exchange);
+                break;
+            case update:
+                updateKey(exchange);
+                break;
+            case delete:
+                deleteKey(exchange);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported operation");
         }
     }
 

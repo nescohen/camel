@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.processor;
+
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
@@ -44,17 +45,20 @@ public class TransformTest extends ContextTestSupport {
         resultEndpoint = getMockEndpoint("mock:result");
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
-                // START SNIPPET: example
-                from("direct:start").process(new Processor() {
-                    public void process(Exchange exchange) {
-                        Message in = exchange.getIn();
-                        in.setBody(in.getBody(String.class) + " World!");
-                    }
-                }).to("mock:result");
-                // END SNIPPET: example
+                /*tag::example[]*/
+                from("direct:start")
+                    .process(new Processor() {
+                        public void process(Exchange exchange) {
+                            Message in = exchange.getIn();
+                            in.setBody(in.getBody(String.class) + " World!");
+                        }
+                    })
+                    .to("mock:result");
+                /*end::example[]*/
             }
         };
     }

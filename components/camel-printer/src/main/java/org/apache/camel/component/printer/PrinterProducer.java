@@ -18,6 +18,7 @@ package org.apache.camel.component.printer;
 
 import java.io.InputStream;
 import java.util.Locale;
+
 import javax.print.DocFlavor;
 import javax.print.PrintException;
 import javax.print.PrintService;
@@ -32,8 +33,13 @@ import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.support.DefaultProducer;
 import org.apache.camel.util.ObjectHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PrinterProducer extends DefaultProducer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(PrinterProducer.class);
+
     private final PrinterConfiguration config;
     private PrinterOperations printerOperations;
     private PrintService printService;
@@ -44,6 +50,7 @@ public class PrinterProducer extends DefaultProducer {
         this.config = config;
     }
 
+    @Override
     public void process(Exchange exchange) throws Exception {
         Object body = exchange.getIn().getBody();
         InputStream is = exchange.getContext().getTypeConverter().convertTo(InputStream.class, body);
@@ -126,7 +133,7 @@ public class PrinterProducer extends DefaultProducer {
                     name = config.getPrinterPrefix() + name;
                 }
             }
-            log.debug("Using printer name: {}", name);
+            LOG.debug("Using printer name: {}", name);
             setPrinter(name);
             int position = findPrinter(services, printer);
             if (position < 0) {
@@ -144,7 +151,7 @@ public class PrinterProducer extends DefaultProducer {
         printer = printer.replace('\\', '/');
         for (int i = 0; i < services.length; i++) {
             String printerName = services[i].getName();
-            log.debug("Printer service printer name: {}", printerName);
+            LOG.debug("Printer service printer name: {}", printerName);
             // align slashes so we match / or \
             printerName = printerName.toLowerCase(Locale.US);
             printerName = printerName.replace('\\', '/');

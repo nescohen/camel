@@ -66,9 +66,6 @@ public class RollbackTest extends ContextTestSupport {
         assertNotNull(out.getException());
         assertIsInstanceOf(RollbackExchangeException.class, out.getException());
         assertEquals("Should be marked as rollback", true, out.isRollbackOnly());
-        // should not try to redeliver if exchange was marked as rollback only
-        assertEquals(0, out.getIn().getHeader(Exchange.REDELIVERY_COUNTER));
-        assertEquals(false, out.getIn().getHeader(Exchange.REDELIVERED));
     }
 
     @Override
@@ -76,14 +73,7 @@ public class RollbackTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start")
-                    .choice()
-                        .when(body().isNotEqualTo("ok"))
-                        .to("mock:rollback")
-                        .rollback("That do not work")
-                    .otherwise()
-                        .to("mock:result")
-                    .end();
+                from("direct:start").choice().when(body().isNotEqualTo("ok")).to("mock:rollback").rollback("That do not work").otherwise().to("mock:result").end();
             }
         };
     }

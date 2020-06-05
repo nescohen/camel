@@ -37,17 +37,20 @@ import org.springframework.beans.factory.FactoryBean;
 @XmlAccessorType(XmlAccessType.FIELD)
 public class CamelRouteContextFactoryBean extends IdentifiedType implements FactoryBean<List<RouteDefinition>> {
 
-    @XmlElement(name = "route", required = true)
+    @XmlElement(name = "route", required = true)  @Metadata(description = "Routes")
     private List<RouteDefinition> routes = new ArrayList<>();
 
+    @Override
     public List<RouteDefinition> getObject() throws Exception {
         return routes;
     }
 
+    @Override
     public Class<?> getObjectType() {
         return routes.getClass();
     }
 
+    @Override
     public boolean isSingleton() {
         return true;
     }

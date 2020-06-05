@@ -21,7 +21,6 @@ import java.util.Map;
 
 import com.splunk.Job;
 import com.splunk.JobCollection;
-
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
@@ -69,7 +68,7 @@ public class ConsumerTest extends SplunkMockTestSupport {
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() {
-                from("splunk://normal?delay=5s&username=foo&password=bar&initEarliestTime=-10s&latestTime=now&search=search index=myindex&sourceType=testSource")
+                from("splunk://normal?delay=5000&username=foo&password=bar&initEarliestTime=-10s&latestTime=now&search=search index=myindex&sourceType=testSource")
                         .to("mock:search-result");
             }
         };

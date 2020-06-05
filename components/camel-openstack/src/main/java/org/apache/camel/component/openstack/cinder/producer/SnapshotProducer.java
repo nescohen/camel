@@ -43,23 +43,23 @@ public class SnapshotProducer extends AbstractOpenstackProducer {
         String operation = getOperation(exchange);
 
         switch (operation) {
-        case OpenstackConstants.CREATE:
-            doCreate(exchange);
-            break;
-        case OpenstackConstants.GET:
-            doGet(exchange);
-            break;
-        case OpenstackConstants.GET_ALL:
-            doGetAll(exchange);
-            break;
-        case OpenstackConstants.UPDATE:
-            doUpdate(exchange);
-            break;
-        case OpenstackConstants.DELETE:
-            doDelete(exchange);
-            break;
-        default:
-            throw new IllegalArgumentException("Unsupported operation " + operation);
+            case OpenstackConstants.CREATE:
+                doCreate(exchange);
+                break;
+            case OpenstackConstants.GET:
+                doGet(exchange);
+                break;
+            case OpenstackConstants.GET_ALL:
+                doGetAll(exchange);
+                break;
+            case OpenstackConstants.UPDATE:
+                doUpdate(exchange);
+                break;
+            case OpenstackConstants.DELETE:
+                doDelete(exchange);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported operation " + operation);
         }
     }
 
@@ -90,7 +90,7 @@ public class SnapshotProducer extends AbstractOpenstackProducer {
         StringHelper.notEmpty(id, "Cinder Snapshot ID");
 
         final ActionResponse out = os.blockStorage().snapshots().update(id, vs.getName(), vs.getDescription());
-        checkFailure(out, msg, "Update volume snapshot " + id);
+        checkFailure(out, exchange, "Update volume snapshot " + id);
     }
 
     private void doDelete(Exchange exchange) {
@@ -99,7 +99,7 @@ public class SnapshotProducer extends AbstractOpenstackProducer {
         StringHelper.notEmpty(id, "Cinder Snapshot ID");
 
         final ActionResponse out = os.blockStorage().snapshots().delete(id);
-        checkFailure(out, msg, "Delete snapshot " + id);
+        checkFailure(out, exchange, "Delete snapshot " + id);
     }
 
     private VolumeSnapshot messageToSnapshot(Message message) {

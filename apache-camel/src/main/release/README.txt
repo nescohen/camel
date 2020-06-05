@@ -20,7 +20,7 @@ will be able to interact with all the Components that is provided
 out-of-the-box.
 
 Apache Camel has powerful Bean Binding and integrated seamless with popular
-frameworks such as Spring and Guice.
+frameworks such as Spring, CDI and Blueprint.
 
 Apache Camel has extensive Testing support allowing you to easily
 unit test your routes.
@@ -98,12 +98,10 @@ software:
   * camel-cxf can be configured for secure communications
   * camel-ftp can be configured for secure communications
   * camel-http can be configured to use https
-  * camel-http4 can be configured to use https
   * camel-jasypt can be used for secure communications
   * camel-jetty can be configured to use https
   * camel-mail can be configured for secure communications
   * camel-nagios can be configured for secure communications
   * camel-netty-http can be configured to use https
-  * camel-netty4-http can be configured to use https
   * camel-undertow can be configured to use https
   * camel-xmlsecurity can be configured for secure communications

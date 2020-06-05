@@ -32,7 +32,6 @@ public class SplitterUseOriginalNotPropagateExceptionTest extends ContextTestSup
     @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext context = super.createCamelContext();
-        context.init();
         context.getManagementStrategy().addEventNotifier(notifier);
         return context;
     }
@@ -52,7 +51,8 @@ public class SplitterUseOriginalNotPropagateExceptionTest extends ContextTestSup
 
         assertMockEndpointsSatisfied();
 
-        // there should only be 1 error as we do not propagate errors to the parent
+        // there should only be 1 error as we do not propagate errors to the
+        // parent
         assertEquals(1, notifier.getErrors());
     }
 
@@ -61,14 +61,8 @@ public class SplitterUseOriginalNotPropagateExceptionTest extends ContextTestSup
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start")
-                    .split(body()).aggregationStrategy(AggregationStrategies.useOriginal(false))
-                        .filter(simple("${body} == 'Kaboom'"))
-                            .throwException(new IllegalArgumentException("Forced error"))
-                        .end()
-                        .to("mock:line")
-                    .end()
-                    .to("mock:result");
+                from("direct:start").split(body()).aggregationStrategy(AggregationStrategies.useOriginal(false)).filter(simple("${body} == 'Kaboom'"))
+                    .throwException(new IllegalArgumentException("Forced error")).end().to("mock:line").end().to("mock:result");
             }
         };
     }

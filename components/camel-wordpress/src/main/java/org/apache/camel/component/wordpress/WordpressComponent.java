@@ -21,11 +21,11 @@ import java.util.Map;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.Endpoint;
+import org.apache.camel.ExtendedCamelContext;
+import org.apache.camel.spi.BeanIntrospection;
 import org.apache.camel.spi.Metadata;
 import org.apache.camel.spi.annotations.Component;
 import org.apache.camel.support.DefaultComponent;
-import org.apache.camel.support.IntrospectionSupport;
-import org.apache.camel.support.PropertyBindingSupport;
 
 /**
  * Represents the component that manages {@link WordpressEndpoint}.
@@ -59,15 +59,19 @@ public class WordpressComponent extends DefaultComponent {
         this.configuration = configuration;
     }
 
+    @Override
     protected Endpoint createEndpoint(String uri, String remaining, Map<String, Object> parameters) throws Exception {
-        final WordpressComponentConfiguration endpointConfiguration = this.copyComponentProperties();
-
-        WordpressEndpoint endpoint = new WordpressEndpoint(uri, this, endpointConfiguration);
+        if (configuration != null) {
+            Map<String, Object> properties = new HashMap<>();
+            BeanIntrospection beanIntrospection = getCamelContext().adapt(ExtendedCamelContext.class).getBeanIntrospection();
+            beanIntrospection.getProperties(configuration, properties, null, false);
+            properties.forEach(parameters::putIfAbsent);
+        }
+        WordpressComponentConfiguration config = new WordpressComponentConfiguration();
+        WordpressEndpoint endpoint = new WordpressEndpoint(uri, this, config);
+        discoverOperations(endpoint, remaining);
         setProperties(endpoint, parameters);
-
-        this.discoverOperations(endpoint, remaining);
-        endpoint.configureProperties(parameters);
-
+        setProperties(config, parameters);
         return endpoint;
     }
 
@@ -79,13 +83,4 @@ public class WordpressComponent extends DefaultComponent {
         }
     }
 
-    private WordpressComponentConfiguration copyComponentProperties() throws Exception {
-        Map<String, Object> componentProperties = new HashMap<>();
-        IntrospectionSupport.getProperties(configuration, componentProperties, null, false);
-
-        // create endpoint configuration with component properties
-        WordpressComponentConfiguration config = new WordpressComponentConfiguration();
-        PropertyBindingSupport.bindProperties(getCamelContext(), config, componentProperties);
-        return config;
-    }
 }

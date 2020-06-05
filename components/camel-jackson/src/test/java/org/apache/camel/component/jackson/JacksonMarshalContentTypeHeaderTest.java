@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.camel.Exchange;
-import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.dataformat.JsonLibrary;
 import org.apache.camel.test.junit4.CamelTestSupport;
@@ -33,16 +32,11 @@ public class JacksonMarshalContentTypeHeaderTest extends CamelTestSupport {
         final Map<String, Object> in = new HashMap<>();
         in.put("name", "Camel");
 
-        Exchange out = template.request("direct:yes", new Processor() {
-            @Override
-            public void process(Exchange exchange) throws Exception {
-                exchange.getIn().setBody(in);
-            }
-        });
+        Exchange out = template.request("direct:yes", exchange -> exchange.getIn().setBody(in));
 
         assertNotNull(out);
         assertTrue(out.hasOut());
-        assertEquals("application/json", out.getOut().getHeader(Exchange.CONTENT_TYPE));
+        assertEquals("application/json", out.getMessage().getHeader(Exchange.CONTENT_TYPE));
     }
 
     @Test
@@ -50,16 +44,11 @@ public class JacksonMarshalContentTypeHeaderTest extends CamelTestSupport {
         final Map<String, Object> in = new HashMap<>();
         in.put("name", "Camel");
 
-        Exchange out = template.request("direct:yes2", new Processor() {
-            @Override
-            public void process(Exchange exchange) throws Exception {
-                exchange.getIn().setBody(in);
-            }
-        });
+        Exchange out = template.request("direct:yes2", exchange -> exchange.getIn().setBody(in));
 
         assertNotNull(out);
         assertTrue(out.hasOut());
-        assertEquals("application/json", out.getOut().getHeader(Exchange.CONTENT_TYPE));
+        assertEquals("application/json", out.getMessage().getHeader(Exchange.CONTENT_TYPE));
     }
 
     @Test
@@ -67,16 +56,11 @@ public class JacksonMarshalContentTypeHeaderTest extends CamelTestSupport {
         final Map<String, Object> in = new HashMap<>();
         in.put("name", "Camel");
 
-        Exchange out = template.request("direct:no", new Processor() {
-            @Override
-            public void process(Exchange exchange) throws Exception {
-                exchange.getIn().setBody(in);
-            }
-        });
+        Exchange out = template.request("direct:no", exchange -> exchange.getIn().setBody(in));
 
         assertNotNull(out);
         assertTrue(out.hasOut());
-        assertNull(out.getOut().getHeader(Exchange.CONTENT_TYPE));
+        assertNull(out.getMessage().getHeader(Exchange.CONTENT_TYPE));
     }
 
     @Override

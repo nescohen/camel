@@ -46,13 +46,10 @@ public class SimpleMessageHistoryTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start")
-                    .to("mock:a")
-                    .log("${messageHistory}")
-                    .to("mock:b")
-                    .log("${messageHistory}")
-                    .transform().simple("${messageHistory}")
-                    .to("mock:result");
+                // turn on message history
+                context.setMessageHistory(true);
+
+                from("direct:start").to("mock:a").log("${messageHistory}").to("mock:b").log("${messageHistory}").transform().simple("${messageHistory}").to("mock:result");
             }
         };
     }

@@ -26,9 +26,9 @@ import org.apache.camel.Produce;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.test.junit4.CamelTestSupport;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.apache.camel.test.junit5.CamelTestSupport;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 /**
  * A test case to check wikipedia records.
@@ -45,18 +45,19 @@ public class WikipediaEndpointTest extends CamelTestSupport {
     @Produce("direct:start")
     protected ProducerTemplate template;
 
-    protected RouteBuilder createRouteBuilder() throws Exception {
+    @Override
+    protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             @Override
-            public void configure() throws Exception {
+            public void configure() {
                 from("direct:start").to("dns:wikipedia").to("mock:result");
             }
         };
     }
 
     @Test
-    @Ignore("Testing behind nat produces timeouts")
-    public void testWikipediaForMonkey() throws Exception {
+    @Disabled("Testing behind nat produces timeouts")
+    void testWikipediaForMonkey() throws Exception {
         resultEndpoint.expectedMessageCount(1);
         resultEndpoint.expectedMessagesMatches(new Predicate() {
             public boolean matches(Exchange exchange) {

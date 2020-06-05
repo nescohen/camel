@@ -103,11 +103,12 @@ public class BindyNumberTest extends AbstractJUnit4SpringContextTests {
     // *************************************************************************
 
     public static class ContextConfig extends RouteBuilder {
+        @Override
         public void configure() {
             BindyDataFormat bindy = new BindyDataFormat();
             bindy.setClassType(DataModel.class);
             bindy.setLocale("en");
-            bindy.setType(BindyType.Fixed);
+            bindy.type(BindyType.Fixed);
 
             from(URI_DIRECT_MARSHALL)
                 .marshal(bindy)

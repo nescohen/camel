@@ -21,7 +21,7 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.ExpressionBuilder;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class MockAsBeanTest extends ContextTestSupport {
@@ -30,8 +30,8 @@ public class MockAsBeanTest extends ContextTestSupport {
     private MockEndpoint foo = new MockEndpoint("mock:foo", new MockComponent(context));
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("foo", foo);
         return jndi;
     }
@@ -55,8 +55,8 @@ public class MockAsBeanTest extends ContextTestSupport {
 
         assertMockEndpointsSatisfied();
     }
-    // END SNIPPET: e1    
-    
+    // END SNIPPET: e1
+
     @Override
     // START SNIPPET: e2
     protected RouteBuilder createRouteBuilder() throws Exception {
@@ -72,13 +72,13 @@ public class MockAsBeanTest extends ContextTestSupport {
         };
     }
     // END SNIPPET: e2
-    
+
     // START SNIPPET: e3
     @Test
     public void testMockAsBeanWithReplyBody() throws Exception {
         // we should expect to receive the transformed message
         getMockEndpoint("mock:result").expectedBodiesReceived("Bye World");
-        
+
         foo.returnReplyBody(ExpressionBuilder.simpleExpression("Bye ${body}"));
 
         template.sendBody("direct:start", "World");
@@ -86,13 +86,13 @@ public class MockAsBeanTest extends ContextTestSupport {
         assertMockEndpointsSatisfied();
     }
     // END SNIPPET: e3
-    
+
     // START SNIPPET: e4
     @Test
     public void testMockAsBeanWithReplyHeader() throws Exception {
         // we should expect to receive the transformed message
         getMockEndpoint("mock:result").expectedHeaderReceived("myHeader", "Bye World");
-        
+
         foo.returnReplyHeader("myHeader", ExpressionBuilder.simpleExpression("Bye ${body}"));
 
         template.sendBody("direct:start", "World");

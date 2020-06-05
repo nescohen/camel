@@ -21,7 +21,7 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 /**
@@ -41,18 +41,21 @@ public class ToFileRouteTest extends ContextTestSupport {
         assertMockEndpointsSatisfied();
     }
 
-    protected JndiRegistry createRegistry() throws Exception {
+    @Override
+    protected Registry createRegistry() throws Exception {
         // bind our processor in the registry with the given id
-        JndiRegistry reg = super.createRegistry();
+        Registry reg = super.createRegistry();
         reg.bind("processReport", new ProcessReport());
         return reg;
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
             public void configure() throws Exception {
                 // the reports from the seda queue is processed by our processor
-                // before they are written to files in the target/data/reports directory
+                // before they are written to files in the target/data/reports
+                // directory
                 from("direct:reports").process("processReport").to("file://target/data/test-reports", "mock:result");
             }
         };
@@ -60,16 +63,18 @@ public class ToFileRouteTest extends ContextTestSupport {
 
     private static class ProcessReport implements Processor {
 
+        @Override
         public void process(Exchange exchange) throws Exception {
             String body = exchange.getIn().getBody(String.class);
             // do some business logic here
 
             // set the output to the file
-            exchange.getOut().setBody(body);
+            exchange.getMessage().setBody(body);
 
-            // set the output filename using java code logic, notice that this is done by setting
+            // set the output filename using java code logic, notice that this
+            // is done by setting
             // a special header property of the out exchange
-            exchange.getOut().setHeader(Exchange.FILE_NAME, "report.txt");
+            exchange.getMessage().setHeader(Exchange.FILE_NAME, "report.txt");
         }
 
     }

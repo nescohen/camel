@@ -40,7 +40,7 @@ import org.apache.camel.support.ScheduledPollEndpoint;
 import org.apache.camel.util.ObjectHelper;
 
 /**
- * The google-mail component provides access to Google Mail.
+ * Poll for incoming messages in Google Mail.
  */
 @UriEndpoint(firstVersion = "2.22.0",
              scheme = "google-mail-stream",
@@ -66,7 +66,7 @@ public class GoogleMailStreamEndpoint extends ScheduledPollEndpoint {
     @Override
     public Consumer createConsumer(Processor processor) throws Exception {
         String unreadLabelId = null;
-        List labelsIds = new ArrayList<>();
+        List<String> labelsIds = new ArrayList<>();
         ListLabelsResponse listResponse = getClient().users().labels().list("me").execute();
         for (Label label : listResponse.getLabels()) {
             Label countLabel = getClient().users().labels().get("me", label.getId()).execute();

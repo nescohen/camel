@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.component.crypto.cms;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -404,7 +405,7 @@ public class EnvelopedDataTest {
         Exchange exchange = ExchangeUtil.getExchange();
         exchange.getIn().setBody(new ByteArrayInputStream(message.getBytes("UTF-8")));
         encryptor.process(exchange);
-        byte[] encrypted = (byte[])exchange.getOut().getBody();
+        byte[] encrypted = (byte[])exchange.getMessage().getBody();
         return encrypted;
     }
 
@@ -421,7 +422,7 @@ public class EnvelopedDataTest {
 
         decryptor.process(exchangeDecrypt);
 
-        byte[] decrypted = (byte[])exchangeDecrypt.getOut().getBody();
+        byte[] decrypted = (byte[])exchangeDecrypt.getMessage().getBody();
 
         return decrypted;
     }

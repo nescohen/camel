@@ -16,14 +16,18 @@
  */
 package org.apache.camel.component.webhook;
 
+import java.net.URISyntaxException;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.camel.Endpoint;
 import org.apache.camel.spi.Metadata;
 import org.apache.camel.spi.RestConfiguration;
 import org.apache.camel.spi.annotations.Component;
+import org.apache.camel.support.CamelContextHelper;
 import org.apache.camel.support.DefaultComponent;
 import org.apache.camel.util.ObjectHelper;
+import org.apache.camel.util.URISupport;
 
 /**
  * A Camel meta-component for exposing other components through webhooks.
@@ -32,7 +36,7 @@ import org.apache.camel.util.ObjectHelper;
 public class WebhookComponent extends DefaultComponent {
 
     @Metadata(label = "advanced")
-    private WebhookConfiguration configuration;
+    private WebhookConfiguration configuration = new WebhookConfiguration();
 
     public WebhookComponent() {
     }
@@ -44,31 +48,39 @@ public class WebhookComponent extends DefaultComponent {
             throw new IllegalArgumentException("Wrong uri syntax : webhook:uri, got " + remaining);
         }
 
-        WebhookConfiguration configuration = getConfiguration().copy();
-        setProperties(configuration, parameters);
+        WebhookConfiguration config = configuration != null ? configuration.copy() : new WebhookConfiguration();
 
-        RestConfiguration restConfig = getCamelContext().getRestConfiguration(configuration.getWebhookComponentName(), true);
-        configuration.setRestConfiguration(restConfig);
+        RestConfiguration restConfig = CamelContextHelper.getRestConfiguration(getCamelContext(), config.getWebhookComponentName());
+        config.storeConfiguration(restConfig);
 
+        WebhookEndpoint endpoint = new WebhookEndpoint(uri, this, config);
+        setProperties(endpoint, parameters);
         // we need to apply the params here
-        if (parameters != null && parameters.size() > 0) {
-            delegateUri = delegateUri + "?" + uri.substring(uri.indexOf('?') + 1);
+        if (parameters != null && !parameters.isEmpty()) {
+            delegateUri = delegateUri + "?" + resolveDelegateUriQuery(uri, parameters);
         }
-        configuration.setEndpointUri(delegateUri);
+        endpoint.getConfiguration().setEndpointUri(delegateUri);
 
-        return new WebhookEndpoint(
-                uri,
-                this,
-                configuration,
-                delegateUri
-        );
+        return endpoint;
     }
 
+    private String resolveDelegateUriQuery(String uri, Map<String, Object> parameters) throws URISyntaxException {
+        // parse parameters again from raw URI
+        String query = uri.substring(uri.indexOf('?') + 1);
+        Map<String, Object> rawParameters = URISupport.parseQuery(query, true);
+        Map<String, Object> filtered = rawParameters.entrySet().stream()
+                .filter(e -> parameters.containsKey(e.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        return URISupport.createQueryString(filtered);
+    }
+
+    @Override
+    public boolean useRawUri() {
+        // disable URI encoding at webhook endpoint level to avoid encoding URI twice
+        return true;
+    }
 
     public WebhookConfiguration getConfiguration() {
-        if (this.configuration == null) {
-            this.configuration = new WebhookConfiguration();
-        }
         return this.configuration;
     }
 

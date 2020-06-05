@@ -23,14 +23,13 @@ import java.util.Map;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodListBuilder;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.server.mock.KubernetesServer;
-
+import org.apache.camel.BindToRegistry;
 import org.apache.camel.Exchange;
-import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.kubernetes.KubernetesConstants;
 import org.apache.camel.component.kubernetes.KubernetesTestSupport;
-import org.apache.camel.impl.JndiRegistry;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -39,37 +38,36 @@ public class KubernetesPodsProducerTest extends KubernetesTestSupport {
     @Rule
     public KubernetesServer server = new KubernetesServer();
 
-    @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry registry = super.createRegistry();
-        registry.bind("kubernetesClient", server.getClient());
-        return registry;
+    @BindToRegistry("kubernetesClient")
+    public KubernetesClient getClient() throws Exception {
+        return server.getClient();
     }
 
     @Test
     public void listTest() throws Exception {
         server.expect().withPath("/api/v1/pods").andReturn(200, new PodListBuilder().addNewItem().and().addNewItem().and().addNewItem().and().build()).once();
+        server.expect().withPath("/api/v1/namespaces/test/pods").andReturn(200, new PodListBuilder().addNewItem().and().addNewItem().and().build()).once();
         List<Pod> result = template.requestBody("direct:list", "", List.class);
-
         assertEquals(3, result.size());
+        
+        Exchange ex = template.request("direct:list", exchange -> exchange.getIn().setHeader(KubernetesConstants.KUBERNETES_NAMESPACE_NAME, "test"));
+        List<Pod> resultNamespaced = ex.getMessage().getBody(List.class);
+
+        assertEquals(2, resultNamespaced.size());
     }
 
     @Test
     public void listByLabelsTest() throws Exception {
         server.expect().withPath("/api/v1/pods?labelSelector=" + toUrlEncoded("key1=value1,key2=value2"))
             .andReturn(200, new PodListBuilder().addNewItem().and().addNewItem().and().addNewItem().and().build()).once();
-        Exchange ex = template.request("direct:listByLabels", new Processor() {
-
-            @Override
-            public void process(Exchange exchange) throws Exception {
-                Map<String, String> labels = new HashMap<>();
-                labels.put("key1", "value1");
-                labels.put("key2", "value2");
-                exchange.getIn().setHeader(KubernetesConstants.KUBERNETES_PODS_LABELS, labels);
-            }
+        Exchange ex = template.request("direct:listByLabels", exchange -> {
+            Map<String, String> labels = new HashMap<>();
+            labels.put("key1", "value1");
+            labels.put("key2", "value2");
+            exchange.getIn().setHeader(KubernetesConstants.KUBERNETES_PODS_LABELS, labels);
         });
 
-        List<Pod> result = ex.getOut().getBody(List.class);
+        List<Pod> result = ex.getMessage().getBody(List.class);
 
         assertEquals(3, result.size());
     }
@@ -81,16 +79,12 @@ public class KubernetesPodsProducerTest extends KubernetesTestSupport {
 
         server.expect().withPath("/api/v1/namespaces/test/pods/pod1").andReturn(200, pod1).once();
         server.expect().withPath("/api/v1/namespaces/ns1/pods/pod2").andReturn(200, pod2).once();
-        Exchange ex = template.request("direct:getPod", new Processor() {
-
-            @Override
-            public void process(Exchange exchange) throws Exception {
-                exchange.getIn().setHeader(KubernetesConstants.KUBERNETES_NAMESPACE_NAME, "test");
-                exchange.getIn().setHeader(KubernetesConstants.KUBERNETES_POD_NAME, "pod1");
-            }
+        Exchange ex = template.request("direct:getPod", exchange -> {
+            exchange.getIn().setHeader(KubernetesConstants.KUBERNETES_NAMESPACE_NAME, "test");
+            exchange.getIn().setHeader(KubernetesConstants.KUBERNETES_POD_NAME, "pod1");
         });
 
-        Pod result = ex.getOut().getBody(Pod.class);
+        Pod result = ex.getMessage().getBody(Pod.class);
 
         assertEquals("pod1", result.getMetadata().getName());
     }
@@ -100,16 +94,12 @@ public class KubernetesPodsProducerTest extends KubernetesTestSupport {
         Pod pod1 = new PodBuilder().withNewMetadata().withName("pod1").withNamespace("test").and().build();
         server.expect().withPath("/api/v1/namespaces/test/pods/pod1").andReturn(200, pod1).once();
 
-        Exchange ex = template.request("direct:deletePod", new Processor() {
-
-            @Override
-            public void process(Exchange exchange) throws Exception {
-                exchange.getIn().setHeader(KubernetesConstants.KUBERNETES_NAMESPACE_NAME, "test");
-                exchange.getIn().setHeader(KubernetesConstants.KUBERNETES_POD_NAME, "pod1");
-            }
+        Exchange ex = template.request("direct:deletePod", exchange -> {
+            exchange.getIn().setHeader(KubernetesConstants.KUBERNETES_NAMESPACE_NAME, "test");
+            exchange.getIn().setHeader(KubernetesConstants.KUBERNETES_POD_NAME, "pod1");
         });
 
-        boolean podDeleted = ex.getOut().getBody(Boolean.class);
+        boolean podDeleted = ex.getMessage().getBody(Boolean.class);
 
         assertTrue(podDeleted);
     }

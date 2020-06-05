@@ -19,6 +19,7 @@ package org.apache.camel.component.exec;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 
 import org.w3c.dom.Document;
 
@@ -28,11 +29,9 @@ import org.apache.camel.Produce;
 import org.apache.camel.ProducerTemplate;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
@@ -55,7 +54,7 @@ public class ExecOutFileTest extends AbstractJUnit4SpringContextTests {
     @Before
     public void setUp() throws IOException {
         FILE.createNewFile();
-        FileUtils.writeStringToFile(FILE, FILE_CONTENT);
+        FileUtils.writeStringToFile(FILE, FILE_CONTENT, Charset.defaultCharset());
     }
 
     @After
@@ -71,7 +70,7 @@ public class ExecOutFileTest extends AbstractJUnit4SpringContextTests {
         assertNotNull(result);
         File outFile = result.getCommand().getOutFile();
         assertNotNull(outFile);
-        assertEquals(FILE_CONTENT, FileUtils.readFileToString(outFile));
+        assertEquals(FILE_CONTENT, FileUtils.readFileToString(outFile, Charset.defaultCharset()));
     }
 
     @Test
@@ -80,7 +79,7 @@ public class ExecOutFileTest extends AbstractJUnit4SpringContextTests {
         Exchange e = sendWithMockedExecutor();
         InputStream body = e.getIn().getBody(InputStream.class);
         assertNotNull(body);
-        assertEquals(FILE_CONTENT, IOUtils.toString(body));
+        assertEquals(FILE_CONTENT, IOUtils.toString(body, Charset.defaultCharset()));
     }
 
     @Test

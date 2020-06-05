@@ -15,19 +15,18 @@
  * limitations under the License.
  */
 package org.apache.camel.processor.async;
+
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-
-import javax.naming.Context;
 
 import org.apache.camel.CamelExecutionException;
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.spi.AsyncProcessorAwaitManager;
-import org.apache.camel.support.jndi.JndiContext;
+import org.apache.camel.spi.Registry;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -99,11 +98,10 @@ public class AsyncProcessorAwaitManagerInterruptWithRedeliveryTest extends Conte
     }
 
     @Override
-    protected Context createJndiContext() throws Exception {
-        JndiContext jndiContext = new JndiContext();
-
-        jndiContext.bind("myBean", bean);
-        return jndiContext;
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
+        answer.bind("myBean", bean);
+        return answer;
     }
 
     @Override
@@ -111,15 +109,9 @@ public class AsyncProcessorAwaitManagerInterruptWithRedeliveryTest extends Conte
         return new RouteBuilder() {
             @Override
             public void configure() {
-                errorHandler(deadLetterChannel("mock:error")
-                    .maximumRedeliveries(5)
-                    .redeliveryDelay(100)
-                    .asyncDelayedRedelivery());
+                errorHandler(deadLetterChannel("mock:error").maximumRedeliveries(5).redeliveryDelay(100).asyncDelayedRedelivery());
 
-                from("direct:start").routeId("myRoute")
-                    .to("mock:before")
-                    .bean("myBean", "callMe")
-                    .to("mock:result");
+                from("direct:start").routeId("myRoute").to("mock:before").bean("myBean", "callMe").to("mock:result");
             }
         };
     }

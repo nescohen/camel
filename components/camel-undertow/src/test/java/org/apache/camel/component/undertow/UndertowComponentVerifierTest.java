@@ -16,6 +16,7 @@
  */
 package org.apache.camel.component.undertow;
 
+import java.net.UnknownHostException;
 import java.nio.channels.UnresolvedAddressException;
 import java.util.HashMap;
 import java.util.Map;
@@ -77,7 +78,7 @@ public class UndertowComponentVerifierTest extends BaseUndertowTest {
         ComponentVerifierExtension verifier = component.getVerifier();
 
         Map<String, Object> parameters = new HashMap<>();
-        parameters.put("httpURI", "http://no-host:" + getPort());
+        parameters.put("httpURI", "http://no.host:" + getPort());
 
         ComponentVerifierExtension.Result result = verifier.verify(ComponentVerifierExtension.Scope.CONNECTIVITY, parameters);
 
@@ -87,7 +88,7 @@ public class UndertowComponentVerifierTest extends BaseUndertowTest {
         ComponentVerifierExtension.VerificationError error = result.getErrors().get(0);
 
         Assert.assertEquals(ComponentVerifierExtension.VerificationError.StandardCode.EXCEPTION, error.getCode());
-        Assert.assertTrue(error.getDetail(ComponentVerifierExtension.VerificationError.ExceptionAttribute.EXCEPTION_INSTANCE) instanceof UnresolvedAddressException);
+        Assert.assertTrue(error.getDetail(ComponentVerifierExtension.VerificationError.ExceptionAttribute.EXCEPTION_INSTANCE) instanceof UnknownHostException);
     }
 
     @Override
@@ -96,7 +97,7 @@ public class UndertowComponentVerifierTest extends BaseUndertowTest {
             @Override
             public void configure() throws Exception {
                 from("undertow:http://localhost:{{port}}")
-                    .process(e -> e.getOut().setBody("ok"));
+                    .process(e -> e.getMessage().setBody("ok"));
             }
         };
     }

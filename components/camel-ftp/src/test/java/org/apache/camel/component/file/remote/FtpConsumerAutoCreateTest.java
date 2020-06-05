@@ -19,10 +19,13 @@ package org.apache.camel.component.file.remote;
 import java.io.File;
 
 import org.apache.camel.component.file.GenericFileOperationFailedException;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class FtpConsumerAutoCreateTest extends FtpServerTestSupport {
 
@@ -31,14 +34,14 @@ public class FtpConsumerAutoCreateTest extends FtpServerTestSupport {
     }
 
     @Override
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
     }
 
     @Test
     public void testAutoCreate() throws Exception {
-        FtpEndpoint<?> endpoint = (FtpEndpoint<?>) this.getMandatoryEndpoint(getFtpUrl() + "&autoCreate=true");
+        FtpEndpoint<?> endpoint = (FtpEndpoint<?>)this.getMandatoryEndpoint(getFtpUrl() + "&autoCreate=true");
         endpoint.start();
         endpoint.getExchanges();
         assertTrue(new File("target/res/home/foo/bar/baz/xxx").exists());
@@ -54,7 +57,7 @@ public class FtpConsumerAutoCreateTest extends FtpServerTestSupport {
 
     @Test
     public void testNoAutoCreate() throws Exception {
-        FtpEndpoint<?> endpoint = (FtpEndpoint<?>) this.getMandatoryEndpoint(getFtpUrl() + "&autoCreate=false");
+        FtpEndpoint<?> endpoint = (FtpEndpoint<?>)this.getMandatoryEndpoint(getFtpUrl() + "&autoCreate=false");
         endpoint.start();
         try {
             endpoint.getExchanges();

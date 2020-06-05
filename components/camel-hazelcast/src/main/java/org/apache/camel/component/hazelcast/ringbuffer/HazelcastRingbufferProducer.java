@@ -18,7 +18,6 @@ package org.apache.camel.component.hazelcast.ringbuffer;
 
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.ringbuffer.Ringbuffer;
-
 import org.apache.camel.Exchange;
 import org.apache.camel.component.hazelcast.HazelcastComponentHelper;
 import org.apache.camel.component.hazelcast.HazelcastConstants;
@@ -35,34 +34,35 @@ public class HazelcastRingbufferProducer extends HazelcastDefaultProducer {
         this.ringbuffer = hazelcastInstance.getRingbuffer(cacheName);
     }
 
+    @Override
     public void process(Exchange exchange) throws Exception {
 
         HazelcastOperation operation = lookupOperation(exchange);
 
         switch (operation) {
 
-        case READ_ONCE_HEAD:
-            this.readOnceHead(exchange);
-            break;
-            
-        case READ_ONCE_TAIL:
-            this.readOnceTail(exchange);
-            break;
-            
-        case CAPACITY:
-            this.getCapacity(exchange);
-            break;
-            
-        case REMAINING_CAPACITY:
-            this.getRemainingCapacity(exchange);
-            break;
-            
-        case ADD:
-            this.add(exchange);
-            break;
+            case READ_ONCE_HEAD:
+                this.readOnceHead(exchange);
+                break;
 
-        default:
-            throw new IllegalArgumentException(String.format("The value '%s' is not allowed for parameter '%s' on the RINGBUFFER.", operation, HazelcastConstants.OPERATION));
+            case READ_ONCE_TAIL:
+                this.readOnceTail(exchange);
+                break;
+
+            case CAPACITY:
+                this.getCapacity(exchange);
+                break;
+
+            case REMAINING_CAPACITY:
+                this.getRemainingCapacity(exchange);
+                break;
+
+            case ADD:
+                this.add(exchange);
+                break;
+
+            default:
+                throw new IllegalArgumentException(String.format("The value '%s' is not allowed for parameter '%s' on the RINGBUFFER.", operation, HazelcastConstants.OPERATION));
         }
 
         // finally copy headers
@@ -76,15 +76,15 @@ public class HazelcastRingbufferProducer extends HazelcastDefaultProducer {
     private void readOnceTail(Exchange exchange) throws InterruptedException {
         exchange.getOut().setBody(this.ringbuffer.readOne(ringbuffer.tailSequence()));
     }
-    
+
     private void getCapacity(Exchange exchange) throws InterruptedException {
         exchange.getOut().setBody(this.ringbuffer.capacity());
     }
-    
+
     private void getRemainingCapacity(Exchange exchange) throws InterruptedException {
         exchange.getOut().setBody(this.ringbuffer.remainingCapacity());
     }
-    
+
     private void add(Exchange exchange) {
         final Object body = exchange.getIn().getBody();
         exchange.getOut().setBody(ringbuffer.add(body));

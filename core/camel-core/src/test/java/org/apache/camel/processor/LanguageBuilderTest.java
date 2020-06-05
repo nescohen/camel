@@ -21,6 +21,8 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.junit.Test;
 
+import static org.apache.camel.builder.Builder.language;
+
 public class LanguageBuilderTest extends ContextTestSupport {
 
     @Test
@@ -39,8 +41,7 @@ public class LanguageBuilderTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start")
-                    .filter(language("simple", "${body} contains 'Camel'")).to("mock:camel");
+                from("direct:start").filter(language("simple", "${body} contains 'Camel'")).to("mock:camel");
             }
         };
     }

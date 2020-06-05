@@ -97,6 +97,7 @@ public class DefaultDebugger extends ServiceSupport implements Debugger, CamelCo
         this.camelContext = camelContext;
     }
 
+    @Override
     public void addBreakpoint(Breakpoint breakpoint) {
         breakpoints.add(new BreakpointConditions(breakpoint));
     }
@@ -143,9 +144,9 @@ public class DefaultDebugger extends ServiceSupport implements Debugger, CamelCo
             @Override
             public void onEvent(Exchange exchange, ExchangeEvent event, NamedNode definition) {
                 if (event instanceof ExchangeCreatedEvent) {
-                    exchange.getContext().getDebugger().startSingleStepExchange(exchange.getExchangeId(), this);
+                    startSingleStepExchange(exchange.getExchangeId(), this);
                 } else if (event instanceof ExchangeCompletedEvent) {
-                    exchange.getContext().getDebugger().stopSingleStepExchange(exchange.getExchangeId());
+                    stopSingleStepExchange(exchange.getExchangeId());
                 }
                 breakpoint.onEvent(exchange, event, definition);
             }
@@ -283,7 +284,7 @@ public class DefaultDebugger extends ServiceSupport implements Debugger, CamelCo
         try {
             breakpoint.beforeProcess(exchange, processor, definition);
         } catch (Throwable e) {
-            log.warn("Exception occurred in breakpoint: " + breakpoint + ". This exception will be ignored.", e);
+            // ignore
         }
     }
 
@@ -291,7 +292,7 @@ public class DefaultDebugger extends ServiceSupport implements Debugger, CamelCo
         try {
             breakpoint.afterProcess(exchange, processor, definition, timeTaken);
         } catch (Throwable e) {
-            log.warn("Exception occurred in breakpoint: " + breakpoint + ". This exception will be ignored.", e);
+            // ignore
         }
     }
 
@@ -305,7 +306,7 @@ public class DefaultDebugger extends ServiceSupport implements Debugger, CamelCo
         try {
             breakpoint.onEvent(exchange, event, definition);
         } catch (Throwable e) {
-            log.warn("Exception occurred in breakpoint: " + breakpoint + ". This exception will be ignored.", e);
+            // ignore
         }
     }
 
@@ -330,12 +331,23 @@ public class DefaultDebugger extends ServiceSupport implements Debugger, CamelCo
     }
 
     @Override
-    protected void doStart() throws Exception {
+    protected void doInit() throws Exception {
         ObjectHelper.notNull(camelContext, "CamelContext", this);
 
+        // must have message history enabled when using this debugger
+        if (!camelContext.isMessageHistory()) {
+            camelContext.setMessageHistory(true);
+        }
+
         // register our event notifier
-        ServiceHelper.startService(debugEventNotifier);
         camelContext.getManagementStrategy().addEventNotifier(debugEventNotifier);
+
+        ServiceHelper.initService(debugEventNotifier);
+    }
+
+    @Override
+    protected void doStart() throws Exception {
+        ServiceHelper.startService(debugEventNotifier);
     }
 
     @Override

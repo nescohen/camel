@@ -23,7 +23,7 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class PropertiesComponentOnExceptionTest extends ContextTestSupport {
@@ -50,20 +50,16 @@ public class PropertiesComponentOnExceptionTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                onException(Exception.class)
-                    .redeliveryDelay("{{delay}}")
-                    .maximumRedeliveries("{{max}}")
-                    .to("mock:dead");
+                onException(Exception.class).redeliveryDelay("{{delay}}").maximumRedeliveries("{{max}}").to("mock:dead");
 
-                from("direct:start")
-                    .throwException(new IllegalAccessException("Damn"));
+                from("direct:start").throwException(new IllegalAccessException("Damn"));
             }
         };
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
 
         Properties cool = new Properties();
         cool.put("delay", "25");
@@ -76,11 +72,7 @@ public class PropertiesComponentOnExceptionTest extends ContextTestSupport {
     @Override
     protected CamelContext createCamelContext() throws Exception {
         CamelContext context = super.createCamelContext();
-
-        PropertiesComponent pc = new PropertiesComponent();
-        pc.setLocations(new String[]{"ref:myprop"});
-        context.addComponent("properties", pc);
-
+        context.getPropertiesComponent().setLocation("ref:myprop");
         return context;
     }
 

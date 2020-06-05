@@ -17,6 +17,7 @@
 package org.apache.camel.component.cxf.jaxrs;
 
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.cxf.CXFTestSupport;
 import org.apache.camel.component.cxf.jaxrs.testbean.Customer;
@@ -32,7 +33,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.junit.Test;
 
-
 public class CxfRsStreamCacheTest extends CamelTestSupport {
     private static final String PUT_REQUEST = "<Customer><name>Mary</name><id>123</id></Customer>";
     private static final String CONTEXT = "/CxfRsStreamCacheTest";
@@ -42,6 +42,7 @@ public class CxfRsStreamCacheTest extends CamelTestSupport {
     private String cxfRsEndpointUri = "cxfrs://http://localhost:" + CXT + "/rest?synchronous=" + isSynchronous()
                                       + "&dataFormat=PAYLOAD&resourceClasses=org.apache.camel.component.cxf.jaxrs.testbean.CustomerService";
 
+    @Override
     protected RouteBuilder createRouteBuilder() throws Exception {
 
         return new RouteBuilder() {
@@ -62,7 +63,7 @@ public class CxfRsStreamCacheTest extends CamelTestSupport {
                         cos.close();
                         exchange.getOut().setBody(cos.newStreamCache());
 
-                        exchange.addOnCompletion(new Synchronization() {
+                        exchange.adapt(ExtendedExchange.class).addOnCompletion(new Synchronization() {
                             @Override
                             public void onComplete(Exchange exchange) {
                                 template.sendBody("mock:onComplete", "");
@@ -75,7 +76,7 @@ public class CxfRsStreamCacheTest extends CamelTestSupport {
                         });
                     });
 
-            };
+            }
         };
     }
 

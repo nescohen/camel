@@ -20,7 +20,7 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class TryCatchWithSplitIssueTest extends ContextTestSupport {
@@ -52,29 +52,21 @@ public class TryCatchWithSplitIssueTest extends ContextTestSupport {
         assertMockEndpointsSatisfied();
     }
 
-
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    @Override
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("error", new GenerateError());
         return jndi;
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
                 context.setTracing(true);
 
-                from("direct:start")
-                    .split(body().tokenize("@"))
-                    .doTry()
-                        .to("bean:error")
-                        .to("mock:result")
-                    .doCatch(Exception.class)
-                        .to("mock:error")
-                    .doFinally()
-                        .to("mock:foo")
-                        .to("mock:bar")
-                    .end();
+                from("direct:start").split(body().tokenize("@")).doTry().to("bean:error").to("mock:result").doCatch(Exception.class).to("mock:error").doFinally().to("mock:foo")
+                    .to("mock:bar").end();
             }
 
         };

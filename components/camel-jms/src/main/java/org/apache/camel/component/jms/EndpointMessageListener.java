@@ -34,7 +34,6 @@ import org.apache.camel.util.ObjectHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jms.core.JmsOperations;
-import org.springframework.jms.core.MessageCreator;
 import org.springframework.jms.listener.SessionAwareMessageListener;
 
 import static org.apache.camel.RuntimeCamelException.wrapRuntimeCamelException;
@@ -51,6 +50,7 @@ public class EndpointMessageListener implements SessionAwareMessageListener {
     private final AsyncProcessor processor;
     private JmsBinding binding;
     private boolean eagerLoadingOfProperties;
+    private String eagerPoisonBody;
     private Object replyToDestination;
     private JmsOperations template;
     private boolean disableReplyTo;
@@ -83,10 +83,27 @@ public class EndpointMessageListener implements SessionAwareMessageListener {
             }
 
             final Exchange exchange = createExchange(message, session, replyDestination);
-            if (eagerLoadingOfProperties) {
+            if (ObjectHelper.isNotEmpty(eagerPoisonBody) && eagerLoadingOfProperties) {
+                try {
+                    exchange.getIn().getBody();
+                    exchange.getIn().getHeaders();
+                } catch (Throwable e) {
+                    // any problems with eager loading then set an exception so Camel error handler can react
+                    exchange.setException(e);
+                    String text = eagerPoisonBody;
+                    try {
+                        text = endpoint.getCamelContext().resolveLanguage("simple")
+                                .createExpression(eagerPoisonBody).evaluate(exchange, String.class);
+                    } catch (Throwable t) {
+                        // ignore
+                    }
+                    exchange.getIn().setBody(text);
+                }
+            } else if (eagerLoadingOfProperties) {
                 exchange.getIn().getBody();
                 exchange.getIn().getHeaders();
             }
+
             String correlationId = message.getJMSCorrelationID();
             if (correlationId != null) {
                 LOG.debug("Received Message has JMSCorrelationID [{}]", correlationId);
@@ -193,13 +210,6 @@ public class EndpointMessageListener implements SessionAwareMessageListener {
                         // do not send a reply but wrap and rethrow the exception
                         rce = wrapRuntimeCamelException(exchange.getException());
                     }
-                } else {
-                    org.apache.camel.Message msg = exchange.hasOut() ? exchange.getOut() : exchange.getIn();
-                    if (msg.isFault()) {
-                        // a fault occurred while processing
-                        body = msg;
-                        cause = null;
-                    }
                 }
             } else {
                 // process OK so get the reply body if we are InOut and has a body
@@ -284,6 +294,14 @@ public class EndpointMessageListener implements SessionAwareMessageListener {
         this.eagerLoadingOfProperties = eagerLoadingOfProperties;
     }
 
+    public String getEagerPoisonBody() {
+        return eagerPoisonBody;
+    }
+
+    public void setEagerPoisonBody(String eagerPoisonBody) {
+        this.eagerPoisonBody = eagerPoisonBody;
+    }
+
     public synchronized JmsOperations getTemplate() {
         if (template == null) {
             template = endpoint.createInOnlyTemplate();
@@ -365,17 +383,15 @@ public class EndpointMessageListener implements SessionAwareMessageListener {
             LOG.debug("Cannot send reply message as there is no replyDestination for: {}", out);
             return;
         }
-        getTemplate().send(replyDestination, new MessageCreator() {
-            public Message createMessage(Session session) throws JMSException {
-                Message reply = endpoint.getBinding().makeJmsMessage(exchange, out, session, cause);
-                final String correlationID = determineCorrelationId(message);
-                reply.setJMSCorrelationID(correlationID);
+        getTemplate().send(replyDestination, session -> {
+            Message reply = endpoint.getBinding().makeJmsMessage(exchange, out, session, cause);
+            final String correlationID = determineCorrelationId(message);
+            reply.setJMSCorrelationID(correlationID);
 
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("{} sending reply JMS message [correlationId:{}]: {}", endpoint, correlationID, reply);
-                }
-                return reply;
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("{} sending reply JMS message [correlationId:{}]: {}", endpoint, correlationID, reply);
             }
+            return reply;
         });
     }
 
@@ -385,17 +401,15 @@ public class EndpointMessageListener implements SessionAwareMessageListener {
             LOG.debug("Cannot send reply message as there is no replyDestination for: {}", out);
             return;
         }
-        getTemplate().send(replyDestination, new MessageCreator() {
-            public Message createMessage(Session session) throws JMSException {
-                Message reply = endpoint.getBinding().makeJmsMessage(exchange, out, session, cause);
-                final String correlationID = determineCorrelationId(message);
-                reply.setJMSCorrelationID(correlationID);
+        getTemplate().send(replyDestination, session -> {
+            Message reply = endpoint.getBinding().makeJmsMessage(exchange, out, session, cause);
+            final String correlationID = determineCorrelationId(message);
+            reply.setJMSCorrelationID(correlationID);
 
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("{} sending reply JMS message [correlationId:{}]: {}", endpoint, correlationID, reply);
-                }
-                return reply;
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("{} sending reply JMS message [correlationId:{}]: {}", endpoint, correlationID, reply);
             }
+            return reply;
         });
     }
 

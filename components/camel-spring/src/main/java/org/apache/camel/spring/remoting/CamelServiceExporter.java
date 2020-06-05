@@ -56,10 +56,12 @@ public class CamelServiceExporter extends RemoteExporter implements Initializing
         this.uri = uri;
     }
 
+    @Override
     public CamelContext getCamelContext() {
         return camelContext;
     }
 
+    @Override
     public void setCamelContext(CamelContext camelContext) {
         this.camelContext = camelContext;
     }
@@ -88,10 +90,12 @@ public class CamelServiceExporter extends RemoteExporter implements Initializing
         return applicationContext;
     }
 
+    @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
     }
 
+    @Override
     public void afterPropertiesSet() throws Exception {
         // lets bind the URI to a pojo
         notNull(uri, "uri");
@@ -110,17 +114,18 @@ public class CamelServiceExporter extends RemoteExporter implements Initializing
 
         try {
             // need to start endpoint before we create consumer
-            ServiceHelper.startService(endpoint);
+            ServiceHelper.initService(endpoint);
             BeanProcessor processor = new BeanProcessor(proxy, camelContext);
             processor.setMethod(method);
             consumer = endpoint.createConsumer(processor);
             // add and start consumer
-            camelContext.addService(consumer, true, true);
+            camelContext.addService(consumer, true, false);
         } catch (Exception e) {
             throw new FailedToCreateConsumerException(endpoint, e);
         }
     }
 
+    @Override
     public void destroy() throws Exception {
         // we let CamelContext manage the lifecycle of the consumer and shut it down when Camel stops
     }

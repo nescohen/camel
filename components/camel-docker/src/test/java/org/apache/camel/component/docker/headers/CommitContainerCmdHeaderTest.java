@@ -23,10 +23,9 @@ import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.ExposedPorts;
 import com.github.dockerjava.api.model.Volume;
 import com.github.dockerjava.api.model.Volumes;
-
 import org.apache.camel.component.docker.DockerConstants;
 import org.apache.camel.component.docker.DockerOperation;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -42,7 +41,7 @@ public class CommitContainerCmdHeaderTest extends BaseDockerHeaderTest<CommitCmd
     private CommitCmd mockObject;
 
     @Test
-    public void commitContainerHeaderTest() {
+    void commitContainerHeaderTest() {
 
         String containerId = "9c09acd48a25";
         String env = "FOO=bar";

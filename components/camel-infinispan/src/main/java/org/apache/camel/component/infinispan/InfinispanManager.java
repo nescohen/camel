@@ -24,14 +24,19 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.camel.support.service.ServiceSupport;
 import org.apache.camel.util.ObjectHelper;
+import org.infinispan.cache.impl.CacheImpl;
 import org.infinispan.cache.impl.DecoratedCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
 import org.infinispan.commons.api.BasicCache;
 import org.infinispan.commons.api.BasicCacheContainer;
+import org.infinispan.commons.util.EnumUtil;
+import org.infinispan.configuration.global.GlobalConfigurationBuilder;
 import org.infinispan.manager.DefaultCacheManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.camel.component.infinispan.InfinispanConstants.CACHE_MANAGER_CURRENT;
 
 public class InfinispanManager extends ServiceSupport {
     private static final transient Logger LOGGER = LoggerFactory.getLogger(InfinispanManager.class);
@@ -44,7 +49,7 @@ public class InfinispanManager extends ServiceSupport {
     public InfinispanManager() {
         this.camelContext = null;
         this.configuration = new InfinispanConfiguration();
-        this.configuration.setCacheContainer(new DefaultCacheManager(true));
+        this.configuration.setCacheContainer(new DefaultCacheManager(new GlobalConfigurationBuilder().defaultCacheName("default").build()));
     }
 
     public InfinispanManager(InfinispanConfiguration configuration) {
@@ -72,6 +77,7 @@ public class InfinispanManager extends ServiceSupport {
                     );
                 } else if (containerConf instanceof org.infinispan.configuration.cache.Configuration) {
                     cacheContainer = new DefaultCacheManager(
+                        new GlobalConfigurationBuilder().defaultCacheName("default").build(),
                         (org.infinispan.configuration.cache.Configuration)containerConf,
                         true
                     );
@@ -120,7 +126,8 @@ public class InfinispanManager extends ServiceSupport {
                         cacheContainer = new DefaultCacheManager(is, true);
                     }
                 } else {
-                    cacheContainer = new DefaultCacheManager(new org.infinispan.configuration.cache.ConfigurationBuilder().build());
+                    cacheContainer = new DefaultCacheManager(new GlobalConfigurationBuilder().defaultCacheName("default").build(),
+                            new org.infinispan.configuration.cache.ConfigurationBuilder().build());
                 }
             }
 
@@ -149,7 +156,7 @@ public class InfinispanManager extends ServiceSupport {
 
     public <K, V> BasicCache<K, V> getCache(String cacheName) {
         BasicCache<K, V> cache;
-        if (ObjectHelper.isEmpty(cacheName)) {
+        if (ObjectHelper.isEmpty(cacheName) || CACHE_MANAGER_CURRENT.equals(cacheName)) {
             cache = cacheContainer.getCache();
             cacheName = cache.getName();
         } else {
@@ -159,7 +166,7 @@ public class InfinispanManager extends ServiceSupport {
         LOGGER.trace("Cache[{}]", cacheName);
 
         if (configuration.hasFlags() && InfinispanUtil.isEmbedded(cache)) {
-            cache = new DecoratedCache(InfinispanUtil.asAdvanced(cache), configuration.getFlags());
+            cache = new DecoratedCache((CacheImpl) InfinispanUtil.asAdvanced(cache), EnumUtil.bitSetOf(configuration.getFlags()));
         }
 
         return cache;

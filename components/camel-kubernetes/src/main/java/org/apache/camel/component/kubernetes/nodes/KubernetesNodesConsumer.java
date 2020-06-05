@@ -26,7 +26,6 @@ import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.NonNamespaceOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
-
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.component.kubernetes.AbstractKubernetesEndpoint;
@@ -34,8 +33,12 @@ import org.apache.camel.component.kubernetes.KubernetesConstants;
 import org.apache.camel.component.kubernetes.consumer.common.NodeEvent;
 import org.apache.camel.support.DefaultConsumer;
 import org.apache.camel.util.ObjectHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KubernetesNodesConsumer extends DefaultConsumer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(KubernetesNodesConsumer.class);
 
     private final Processor processor;
     private ExecutorService executor;
@@ -48,7 +51,7 @@ public class KubernetesNodesConsumer extends DefaultConsumer {
 
     @Override
     public AbstractKubernetesEndpoint getEndpoint() {
-        return (AbstractKubernetesEndpoint) super.getEndpoint();
+        return (AbstractKubernetesEndpoint)super.getEndpoint();
     }
 
     @Override
@@ -64,7 +67,7 @@ public class KubernetesNodesConsumer extends DefaultConsumer {
     protected void doStop() throws Exception {
         super.doStop();
 
-        log.debug("Stopping Kubernetes Nodes Consumer");
+        LOG.debug("Stopping Kubernetes Nodes Consumer");
         if (executor != null) {
             if (getEndpoint() != null && getEndpoint().getCamelContext() != null) {
                 if (nodesWatcher != null) {
@@ -82,13 +85,13 @@ public class KubernetesNodesConsumer extends DefaultConsumer {
     }
 
     class NodesConsumerTask implements Runnable {
-        
+
         private Watch watch;
-        
+
         @Override
         public void run() {
             NonNamespaceOperation<Node, NodeList, DoneableNode, Resource<Node, DoneableNode>> w = getEndpoint().getKubernetesClient().nodes();
-            if (ObjectHelper.isNotEmpty(getEndpoint().getKubernetesConfiguration().getLabelKey()) 
+            if (ObjectHelper.isNotEmpty(getEndpoint().getKubernetesConfiguration().getLabelKey())
                 && ObjectHelper.isNotEmpty(getEndpoint().getKubernetesConfiguration().getLabelValue())) {
                 w.withLabel(getEndpoint().getKubernetesConfiguration().getLabelKey(), getEndpoint().getKubernetesConfiguration().getLabelValue());
             }
@@ -98,8 +101,7 @@ public class KubernetesNodesConsumer extends DefaultConsumer {
             watch = w.watch(new Watcher<Node>() {
 
                 @Override
-                public void eventReceived(io.fabric8.kubernetes.client.Watcher.Action action,
-                    Node resource) {
+                public void eventReceived(io.fabric8.kubernetes.client.Watcher.Action action, Node resource) {
                     NodeEvent ne = new NodeEvent(action, resource);
                     Exchange exchange = getEndpoint().createExchange();
                     exchange.getIn().setBody(ne.getNode());
@@ -115,19 +117,19 @@ public class KubernetesNodesConsumer extends DefaultConsumer {
                 @Override
                 public void onClose(KubernetesClientException cause) {
                     if (cause != null) {
-                        log.error(cause.getMessage(), cause);
+                        LOG.error(cause.getMessage(), cause);
                     }
 
                 }
             });
         }
-       
+
         public Watch getWatch() {
             return watch;
         }
 
         public void setWatch(Watch watch) {
             this.watch = watch;
-        } 
+        }
     }
 }

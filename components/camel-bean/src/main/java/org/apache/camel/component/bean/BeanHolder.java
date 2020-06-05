@@ -16,6 +16,9 @@
  */
 package org.apache.camel.component.bean;
 
+import java.util.Map;
+
+import org.apache.camel.Exchange;
 import org.apache.camel.NoSuchBeanException;
 import org.apache.camel.Processor;
 
@@ -25,11 +28,21 @@ import org.apache.camel.Processor;
 public interface BeanHolder {
 
     /**
+     * Additional options that should be configured on the bean
+     */
+    Map<String, Object> getOptions();
+
+    /**
+     * Sets additional options that should be configured on the bean
+     */
+    void setOptions(Map<String, Object> options);
+
+    /**
      * Gets the bean.
      *
      * @throws NoSuchBeanException is thrown if the bean cannot be found.
      */
-    Object getBean() throws NoSuchBeanException;
+    Object getBean(Exchange exchange) throws NoSuchBeanException;
 
     /**
      * Gets a {@link Processor} for this bean, if supported.

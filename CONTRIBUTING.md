@@ -16,7 +16,7 @@ There are many ways you can help make Camel a better piece of software - please 
 - [If you find a bug or problem](#if-you-find-a-bug-or-problem)
 - [Working on the code](#working-on-the-code)
 - [Running checkstyle](#running-checkstyle)
-- [Checking Karaf and Spring Boot Integration Tests](#checking-karaf-and-spring-boot-integration-tests)
+- [Verify Karaf features](#verify-karaf-features)
 - [Apache Camel committers should work on the ASF git repo](#apache-camel-committers-should-work-on-the—asf-git-repo)
 - [Creating patches](#creating-patches)
 - [Pull request at Github](#pull-request-at-github)
@@ -49,7 +49,7 @@ To edit the documentation:
    - Create a commit and raise a Pull Request
 - If you want to add more documentation check for .adoc in codebase 
 
-For more information see [How does the website work](https://github.com/apache/camel/blob/master/docs/user-manual/en/faq/how-does-the-website-work.adoc) or [How do I edit the website for more details](https://github.com/apache/camel/blob/master/docs/user-manual/en/faq/how-do-i-edit-the-website.adoc).
+For more information see [How does the website work](https://camel.apache.org/manual/latest/faq/how-does-the-website-work.html) or [How do I edit the website for more details](https://camel.apache.org/manual/latest/faq/how-do-i-edit-the-website.html).
 
 ## If you find a bug or problem
 
@@ -85,18 +85,17 @@ Please remember to run this check on your code changes before submitting a patch
     cd camel-ftp
     mvn clean install -Psourcecheck
 
-## Checking Karaf and Spring Boot Integration Tests
+## Verify Karaf features
 
-Apache Camel source code has a set of Integration Test for Karaf and Spring Boot platform.
-If your contribution modifies dependencies of a specific component, you can check the behavior on these two platforms in this way:
+Camel-Karaf lives now in his own repository, so to verify a Karaf feature you'll need to fork the following [repository](https://github.com/apache/camel-karaf).
 
-    cd tests/camel-itest-karaf
-    mvn clean test -Dtest=Camel<component_name>Test
+To check a new Karaf feature or an existing one you should run a verification on the features.xml file. You'll need to follow these steps:
+First thing to be done is running a full build of Camel. Then
 
-And for Spring Boot:
+    cd platform/karaf/features/
+    mvn clean install
 
-    cd tests/camel-itest-spring-boot
-    mvn clean test -Dtest=Camel<component_name>Test
+If you modified a component/dataformat or updated a dependency in the main camel repository, you'll first need to build the main camel locally and then run a full build of camel-karaf.
 
 ## Apache Camel committers should work on the ASF git repo
 
@@ -165,7 +164,7 @@ Before you can raise an issue in the [issue tracker](https://issues.apache.org/j
 
 Once you've got involved as above, we may well invite you to be a committer. See [How do I become a committer](http://camel.apache.org/how-do-i-become-a-committer.html) for more details.
 
-The first step is contributing to the project; if you want to take that a step forward and become a fellow committer on the project then see the [Committer Guide](http://activemq.apache.org/becoming-a-committer.html)
+The first step is contributing to the project; if you want to take that a step forward and become a fellow committer on the project then see the [Committer Guide](https://camel.apache.org/manual/latest/faq/how-do-i-become-a-committer.html)
 
 
 ## More resources

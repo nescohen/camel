@@ -16,8 +16,6 @@
  */
 package org.apache.camel.component.velocity;
 
-import javax.activation.DataHandler;
-
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
@@ -29,28 +27,26 @@ public class VelocityMethodInvokationTest extends CamelTestSupport {
     
     @Test
     public void testVelocityLetter() throws Exception {
-        final DataHandler dataHandler = new DataHandler("my attachment", "text/plain");
         Exchange exchange = template.request("direct:a", new Processor() {
             @Override
             public void process(Exchange exchange) throws Exception {
-                exchange.getIn().addAttachment("item", dataHandler);
                 exchange.getIn().setBody("Monday & Tuesday");
                 exchange.getIn().setHeader("name", "Christian");
                 exchange.setProperty("item", "7");
             }
         });
 
-        assertEquals("Dear Christian. You ordered item 7 on Monday &amp; Tuesday.", exchange.getOut().getBody());
-        assertEquals("Christian", exchange.getOut().getHeader("name"));
-        assertSame(dataHandler, exchange.getOut().getAttachment("item"));
+        assertEquals("Dear Christian. You ordered item 7 on Monday &amp; Tuesday.", exchange.getMessage().getBody());
+        assertEquals("Christian", exchange.getMessage().getHeader("name"));
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
                 from("direct:a")
                     .setHeader("esc", constant(new EscapeTool()))
-                    .to("velocity:org/apache/camel/component/velocity/escape.vm");
+                    .to("velocity:org/apache/camel/component/velocity/escape.vm?allowContextMapAll=true");
             }
         };
     }

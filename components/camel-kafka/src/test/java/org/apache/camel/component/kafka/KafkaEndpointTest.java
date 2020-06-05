@@ -44,7 +44,9 @@ public class KafkaEndpointTest {
 
     @Before
     public void setup() {
-        endpoint = new KafkaEndpoint("kafka:mytopic?brokers=localhost", new KafkaComponent(new DefaultCamelContext()));
+        KafkaComponent kafka = new KafkaComponent(new DefaultCamelContext());
+        kafka.init();
+        endpoint = new KafkaEndpoint("kafka:mytopic?brokers=localhost", kafka);
     }
 
     @Test
@@ -67,7 +69,7 @@ public class KafkaEndpointTest {
     }
 
     @Test
-    public void isSingletonShoudlReturnTrue() {
+    public void isSingletonShouldReturnTrue() {
         assertTrue(endpoint.isSingleton());
     }
 

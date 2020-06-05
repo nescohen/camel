@@ -21,7 +21,9 @@ import java.util.Map;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.apache.camel.test.junit5.TestSupport.assertFileExists;
 
 /**
  *
@@ -53,12 +55,9 @@ public class FtpProducerToDMoveExistingTest extends FtpServerTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start")
-                    .toD(getFtpUrl())
-                    .to("mock:result");
+                from("direct:start").toD(getFtpUrl()).to("mock:result");
             }
         };
     }
-
 
 }

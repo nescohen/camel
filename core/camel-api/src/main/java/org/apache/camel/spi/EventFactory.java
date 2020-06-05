@@ -30,6 +30,22 @@ import org.apache.camel.Route;
 public interface EventFactory {
 
     /**
+     * Creates an {@link CamelEvent} for Camel is initializing.
+     *
+     * @param context camel context
+     * @return the created event
+     */
+    CamelEvent createCamelContextInitializingEvent(CamelContext context);
+
+    /**
+     * Creates an {@link CamelEvent} for Camel has been initialized successfully.
+     *
+     * @param context camel context
+     * @return the created event
+     */
+    CamelEvent createCamelContextInitializedEvent(CamelContext context);
+
+    /**
      * Creates an {@link CamelEvent} for Camel is starting.
      *
      * @param context camel context
@@ -78,6 +94,38 @@ public interface EventFactory {
      * @return the created event
      */
     CamelEvent createCamelContextStoppedEvent(CamelContext context);
+
+    /**
+     * Creates an {@link CamelEvent} for Camel routes starting.
+     *
+     * @param context camel context
+     * @return the created event
+     */
+    CamelEvent createCamelContextRoutesStartingEvent(CamelContext context);
+
+    /**
+     * Creates an {@link CamelEvent} for Camel routes started.
+     *
+     * @param context camel context
+     * @return the created event
+     */
+    CamelEvent createCamelContextRoutesStartedEvent(CamelContext context);
+
+    /**
+     * Creates an {@link CamelEvent} for Camel routes stopping.
+     *
+     * @param context camel context
+     * @return the created event
+     */
+    CamelEvent createCamelContextRoutesStoppingEvent(CamelContext context);
+
+    /**
+     * Creates an {@link CamelEvent} for Camel routes stopped.
+     *
+     * @param context camel context
+     * @return the created event
+     */
+    CamelEvent createCamelContextRoutesStoppedEvent(CamelContext context);
 
     /**
      * Creates an {@link CamelEvent} for a Service failed to start cleanly

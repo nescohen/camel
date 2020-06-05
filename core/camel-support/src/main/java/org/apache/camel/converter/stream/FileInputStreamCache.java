@@ -34,6 +34,7 @@ import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.RuntimeCamelException;
 import org.apache.camel.StreamCache;
 import org.apache.camel.spi.StreamCachingStrategy;
@@ -78,7 +79,7 @@ public final class FileInputStreamCache extends InputStream implements StreamCac
     }
 
     @Override
-    public void reset() {
+    public synchronized void reset() {
         // reset by closing and creating a new stream based on the file
         close();
         // reset by creating a new stream based on the file
@@ -89,6 +90,7 @@ public final class FileInputStreamCache extends InputStream implements StreamCac
         }
     }
 
+    @Override
     public void writeTo(OutputStream os) throws IOException {
         if (stream == null && ciphers == null) {
             Files.copy(file.toPath(), os);
@@ -97,16 +99,19 @@ public final class FileInputStreamCache extends InputStream implements StreamCac
         }
     }
 
+    @Override
     public StreamCache copy(Exchange exchange) throws IOException {
         tempFileManager.addExchange(exchange);
         FileInputStreamCache copy = new FileInputStreamCache(tempFileManager);
         return copy;
     }
 
+    @Override
     public boolean inMemory() {
         return false;
     }
 
+    @Override
     public long length() {
         return length;
     }
@@ -202,13 +207,13 @@ public final class FileInputStreamCache extends InputStream implements StreamCac
                                 if (outputStream != null) {
                                     outputStream.close();
                                 }
-                                try {
-                                    cleanUpTempFile();
-                                } catch (Exception e) {
-                                    LOG.warn("Error deleting temporary cache file: " + tempFile + ". This exception will be ignored.", e);
-                                }
                             } catch (Exception e) {
                                 LOG.warn("Error closing streams. This exception will be ignored.", e);
+                            }
+                            try {
+                                cleanUpTempFile();
+                            } catch (Exception e) {
+                                LOG.warn("Error deleting temporary cache file: " + tempFile + ". This exception will be ignored.", e);
                             }
                         }
                     }
@@ -227,7 +232,7 @@ public final class FileInputStreamCache extends InputStream implements StreamCac
                     streamCacheUnitOfWork.addSynchronization(onCompletion);
                 } else {
                     // add on completion so we can cleanup after the exchange is done such as deleting temporary files
-                    exchange.addOnCompletion(onCompletion);
+                    exchange.adapt(ExtendedExchange.class).addOnCompletion(onCompletion);
                 }
             }
         }

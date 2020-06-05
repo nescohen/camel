@@ -16,12 +16,10 @@
  */
 package org.apache.camel.processor;
 
-import javax.naming.Context;
-
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.language.xpath.XPath;
-import org.apache.camel.support.jndi.JndiContext;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,8 +31,7 @@ public class BeanOgnMethodWithXPathInjectionTest extends ContextTestSupport {
 
     @Test
     public void testSendMessage() throws Exception {
-        String expectedBody = "<env:Envelope xmlns:env='http://www.w3.org/2003/05/soap-envelope'><env:Body>"
-                              + "<foo>bar</foo></env:Body></env:Envelope>";
+        String expectedBody = "<env:Envelope xmlns:env='http://www.w3.org/2003/05/soap-envelope'><env:Body>" + "<foo>bar</foo></env:Body></env:Envelope>";
 
         Object out = template.requestBodyAndHeader("direct:in", expectedBody, "foo", "bar");
         assertEquals("bar", out);
@@ -46,8 +43,7 @@ public class BeanOgnMethodWithXPathInjectionTest extends ContextTestSupport {
     @Test
     public void testSendTwoMessages() throws Exception {
         // 1st message
-        String expectedBody = "<env:Envelope xmlns:env='http://www.w3.org/2003/05/soap-envelope'><env:Body>"
-                              + "<foo>bar</foo></env:Body></env:Envelope>";
+        String expectedBody = "<env:Envelope xmlns:env='http://www.w3.org/2003/05/soap-envelope'><env:Body>" + "<foo>bar</foo></env:Body></env:Envelope>";
 
         Object out = template.requestBodyAndHeader("direct:in", expectedBody, "foo", "bar");
         assertEquals("bar", out);
@@ -56,8 +52,7 @@ public class BeanOgnMethodWithXPathInjectionTest extends ContextTestSupport {
         assertEquals("bean foo: " + myBean, "bar", myBean.foo);
 
         // 2nd message
-        String expectedBody2 = "<env:Envelope xmlns:env='http://www.w3.org/2003/05/soap-envelope'><env:Body>"
-                + "<foo>baz</foo></env:Body></env:Envelope>";
+        String expectedBody2 = "<env:Envelope xmlns:env='http://www.w3.org/2003/05/soap-envelope'><env:Body>" + "<foo>baz</foo></env:Body></env:Envelope>";
 
         Object out2 = template.requestBodyAndHeader("direct:in", expectedBody2, "foo", "bar");
         assertEquals("baz", out2);
@@ -67,18 +62,18 @@ public class BeanOgnMethodWithXPathInjectionTest extends ContextTestSupport {
     }
 
     @Override
-    protected Context createJndiContext() throws Exception {
-        JndiContext answer = new JndiContext();
+    protected Registry createRegistry() throws Exception {
+        Registry answer = super.createRegistry();
         answer.bind("myBean", myBean);
         answer.bind("myOtherBean", myOtherBean);
         return answer;
     }
 
+    @Override
     protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() {
-                from("direct:in")
-                    .transform().method("myOtherBean", "doSomething.read");
+                from("direct:in").transform().method("myOtherBean", "doSomething.read");
             }
         };
     }

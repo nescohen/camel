@@ -20,10 +20,10 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.NamedNode;
 import org.apache.camel.Processor;
+import org.apache.camel.Route;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
 import org.apache.camel.spi.Policy;
-import org.apache.camel.spi.RouteContext;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 public class PolicyPerRouteTest extends ContextTestSupport {
@@ -36,7 +36,7 @@ public class PolicyPerRouteTest extends ContextTestSupport {
         getMockEndpoint("mock:bar").expectedHeaderReceived("foo", "was wrapped");
         getMockEndpoint("mock:result").expectedMessageCount(1);
         getMockEndpoint("mock:result").expectedHeaderReceived("foo", "was wrapped");
-        
+
         getMockEndpoint("mock:response").expectedMessageCount(1);
         getMockEndpoint("mock:response").expectedHeaderReceived("foo", "policy finished execution");
         template.sendBody("direct:send", "Hello World");
@@ -49,8 +49,8 @@ public class PolicyPerRouteTest extends ContextTestSupport {
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("foo", new MyPolicy("foo"));
         return jndi;
     }
@@ -63,15 +63,10 @@ public class PolicyPerRouteTest extends ContextTestSupport {
                 // START SNIPPET: e1
                 from("direct:start")
                     // wraps the entire route in the same policy
-                    .policy("foo")
-                        .to("mock:foo")
-                        .to("mock:bar")
-                        .to("mock:result");
+                    .policy("foo").to("mock:foo").to("mock:bar").to("mock:result");
                 // END SNIPPET: e1
-                
-                from("direct:send")
-                    .to("direct:start")
-                    .to("mock:response");
+
+                from("direct:send").to("direct:start").to("mock:response");
             }
         };
     }
@@ -85,12 +80,13 @@ public class PolicyPerRouteTest extends ContextTestSupport {
             this.name = name;
         }
 
-        public void beforeWrap(RouteContext routeContext,
-                               NamedNode definition) {
+        @Override
+        public void beforeWrap(Route route, NamedNode definition) {
             // no need to modify the route
         }
 
-        public Processor wrap(RouteContext routeContext, final Processor processor) {
+        @Override
+        public Processor wrap(Route route, final Processor processor) {
             return new Processor() {
                 public void process(Exchange exchange) throws Exception {
                     invoked++;

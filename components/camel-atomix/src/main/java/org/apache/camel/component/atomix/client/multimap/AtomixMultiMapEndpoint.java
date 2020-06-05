@@ -16,23 +16,22 @@
  */
 package org.apache.camel.component.atomix.client.multimap;
 
-
 import org.apache.camel.Producer;
 import org.apache.camel.component.atomix.client.AbstractAtomixClientEndpoint;
 import org.apache.camel.spi.UriEndpoint;
 import org.apache.camel.spi.UriParam;
 
 /**
- * The atomix-multimap component is used to access Atomix's <a href="http://atomix.io/atomix/docs/collections/#distributedmultimap">distributed multi map</a>.
+ * Access Atomix's <a href="http://atomix.io/atomix/docs/collections/#distributedmultimap">distributed multi map</a>.
  */
 @UriEndpoint(
     firstVersion = "2.20.0",
     scheme = "atomix-multimap",
     title = "Atomix MultiMap",
     syntax = "atomix-multimap:resourceName",
-    consumerOnly = true,
+    producerOnly = true,
     label = "clustering")
-final class AtomixMultiMapEndpoint extends AbstractAtomixClientEndpoint<AtomixMultiMapComponent, AtomixMultiMapConfiguration> {
+public final class AtomixMultiMapEndpoint extends AbstractAtomixClientEndpoint<AtomixMultiMapComponent, AtomixMultiMapConfiguration> {
     @UriParam
     private AtomixMultiMapConfiguration configuration;
 

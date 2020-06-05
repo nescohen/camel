@@ -20,7 +20,7 @@ import org.apache.camel.CamelExecutionException;
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.RuntimeExchangeException;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.JndiRegistry;
+import org.apache.camel.spi.Registry;
 import org.junit.Test;
 
 /**
@@ -46,8 +46,8 @@ public class BeanParameterNoBeanBindingTest extends ContextTestSupport {
     }
 
     @Override
-    protected JndiRegistry createRegistry() throws Exception {
-        JndiRegistry jndi = super.createRegistry();
+    protected Registry createRegistry() throws Exception {
+        Registry jndi = super.createRegistry();
         jndi.bind("foo", new MyBean());
         return jndi;
     }
@@ -57,9 +57,7 @@ public class BeanParameterNoBeanBindingTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:a")
-                    .to("bean:foo?method=echo")
-                    .to("mock:result");
+                from("direct:a").to("bean:foo?method=echo").to("mock:result");
             }
         };
     }

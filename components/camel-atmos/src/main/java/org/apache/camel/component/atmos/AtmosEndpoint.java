@@ -16,6 +16,7 @@
  */
 package org.apache.camel.component.atmos;
 
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
@@ -34,9 +35,9 @@ import org.apache.camel.support.DefaultEndpoint;
 import static org.apache.camel.component.atmos.util.AtmosConstants.POLL_CONSUMER_DELAY;
 
 /**
- * The atmos component is used for integrating with EMC's Atomos Storage.
+ * Integract with EMC's ViPR object data services using the Atmos Client.
  */
-@UriEndpoint(firstVersion = "2.15.0", scheme = "atmos", title = "Atmos", syntax = "atmos:name/operation", label = "file,cloud")
+@UriEndpoint(firstVersion = "2.15.0", scheme = "atmos", title = "Atmos", syntax = "atmos:name/operation", category = {Category.CLOUD, Category.FILE})
 public class AtmosEndpoint extends DefaultEndpoint {
 
     @UriParam
@@ -62,11 +63,9 @@ public class AtmosEndpoint extends DefaultEndpoint {
      * Create one of the camel producer available based on the configuration
      *
      * @return the camel producer
-     * @throws Exception
      */
+    @Override
     public Producer createProducer() throws Exception {
-        log.debug("resolve producer atmos endpoint {{}}", configuration.getOperation());
-        log.debug("resolve producer atmos attached client: {}", configuration.getClient());
         if (configuration.getOperation() == AtmosOperation.put) {
             return new AtmosPutProducer(this, configuration);
         } else if (this.configuration.getOperation() == AtmosOperation.del) {
@@ -85,16 +84,14 @@ public class AtmosEndpoint extends DefaultEndpoint {
      *
      * @param processor the given processor
      * @return the camel consumer
-     * @throws Exception
      */
+    @Override
     public Consumer createConsumer(Processor processor) throws Exception {
-        log.debug("resolve consumer atmos endpoint {{}}", configuration.getOperation());
-        log.debug("resolve consumer atmos attached client:{}", configuration.getClient());
-
         AtmosScheduledPollConsumer consumer;
         if (this.configuration.getOperation() == AtmosOperation.get) {
             consumer = new AtmosScheduledPollGetConsumer(this, processor, configuration);
             consumer.setDelay(POLL_CONSUMER_DELAY);
+            configureConsumer(consumer);
             return consumer;
         } else {
             throw new AtmosException("operation specified is not valid for consumer!");

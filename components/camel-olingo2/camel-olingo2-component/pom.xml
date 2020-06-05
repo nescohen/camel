@@ -17,15 +17,14 @@
     limitations under the License.
 
 -->
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.apache.camel</groupId>
         <artifactId>camel-olingo2-parent</artifactId>
-        <version>3.0.0-SNAPSHOT</version>
+        <version>3.4.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>camel-olingo2</artifactId>
@@ -40,7 +39,7 @@
         <outPackage>org.apache.camel.component.olingo2.internal</outPackage>
 
         <camel.osgi.private.pkg>${outPackage}</camel.osgi.private.pkg>
-        <maven.exe.file.extension/>
+        <maven.exe.file.extension />
     </properties>
 
     <dependencies>
@@ -53,17 +52,9 @@
             <artifactId>camel-olingo2-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>commons-lang</groupId>
-            <artifactId>commons-lang</artifactId>
-            <version>${commons-lang-version}</version>
-        </dependency>
-
-        <!-- Camel annotations in provided scope to avoid compile errors in IDEs -->
-        <dependency>
-            <groupId>org.apache.camel</groupId>
-            <artifactId>spi-annotations</artifactId>
-            <version>${project.version}</version>
-            <scope>provided</scope>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${commons-lang3-version}</version>
         </dependency>
 
         <!-- Component API javadoc in provided scope to read API signatures -->
@@ -76,16 +67,6 @@
         </dependency>
 
         <!-- logging -->
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j-impl</artifactId>
@@ -119,6 +100,12 @@
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-frontend-jaxrs</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>mockwebserver</artifactId>
+            <version>${okclient-version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -171,9 +158,9 @@
                         <configuration>
                             <apis>
                                 <api>
-                                    <apiName/>
+                                    <apiName />
                                     <proxyClass>org.apache.camel.component.olingo2.api.Olingo2App</proxyClass>
-                                    <fromSignatureFile>src/signatures/olingo-api-signature.txt</fromSignatureFile>
+                                    <fromSignatureFile>${basedir}/src/signatures/olingo-api-signature.txt</fromSignatureFile>
                                     <extraOptions>
                                         <extraOption>
                                             <name>keyPredicate</name>
@@ -368,6 +355,18 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <id>fastinstall</id>
+            <activation>
+            <activeByDefault>true</activeByDefault>
+                <property>
+                    <name>skipTests</name>
+                </property>
+            </activation>
+            <properties>
+                <invoker.skip>true</invoker.skip>
+            </properties>
         </profile>
     </profiles>
 </project>

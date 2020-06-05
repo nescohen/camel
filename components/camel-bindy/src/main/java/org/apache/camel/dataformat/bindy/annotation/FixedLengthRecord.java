@@ -64,7 +64,7 @@ public @interface FixedLengthRecord {
     char paddingChar() default ' ';
     
     /**
-     * The fixed length of the record. It means that the record will always be that long padded with {#paddingChar()}'s
+     * The fixed length of the record (number of characters). It means that the record will always be that long padded with {#paddingChar()}'s
      * @return the length of the record.
      */
     int length() default 0;
@@ -98,4 +98,9 @@ public @interface FixedLengthRecord {
      * Indicates whether too short lines will be ignored
      */
     boolean ignoreMissingChars() default false;
+    
+    /**
+     * Indicates how chars are counted
+     */
+    boolean countGrapheme() default false;
 }

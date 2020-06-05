@@ -23,7 +23,8 @@ import org.apache.camel.builder.RouteBuilder;
  */
 public class AtomEndpointTest extends AtomPollingConsumerTest {
 
-    protected RouteBuilder createRouteBuilder() throws Exception {
+    @Override
+    protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             public void configure() throws Exception {
                 AtomEndpoint atom = new AtomEndpoint();

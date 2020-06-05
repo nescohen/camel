@@ -54,7 +54,7 @@ public class IrcProducerTest {
         channels.add(new IrcChannel("#chan1", null));
         channels.add(new IrcChannel("#chan2", "chan2key"));
 
-        when(configuration.getChannels()).thenReturn(channels);
+        when(configuration.getChannelList()).thenReturn(channels);
         when(endpoint.getConfiguration()).thenReturn(configuration);
 
         producer = new IrcProducer(endpoint, connection);
@@ -83,7 +83,7 @@ public class IrcProducerTest {
         when(connection.isConnected()).thenReturn(true);
         when(exchange.getIn()).thenReturn(message);
         when(message.getBody(String.class)).thenReturn("PART foo");
-        when(message.getHeader(IrcConstants.IRC_TARGET, String.class)).thenReturn("bottest");
+        when(message.getHeader(IrcConstants.IRC_SEND_TO, String.class)).thenReturn("bottest");
 
         producer.process(exchange);
         verify(connection).send("PART foo");
@@ -93,7 +93,7 @@ public class IrcProducerTest {
         producer.process(exchange);
         verify(connection).doPrivmsg("bottest", "foo");
 
-        when(message.getHeader(IrcConstants.IRC_TARGET, String.class)).thenReturn(null);
+        when(message.getHeader(IrcConstants.IRC_SEND_TO, String.class)).thenReturn(null);
 
         producer.process(exchange);
         verify(connection).doPrivmsg("#chan1", "foo");

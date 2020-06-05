@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedExchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.reactive.streams.ReactiveStreamsCamelSubscriber;
 import org.apache.camel.component.reactive.streams.ReactiveStreamsConsumer;
@@ -38,7 +39,6 @@ import org.apache.camel.support.service.ServiceSupport;
 import org.apache.camel.util.function.Suppliers;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -107,6 +107,7 @@ final class ReactorStreamsService extends ServiceSupport implements CamelReactiv
         return subscribers.computeIfAbsent(name, n -> new ReactiveStreamsCamelSubscriber(name));
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public <T> Subscriber<T> streamSubscriber(String name, Class<T> type) {
         final Subscriber<Exchange> subscriber = streamSubscriber(name);
@@ -115,7 +116,7 @@ final class ReactorStreamsService extends ServiceSupport implements CamelReactiv
             return Subscriber.class.cast(subscriber);
         }
 
-        return new ConvertingSubscriber<>(subscriber, context);
+        return new ConvertingSubscriber<>(subscriber, context, type);
     }
 
     @Override
@@ -190,7 +191,7 @@ final class ReactorStreamsService extends ServiceSupport implements CamelReactiv
 
     @Override
     public <T> Subscriber<T> subscriber(String uri, Class<T> type) {
-        return new ConvertingSubscriber<>(subscriber(uri), context);
+        return new ConvertingSubscriber<>(subscriber(uri), context, type);
     }
 
     @Override
@@ -314,7 +315,7 @@ final class ReactorStreamsService extends ServiceSupport implements CamelReactiv
         }
 
         return Mono.<Exchange>create(
-            sink -> data.addOnCompletion(new Synchronization() {
+            sink -> data.adapt(ExtendedExchange.class).addOnCompletion(new Synchronization() {
                 @Override
                 public void onComplete(Exchange exchange) {
                     sink.success(exchange);

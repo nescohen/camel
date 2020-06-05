@@ -52,9 +52,7 @@ public class CustomUnitOfWorkFactoryTest extends ContextTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:start")
-                    .to("log:foo")
-                    .to("mock:result");
+                from("direct:start").to("log:foo").to("mock:result");
             }
         };
     }
@@ -77,6 +75,11 @@ public class CustomUnitOfWorkFactoryTest extends ContextTestSupport {
         public AsyncCallback beforeProcess(Processor processor, Exchange exchange, AsyncCallback callback) {
             exchange.getIn().setHeader("before", "I was here");
             return callback;
+        }
+
+        @Override
+        public boolean isBeforeAfterProcess() {
+            return true;
         }
     }
 }

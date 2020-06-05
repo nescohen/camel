@@ -19,6 +19,7 @@ package org.apache.camel.model;
 import java.io.InputStream;
 
 import org.apache.camel.ContextTestSupport;
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.Route;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.junit.Test;
@@ -28,7 +29,9 @@ public class LoadRouteFromXmlWithNamespaceTest extends ContextTestSupport {
     @Test
     public void testLoadRouteWithNamespaceFromXml() throws Exception {
         InputStream is = getClass().getResourceAsStream("routeWithNamespace.xml");
-        context.addRouteDefinitions(is);
+        ExtendedCamelContext ecc = context.adapt(ExtendedCamelContext.class);
+        RoutesDefinition routes = (RoutesDefinition) ecc.getXMLRoutesDefinitionLoader().loadRoutesDefinition(ecc, is);
+        context.addRouteDefinitions(routes.getRoutes());
         context.start();
 
         Route routeWithNamespace = context.getRoute("routeWithNamespace");
@@ -37,7 +40,8 @@ public class LoadRouteFromXmlWithNamespaceTest extends ContextTestSupport {
         MockEndpoint bar = context.getEndpoint("mock:bar", MockEndpoint.class);
         bar.expectedBodiesReceived("Hello from foo");
 
-        // Make sure loaded route can process a XML payload with namespaces attached
+        // Make sure loaded route can process a XML payload with namespaces
+        // attached
         context.createProducerTemplate().sendBody("direct:foo", "<?xml version='1.0'?><foo xmlns='http://foo'><bar>cheese</bar></foo>");
 
         bar.assertIsSatisfied();

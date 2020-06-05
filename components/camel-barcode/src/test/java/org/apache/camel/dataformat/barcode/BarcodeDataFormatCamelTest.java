@@ -20,11 +20,10 @@ import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 import com.google.zxing.BarcodeFormat;
-
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.spi.DataFormat;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +34,7 @@ public class BarcodeDataFormatCamelTest extends BarcodeTestBase {
     
     private static final Logger LOG = LoggerFactory.getLogger(BarcodeDataFormatCamelTest.class);
     
-    @Before
+    @BeforeEach
     @Override
     public void setUp() throws Exception {
         super.setUp();
@@ -60,7 +59,7 @@ public class BarcodeDataFormatCamelTest extends BarcodeTestBase {
      * @throws Exception 
      */
     @Test
-    public void testDefaultQRCode() throws Exception {
+    void testDefaultQRCode() throws Exception {
         out.reset();
         out.expectedBodiesReceived(MSG);
         image.expectedMessageCount(1);
@@ -77,7 +76,7 @@ public class BarcodeDataFormatCamelTest extends BarcodeTestBase {
      * @throws Exception 
      */
     @Test
-    public void testQRCodeWithModifiedSize() throws Exception {
+    void testQRCodeWithModifiedSize() throws Exception {
         out.reset();
         out.expectedBodiesReceived(MSG);
         image.expectedMessageCount(1);
@@ -94,7 +93,7 @@ public class BarcodeDataFormatCamelTest extends BarcodeTestBase {
      * @throws Exception 
      */
     @Test
-    public void testQRCodeWithJPEGType() throws Exception {
+    void testQRCodeWithJPEGType() throws Exception {
         out.reset();
         out.expectedBodiesReceived(MSG);
         image.expectedMessageCount(1);
@@ -111,7 +110,7 @@ public class BarcodeDataFormatCamelTest extends BarcodeTestBase {
      * @throws Exception 
      */
     @Test
-    public void testPDF417CodeWidthModifiedSizeAndImageType() throws Exception {
+    void testPDF417CodeWidthModifiedSizeAndImageType() throws Exception {
         out.reset();
         out.expectedBodiesReceived(MSG);
         image.expectedMessageCount(1);
@@ -129,7 +128,7 @@ public class BarcodeDataFormatCamelTest extends BarcodeTestBase {
      * @see CAMEL-7681
      */
     @Test
-    public void testAZTECWidthModifiedSizeAndImageType() throws Exception {
+    void testAZTECWidthModifiedSizeAndImageType() throws Exception {
         out.reset();
         out.expectedBodiesReceived(MSG);
         image.expectedMessageCount(1);
@@ -141,7 +140,7 @@ public class BarcodeDataFormatCamelTest extends BarcodeTestBase {
     }
 
     @Override
-    protected RouteBuilder createRouteBuilder() throws Exception {
+    protected RouteBuilder createRouteBuilder() {
         return new RouteBuilder() {
             @Override
             public void configure() {

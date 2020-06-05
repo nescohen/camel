@@ -20,8 +20,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import org.apache.camel.ContextTestSupport;
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.model.ModelHelper;
 import org.apache.camel.support.builder.Namespaces;
 import org.junit.Test;
 
@@ -32,7 +32,8 @@ public class DumpModelAsXmlNamespaceTest extends ContextTestSupport {
 
     @Test
     public void testDumpModelAsXml() throws Exception {
-        String xml = ModelHelper.dumpModelAsXml(context, context.getRouteDefinition("myRoute"));
+        ExtendedCamelContext ecc = context.adapt(ExtendedCamelContext.class);
+        String xml = ecc.getModelToXMLDumper().dumpModelAsXml(context, context.getRouteDefinition("myRoute"));
         assertNotNull(xml);
 
         Document dom = context.getTypeConverter().convertTo(Document.class, xml);
@@ -56,10 +57,7 @@ public class DumpModelAsXmlNamespaceTest extends ContextTestSupport {
                 Namespaces foo = new Namespaces("foo", URL_FOO);
                 Namespaces bar = new Namespaces("bar", URL_BAR);
 
-                from("direct:start").routeId("myRoute")
-                    .choice()
-                        .when(xpath("/foo:customer", foo)).to("mock:foo")
-                        .when(xpath("/bar:customer", bar)).to("mock:bar");
+                from("direct:start").routeId("myRoute").choice().when(xpath("/foo:customer", foo)).to("mock:foo").when(xpath("/bar:customer", bar)).to("mock:bar");
             }
         };
     }

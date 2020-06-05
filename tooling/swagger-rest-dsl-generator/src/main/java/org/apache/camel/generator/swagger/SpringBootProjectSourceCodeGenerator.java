@@ -18,6 +18,7 @@ package org.apache.camel.generator.swagger;
 
 import java.io.IOException;
 import java.nio.file.Path;
+
 import javax.annotation.Generated;
 import javax.lang.model.element.Modifier;
 
@@ -91,7 +92,8 @@ public class SpringBootProjectSourceCodeGenerator {
 
         forward.addCode("try {\n");
         forward.addCode("    String path = request.getRequestURI();\n");
-        forward.addCode("    request.getServletContext().getRequestDispatcher(\"/camel/\" + path).forward(request, response);\n");
+        forward.addCode("    String camelPrefix = (path != null && path.startsWith(\"/\")) ? \"/camel\" : \"/camel/\";\n");
+        forward.addCode("    request.getServletContext().getRequestDispatcher(camelPrefix + path).forward(request, response);\n");
         forward.addCode("} catch (Exception e) {\n");
         forward.addCode("    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);\n");
         forward.addCode("}\n");
